@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useSqlDump } from '@/hooks/use-sql-dump'
 
 // Synthetic SQL dump fixture — no real production data
@@ -40,7 +40,7 @@ describe('useSqlDump', () => {
     vi.clearAllMocks()
   })
 
-  it('loads a valid SQL dump and reaches the database step', () => {
+  it('loads a valid SQL dump and auto-selects its only database', () => {
     const { result } = renderHook(() => useSqlDump())
 
     expect(result.current.step).toBe('file')
@@ -54,7 +54,9 @@ describe('useSqlDump', () => {
     expect(ok).toBe(true)
     expect(result.current.fileName).toBe('dump.sql')
     expect(result.current.error).toBeNull()
-    expect(result.current.step).toBe('database')
+    // A dump with exactly one database has nothing to choose between.
+    expect(result.current.selectedDatabase).toBe('shop_db')
+    expect(result.current.step).toBe('tables')
     expect(result.current.dump?.databases).toHaveLength(1)
     expect(result.current.dump?.databases[0].name).toBe('shop_db')
     expect(result.current.dump?.databases[0].tables).toHaveLength(2)
@@ -76,8 +78,7 @@ describe('useSqlDump', () => {
     expect(shop.tables[0].insertStatements[0]).toContain("'alice@example.com'")
   })
 
-  it('sets dump to null and returns false from loadFile when parsing throws', () => {
-    // Mock parseSqlDump to throw, simulating a genuinely unparseable dump
+  it('rejects an empty file instead of stalling on an empty dump', () => {
     const { result } = renderHook(() => useSqlDump())
 
     let ok = true
@@ -85,11 +86,41 @@ describe('useSqlDump', () => {
       ok = result.current.loadFile('', 'bad.sql')
     })
 
-    // With real parser, empty input yields a valid (empty) dump, not an error.
-    // This asserts current real behavior rather than a synthetic throw.
-    expect(ok).toBe(true)
-    expect(result.current.error).toBeNull()
-    expect(result.current.dump?.databases).toEqual([])
+    expect(ok).toBe(false)
+    expect(result.current.dump).toBeNull()
+    expect(result.current.step).toBe('file')
+    expect(result.current.error).toContain('empty')
+  })
+
+  it('rejects a file with no recognisable database or table', () => {
+    const { result } = renderHook(() => useSqlDump())
+
+    let ok = true
+    act(() => {
+      ok = result.current.loadFile('hello world, not a dump at all', 'notes.txt')
+    })
+
+    expect(ok).toBe(false)
+    expect(result.current.dump).toBeNull()
+    expect(result.current.error).toContain('No databases or tables were found')
+  })
+
+  it('recovers a database name from a dump that declares none', () => {
+    const { result } = renderHook(() => useSqlDump())
+
+    const singleDbDump = [
+      '-- MySQL dump 10.13',
+      '-- Host: localhost    Database: shop',
+      'CREATE TABLE `users` (`id` int NOT NULL, PRIMARY KEY (`id`));',
+      "INSERT INTO `users` VALUES (1);",
+    ].join('\n')
+
+    act(() => {
+      result.current.loadFile(singleDbDump, 'shop.sql')
+    })
+
+    expect(result.current.dump?.databases.map((d) => d.name)).toEqual(['shop'])
+    expect(result.current.dump?.databases[0].tables.map((t) => t.name)).toEqual(['users'])
   })
 
   it('selects a database and exposes it', () => {
@@ -98,7 +129,6 @@ describe('useSqlDump', () => {
     act(() => {
       result.current.loadFile(SAMPLE_SQL, 'dump.sql')
     })
-    expect(result.current.step).toBe('database')
 
     act(() => {
       result.current.selectDatabase('shop_db')
@@ -123,7 +153,7 @@ describe('useSqlDump', () => {
       result.current.toggleTable('users')
     })
     expect(result.current.selectedTables).toEqual(['users'])
-    expect(result.current.step).toBe('download')
+    expect(result.current.step).toBe('export')
     expect(result.current.someTablesSelected).toBe(true)
     expect(result.current.allTablesSelected).toBe(false)
 
@@ -160,7 +190,7 @@ describe('useSqlDump', () => {
     expect(result.current.selectedTables).toEqual([])
   })
 
-  it('extracts the selected table producing valid SQL', () => {
+  it('converts the selected table into a downloadable SQL archive', async () => {
     const { result } = renderHook(() => useSqlDump())
 
     act(() => {
@@ -169,36 +199,20 @@ describe('useSqlDump', () => {
       result.current.toggleTable('users')
     })
 
-    let extractResult = null
     act(() => {
-      extractResult = result.current.extract()
+      result.current.convert()
     })
 
-    expect(extractResult).not.toBeNull()
-    expect(extractResult!.database).toBe('shop_db')
-    expect(extractResult!.tableCount).toBe(1)
-    expect(extractResult!.sql).toContain('CREATE TABLE `users`')
-    expect(extractResult!.sql).toContain("'alice@example.com'")
-    // Must not leak the other table
-    expect(extractResult!.sql).not.toContain('CREATE TABLE `orders`')
+    await waitFor(() => expect(result.current.status).toBe('done'))
+
+    expect(result.current.result).not.toBeNull()
+    expect(result.current.result!.filename).toBe('shop_db-export.zip')
+    expect(result.current.result!.tableCount).toBe(1)
+    expect(result.current.result!.files).toEqual(['shop_db.sql'])
+    expect(result.current.result!.bytes.byteLength).toBeGreaterThan(0)
   })
 
-  it('returns null from extract when no table is selected', () => {
-    const { result } = renderHook(() => useSqlDump())
-
-    expect(result.current.extract()).toBeNull()
-
-    act(() => {
-      result.current.loadFile(SAMPLE_SQL, 'dump.sql')
-    })
-    // Database selected but no tables
-    act(() => {
-      result.current.selectDatabase('shop_db')
-    })
-    expect(result.current.extract()).toBeNull()
-  })
-
-  it('round-trips: parse -> extract -> parse the output again', () => {
+  it('produces one CSV per table and a single workbook for xlsx', async () => {
     const { result } = renderHook(() => useSqlDump())
 
     act(() => {
@@ -207,29 +221,63 @@ describe('useSqlDump', () => {
     })
     act(() => {
       result.current.toggleAllTables()
+      result.current.selectFormat('csv')
     })
-
-    let extractResult = null
     act(() => {
-      extractResult = result.current.extract()
+      result.current.convert()
     })
-    expect(extractResult).not.toBeNull()
+    await waitFor(() => expect(result.current.status).toBe('done'))
+    expect(result.current.result!.files).toEqual(['users.csv', 'orders.csv'])
 
-    // Re-parse the extracted SQL to verify it is itself a valid dump
-    const { result: roundTrip } = renderHook(() => useSqlDump())
     act(() => {
-      roundTrip.current.loadFile(extractResult!.sql, 'extracted.sql')
+      result.current.selectFormat('xlsx')
+    })
+    // Changing the format must invalidate the previous archive.
+    expect(result.current.result).toBeNull()
+
+    act(() => {
+      result.current.convert()
+    })
+    await waitFor(() => expect(result.current.status).toBe('done'))
+    expect(result.current.result!.files).toEqual(['shop_db.xlsx'])
+  })
+
+  it('refuses to convert when no table is selected', () => {
+    const { result } = renderHook(() => useSqlDump())
+
+    act(() => {
+      result.current.loadFile(SAMPLE_SQL, 'dump.sql')
+      result.current.selectDatabase('shop_db')
     })
 
-    expect(roundTrip.current.dump?.databases).toHaveLength(1)
-    expect(roundTrip.current.dump?.databases[0].name).toBe('shop_db')
-    expect(roundTrip.current.dump?.databases[0].tables.map((t) => t.name)).toEqual([
-      'users',
-      'orders',
-    ])
-    // Data round-trips through extraction
-    const usersData = roundTrip.current.dump!.databases[0].tables[0]
-    expect(usersData.insertStatements[0]).toContain("'alice@example.com'")
+    act(() => {
+      result.current.convert()
+    })
+
+    expect(result.current.result).toBeNull()
+    expect(result.current.error).toBe('Select at least one table to export.')
+  })
+
+  it('clears a previous archive when the table selection changes', async () => {
+    const { result } = renderHook(() => useSqlDump())
+
+    act(() => {
+      result.current.loadFile(SAMPLE_SQL, 'dump.sql')
+      result.current.selectDatabase('shop_db')
+      result.current.toggleTable('users')
+    })
+    act(() => {
+      result.current.convert()
+    })
+    await waitFor(() => expect(result.current.status).toBe('done'))
+    expect(result.current.result).not.toBeNull()
+
+    act(() => {
+      result.current.toggleTable('orders')
+    })
+
+    expect(result.current.result).toBeNull()
+    expect(result.current.status).toBe('idle')
   })
 
   it('selecting a new database clears the previously selected tables', () => {
@@ -256,7 +304,7 @@ describe('useSqlDump', () => {
       result.current.selectDatabase('shop_db')
       result.current.toggleTable('users')
     })
-    expect(result.current.step).toBe('download')
+    expect(result.current.step).toBe('export')
 
     act(() => {
       result.current.reset()
