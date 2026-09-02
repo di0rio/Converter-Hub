@@ -1,3 +1,6 @@
+export { parseSqlDump } from './parser/index.js'
+export { extractDatabase } from './extractor/index.js'
+
 export type {
   SqlDump,
   Database,
