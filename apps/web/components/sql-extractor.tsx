@@ -4,6 +4,7 @@ import { useSqlDump } from '@/hooks/use-sql-dump'
 import { FileUpload } from '@/components/file-upload'
 import { DatabaseSelect } from '@/components/database-select'
 import { TableSelect } from '@/components/table-select'
+import { FormatSelect } from '@/components/format-select'
 import { DownloadStep } from '@/components/download-step'
 import { AlertCircle } from 'lucide-react'
 
@@ -14,17 +15,25 @@ export function SqlExtractor() {
     fileName,
     selectedDatabase,
     selectedTables,
+    exportFormat,
     database,
+    status,
+    result,
     error,
     allTablesSelected,
     someTablesSelected,
     loadFile,
+    reportFileError,
     selectDatabase,
     toggleTable,
     toggleAllTables,
-    extract,
+    selectFormat,
+    convert,
     reset,
   } = useSqlDump()
+
+  const showDatabases = dump != null && dump.databases.length > 0
+  const databaseHasTables = database != null && database.tables.length > 0
 
   return (
     <div className="w-full max-w-lg space-y-8">
@@ -48,9 +57,13 @@ export function SqlExtractor() {
       )}
 
       <div className="space-y-8">
-        <FileUpload onFile={loadFile} fileName={fileName || null} />
+        <FileUpload
+          onFile={loadFile}
+          onError={reportFileError}
+          fileName={fileName || null}
+        />
 
-        {step !== 'file' && dump && (
+        {showDatabases && (
           <DatabaseSelect
             databases={dump.databases}
             value={selectedDatabase}
@@ -58,7 +71,7 @@ export function SqlExtractor() {
           />
         )}
 
-        {step !== 'file' && step !== 'database' && database && (
+        {database && databaseHasTables && (
           <TableSelect
             database={database}
             selectedTables={selectedTables}
@@ -69,8 +82,24 @@ export function SqlExtractor() {
           />
         )}
 
-        {step === 'download' && (
-          <DownloadStep extract={extract} onReset={reset} />
+        {database && !databaseHasTables && (
+          <p className="text-sm text-muted-foreground">
+            No tables were found in {database.name}. Pick another database.
+          </p>
+        )}
+
+        {step === 'export' && (
+          <>
+            <FormatSelect value={exportFormat} onChange={selectFormat} />
+            <DownloadStep
+              status={status}
+              result={result}
+              tableCount={selectedTables.length}
+              onConvert={convert}
+              onReset={reset}
+              onError={reportFileError}
+            />
+          </>
         )}
       </div>
     </div>
