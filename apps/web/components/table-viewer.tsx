@@ -11,6 +11,11 @@ interface TableViewerProps {
   hideHeader?: boolean
   /** Height of the scroll viewport in px, for a resizable parent. Defaults to a fixed 320. */
   height?: number
+  /**
+   * Drop the viewer's own border and radius. For a parent that already draws
+   * the frame, such as a preview window, so the two do not double up.
+   */
+  bare?: boolean
 }
 
 const ROW_HEIGHT = 33
@@ -18,7 +23,12 @@ const VIEWPORT_HEIGHT = 320
 // Rows rendered above and below the viewport so fast scrolling stays filled.
 const OVERSCAN = 8
 
-export function TableViewer({ table, hideHeader = false, height }: TableViewerProps) {
+export function TableViewer({
+  table,
+  hideHeader = false,
+  height,
+  bare = false,
+}: TableViewerProps) {
   const [scrollTop, setScrollTop] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -37,8 +47,16 @@ export function TableViewer({ table, hideHeader = false, height }: TableViewerPr
   const padTop = first * ROW_HEIGHT
   const padBottom = Math.max(0, (total - last) * ROW_HEIGHT)
 
+  // A bare viewer fills the frame its parent already drew.
+  const frame = bare
+    ? 'no-scrollbar h-full overflow-auto'
+    : 'no-scrollbar overflow-auto rounded-lg border border-input'
+  const messageFrame = bare
+    ? 'px-4 py-6 text-center text-sm text-muted-foreground'
+    : 'rounded-lg border border-input px-4 py-6 text-center text-sm text-muted-foreground'
+
   return (
-    <section aria-labelledby="step-preview">
+    <section aria-labelledby="step-preview" className={bare ? 'h-full' : undefined}>
       {!hideHeader && (
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <Label id="step-preview" className="text-base font-semibold sm:text-sm">
@@ -53,19 +71,15 @@ export function TableViewer({ table, hideHeader = false, height }: TableViewerPr
       )}
 
       {data.columns.length === 0 ? (
-        <p className="rounded-lg border border-input px-4 py-6 text-center text-sm text-muted-foreground">
-          No columns could be read from this table.
-        </p>
+        <p className={messageFrame}>No columns could be read from this table.</p>
       ) : total === 0 ? (
-        <p className="rounded-lg border border-input px-4 py-6 text-center text-sm text-muted-foreground">
-          This table has no data rows.
-        </p>
+        <p className={messageFrame}>This table has no data rows.</p>
       ) : (
         <div
           ref={scrollRef}
           onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
-          className="no-scrollbar overflow-auto rounded-lg border border-input"
-          style={{ height: viewportHeight }}
+          className={frame}
+          style={bare ? undefined : { height: viewportHeight }}
         >
           <table className="w-max min-w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-background">
