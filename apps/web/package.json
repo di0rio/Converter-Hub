@@ -8,7 +8,7 @@
     "build": "bun run --filter @sql-extractor/core build && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "setup": "node scripts/ensure-react-symlinks.mjs",
     "test": "node scripts/ensure-react-symlinks.mjs && vitest run"
   },
