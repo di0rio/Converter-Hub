@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 
 const samplePath = resolve(
   import.meta.dirname,
-  '../../../examples/sample-mysql-dump.sql'
+  '../../../examples/mysql/sample.sql'
 )
 
 describe('integration: parse → extract', () => {
