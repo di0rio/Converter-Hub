@@ -7,6 +7,10 @@ import { Label } from '@/components/ui/label'
 
 interface TableViewerProps {
   table: Table
+  /** When embedding inside a panel that provides its own header, drop the built-in one. */
+  hideHeader?: boolean
+  /** Height of the scroll viewport in px, for a resizable parent. Defaults to a fixed 320. */
+  height?: number
 }
 
 const ROW_HEIGHT = 33
@@ -14,7 +18,7 @@ const VIEWPORT_HEIGHT = 320
 // Rows rendered above and below the viewport so fast scrolling stays filled.
 const OVERSCAN = 8
 
-export function TableViewer({ table }: TableViewerProps) {
+export function TableViewer({ table, hideHeader = false, height }: TableViewerProps) {
   const [scrollTop, setScrollTop] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -22,7 +26,8 @@ export function TableViewer({ table }: TableViewerProps) {
   const data = useMemo(() => toTabular(table), [table])
   const total = data.rows.length
 
-  const visibleCount = Math.ceil(VIEWPORT_HEIGHT / ROW_HEIGHT) + OVERSCAN * 2
+  const viewportHeight = height ?? VIEWPORT_HEIGHT
+  const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT) + OVERSCAN * 2
   const first = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN)
   const last = Math.min(total, first + visibleCount)
 
@@ -34,16 +39,18 @@ export function TableViewer({ table }: TableViewerProps) {
 
   return (
     <section aria-labelledby="step-preview">
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <Label id="step-preview" className="text-base font-semibold sm:text-sm">
-          Preview
-        </Label>
-        <span className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{table.name}</span>
-          {' · '}
-          {total.toLocaleString()} row{total === 1 ? '' : 's'}
-        </span>
-      </div>
+      {!hideHeader && (
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <Label id="step-preview" className="text-base font-semibold sm:text-sm">
+            Preview
+          </Label>
+          <span className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">{table.name}</span>
+            {' · '}
+            {total.toLocaleString()} row{total === 1 ? '' : 's'}
+          </span>
+        </div>
+      )}
 
       {data.columns.length === 0 ? (
         <p className="rounded-lg border border-input px-4 py-6 text-center text-sm text-muted-foreground">
@@ -58,7 +65,7 @@ export function TableViewer({ table }: TableViewerProps) {
           ref={scrollRef}
           onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
           className="no-scrollbar overflow-auto rounded-lg border border-input"
-          style={{ maxHeight: VIEWPORT_HEIGHT }}
+          style={{ height: viewportHeight }}
         >
           <table className="w-max min-w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-background">

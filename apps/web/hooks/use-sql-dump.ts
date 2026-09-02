@@ -105,16 +105,11 @@ export function useSqlDump() {
   const toggleTable = useCallback(
     (tableName: string) => {
       clearResult()
-      setSelectedTables((prev) => {
-        const next = prev.includes(tableName)
+      setSelectedTables((prev) =>
+        prev.includes(tableName)
           ? prev.filter((t) => t !== tableName)
-          : [...prev, tableName]
-
-        // Preview follows the selection: the table just ticked, or whatever
-        // is still selected once one is unticked.
-        setPreviewTableName(next.includes(tableName) ? tableName : (next[0] ?? ''))
-        return next
-      })
+          : [...prev, tableName],
+      )
     },
     [clearResult],
   )
@@ -123,11 +118,7 @@ export function useSqlDump() {
     if (!database) return
     const all = database.tables.map((t) => t.name)
     clearResult()
-    setSelectedTables((prev) => {
-      const next = prev.length === all.length ? [] : all
-      setPreviewTableName(next[0] ?? '')
-      return next
-    })
+    setSelectedTables((prev) => (prev.length === all.length ? [] : all))
   }, [database, clearResult])
 
   const selectFormat = useCallback(

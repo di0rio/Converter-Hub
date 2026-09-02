@@ -15,7 +15,6 @@ interface TableSelectProps {
   previewTableName: string
   onToggle: (tableName: string) => void
   onToggleAll: () => void
-  onPreview: (tableName: string) => void
 }
 
 export function TableSelect({
@@ -26,7 +25,6 @@ export function TableSelect({
   previewTableName,
   onToggle,
   onToggleAll,
-  onPreview,
 }: TableSelectProps) {
   // Counting walks every INSERT, so do it once per database, not per render.
   const rowCounts = useMemo(() => {
@@ -66,6 +64,10 @@ export function TableSelect({
 
         <div className="my-1 h-px bg-border" />
 
+        <span className="px-1 text-xs text-muted-foreground">
+          Drag a table onto the preview to inspect it.
+        </span>
+
         {database.tables.map((table) => {
           const rows = rowCounts.get(table.name) ?? 0
           const isPreviewed = previewTableName === table.name
@@ -73,8 +75,22 @@ export function TableSelect({
           return (
             <div
               key={table.name}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.setData('text/plain', table.name)
+                event.dataTransfer.effectAllowed = 'copy'
+                const ghost = document.createElement('div')
+                ghost.textContent = table.name
+                ghost.style.cssText =
+                  'padding:6px 10px;border-radius:8px;border:1px solid rgba(128,128,128,.4);' +
+                  'background:var(--background);color:var(--foreground);font-size:13px;' +
+                  'font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.15);white-space:nowrap'
+                document.body.appendChild(ghost)
+                event.dataTransfer.setDragImage(ghost, 12, 12)
+                requestAnimationFrame(() => ghost.remove())
+              }}
               className={
-                'flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ' +
+                'group flex cursor-grab items-center gap-3 rounded-lg border px-3 py-2 transition-colors active:cursor-grabbing ' +
                 (isPreviewed ? 'border-input bg-accent/40' : 'border-transparent hover:bg-accent/50')
               }
             >
@@ -87,15 +103,9 @@ export function TableSelect({
                 <span className="text-sm">{table.name}</span>
               </label>
 
-              <button
-                type="button"
-                onClick={() => onPreview(table.name)}
-                aria-pressed={isPreviewed}
-                className="shrink-0 rounded px-1 text-xs text-muted-foreground tabular-nums transition-colors hover:text-foreground"
-                title={'Preview ' + table.name}
-              >
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                 {rows.toLocaleString()} row{rows === 1 ? '' : 's'}
-              </button>
+              </span>
             </div>
           )
         })}
