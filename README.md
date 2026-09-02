@@ -115,18 +115,31 @@ Open [http://localhost:3000](http://localhost:3000), upload a `.sql` file, selec
 
 ### CLI
 
+Build first (`bun run build`), then run the CLI from its build output:
+
 ```bash
 # Extract all tables from a specific database
-bun run --filter sql-extractor dev -- dump.sql -d store_db -a -o output.sql
+node apps/cli/dist/index.js dump.sql -d store_db -a -o output.sql
+```
 
-# Read the file as a specific engine instead of detecting it
-bun run --filter sql-extractor dev -- dump.sql -f postgresql -d public -a -o output.sql
-
+```bash
 # Extract specific tables
-bun run --filter sql-extractor dev -- dump.sql -d store_db -t customers,orders -o output.sql
+node apps/cli/dist/index.js dump.sql -d store_db -t customers,orders -o output.sql
+```
 
-# Interactive mode (prompts for database and table selection)
-bun run --filter sql-extractor dev -- dump.sql
+```bash
+# A PostgreSQL dump: pick a schema rather than a database
+node apps/cli/dist/index.js dump.sql -d public -a -o output.sql
+```
+
+```bash
+# Read the file as a named engine instead of detecting it
+node apps/cli/dist/index.js dump.sql -f postgresql -d public -a -o output.sql
+```
+
+```bash
+# Interactive mode (prompts for the database or schema, then the tables)
+node apps/cli/dist/index.js dump.sql
 ```
 
 ### Build All Packages
