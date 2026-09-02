@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { unzipSync, strFromU8 } from 'fflate'
-import { parseSqlDump } from '../src/parser/index.js'
+import { parseDump } from '../src/parser/index.js'
 import { toTabular, extractColumns } from '../src/tabular/index.js'
 import { toCsv, toXlsx, createZip, generateExport } from '../src/generator/index.js'
 
@@ -26,12 +26,12 @@ const DUMP = [
   "INSERT INTO `orders` (`id`, `code`) VALUES (1,'007'),(2,'12.50');",
 ].join('\n')
 
-const dump = parseSqlDump(DUMP)
+const dump = parseDump(DUMP)
 const shop = dump.databases[0]
 
 describe('parser: dumps without CREATE DATABASE', () => {
   it('recovers the database name from the mysqldump header', () => {
-    const parsed = parseSqlDump(
+    const parsed = parseDump(
       [
         '-- Host: localhost    Database: inventory',
         'CREATE TABLE `parts` (`id` int NOT NULL, PRIMARY KEY (`id`));',
@@ -44,19 +44,19 @@ describe('parser: dumps without CREATE DATABASE', () => {
   })
 
   it('falls back to a generic name when the header is absent', () => {
-    const parsed = parseSqlDump('CREATE TABLE `t` (`id` int NOT NULL);')
+    const parsed = parseDump('CREATE TABLE `t` (`id` int NOT NULL);')
     expect(parsed.databases[0].name).toBe('database')
   })
 
   it('attaches orphan INSERT statements to an implicit database', () => {
-    const parsed = parseSqlDump("INSERT INTO `logs` VALUES (1,'x');")
+    const parsed = parseDump("INSERT INTO `logs` VALUES (1,'x');")
     expect(parsed.databases[0].tables.map((t) => t.name)).toEqual(['logs'])
   })
 })
 
 describe('tabular', () => {
   it('reads column names and skips constraint clauses', () => {
-    expect(extractColumns(shop.tables[0].createStatement)).toEqual(['id', 'name', 'note'])
+    expect(extractColumns(shop.tables[0])).toEqual(['id', 'name', 'note'])
   })
 
   it('decodes NULL, escaped quotes and escape sequences', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { parseSqlDump } from '@sql-extractor/core'
+import { parseDump } from '@sql-extractor/core'
 import { FloatingPreview } from '@/components/floating-preview'
 
 const DUMP = [
@@ -9,7 +9,7 @@ const DUMP = [
   'CREATE TABLE `orders` (`id` int NOT NULL);',
 ].join('\n')
 
-const database = parseSqlDump(DUMP).databases[0]
+const database = parseDump(DUMP).databases[0]
 const users = database.tables[0]
 const orders = database.tables[1]
 

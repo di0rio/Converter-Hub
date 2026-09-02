@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { parseSqlDump } from '../src/parser/index.js'
+import { parseDump } from '../src/parser/index.js'
 import { countRows, toTabular } from '../src/tabular/index.js'
 import type { Table } from '../src/types/index.js'
 
 function tableFrom(sql: string, index = 0): Table {
-  return parseSqlDump(sql).databases[0].tables[index]
+  return parseDump(sql).databases[0].tables[index]
 }
 
 const CREATE = 'CREATE TABLE `t` (`id` int NOT NULL, `name` varchar(50));'
@@ -12,7 +12,7 @@ const CREATE = 'CREATE TABLE `t` (`id` int NOT NULL, `name` varchar(50));'
 describe('countRows', () => {
   it('counts value tuples, not statements', () => {
     const table = tableFrom(CREATE + "INSERT INTO `t` VALUES (1,'a'),(2,'b'),(3,'c');")
-    expect(table.insertStatements).toHaveLength(1)
+    expect(table.dataStatements).toHaveLength(1)
     expect(countRows(table)).toBe(3)
   })
 
@@ -22,7 +22,7 @@ describe('countRows', () => {
         "INSERT INTO `t` VALUES (1,'a'),(2,'b'),(3,'c');" +
         "INSERT INTO `t` VALUES (4,'d'),(5,'e');",
     )
-    expect(table.insertStatements).toHaveLength(2)
+    expect(table.dataStatements).toHaveLength(2)
     expect(countRows(table)).toBe(5)
   })
 

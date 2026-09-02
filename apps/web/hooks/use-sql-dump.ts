@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { parseSqlDump, generateExport } from '@sql-extractor/core'
+import { parseDump, generateExport, UnsupportedFormatError } from '@sql-extractor/core'
 import type { SqlDump, ExportFormat, ExportResult } from '@sql-extractor/core'
 
 export type Step = 'file' | 'database' | 'tables' | 'export'
@@ -52,26 +52,31 @@ export function useSqlDump() {
       if (content.trim().length === 0) {
         setDump(null)
         setFileName('')
-        setError('That file is empty. Choose a MySQL or MariaDB dump.')
+        setError('That file is empty. Choose a database dump.')
         return false
       }
 
+      // The core names the source engine from the dump's own markers and
+      // refuses anything it cannot place. Its message is safe to show as-is:
+      // it carries no SQL, no paths and nothing about the parser.
       let parsed: SqlDump
       try {
-        parsed = parseSqlDump(content)
-      } catch {
+        parsed = parseDump(content)
+      } catch (err) {
         setDump(null)
         setFileName('')
-        setError('Unable to read this file as a MySQL or MariaDB dump.')
+        setError(
+          err instanceof UnsupportedFormatError
+            ? 'Unsupported database format.'
+            : 'That file could not be read as a database dump.',
+        )
         return false
       }
 
       if (parsed.databases.length === 0) {
         setDump(null)
         setFileName('')
-        setError(
-          'No databases or tables were found. This does not look like a MySQL or MariaDB dump.',
-        )
+        setError('No databases or tables were found in this dump.')
         return false
       }
 

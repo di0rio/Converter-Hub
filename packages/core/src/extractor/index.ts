@@ -3,10 +3,15 @@ import type {
   ExtractionOptions,
   ExtractionResult,
 } from '../types/index.js'
+import { describeFormat } from '../formats/index.js'
 
 /**
  * Extract a database (or specific tables) from a parsed SQL dump,
  * producing a new SQL string.
+ *
+ * Every statement is reproduced exactly as the dump wrote it, so the result is
+ * SQL for the engine the dump came from. This is not a dialect converter: a
+ * PostgreSQL dump extracts to PostgreSQL SQL, never to MySQL SQL.
  *
  * Does not mutate the original dump.
  */
@@ -30,11 +35,13 @@ export function extractDatabase(
       ? database.tables
       : database.tables.filter((t) => options.tables.includes(t.name))
 
+  const format = describeFormat(dump.format)
+
   // Build output SQL
   const lines: string[] = []
 
-  lines.push('-- Extracted from SQL dump')
-  lines.push(`-- Database: ${database.name}`)
+  lines.push(`-- Extracted from ${format.label} dump`)
+  lines.push(`-- ${format.namespaceLabel}: ${database.name}`)
   lines.push(`-- Tables: ${selectedTables.length}`)
   lines.push('')
 
@@ -59,26 +66,25 @@ export function extractDatabase(
 
     if (table.createStatement) {
       lines.push(table.createStatement.trimEnd())
-      const hasData = table.lockStatement || table.insertStatements.length > 0 || table.unlockStatement
+      const hasData =
+        table.preDataStatements.length > 0 ||
+        table.dataStatements.length > 0 ||
+        table.postDataStatements.length > 0
       if (hasData) {
         lines.push('')
       }
     }
 
-    if (table.lockStatement) {
-      lines.push(table.lockStatement.trimEnd())
+    for (const statement of table.preDataStatements) {
+      lines.push(statement.trimEnd())
     }
 
-    for (const insert of table.insertStatements) {
-      lines.push(insert.trimEnd())
+    for (const statement of table.dataStatements) {
+      lines.push(statement.trimEnd())
     }
 
-    if (table.unlockStatement) {
-      lines.push(table.unlockStatement.trimEnd())
-    }
-
-    for (const index of table.indexes) {
-      lines.push(index.trimEnd())
+    for (const statement of table.postDataStatements) {
+      lines.push(statement.trimEnd())
     }
 
     lines.push('')

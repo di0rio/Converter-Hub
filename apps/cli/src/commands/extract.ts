@@ -1,4 +1,4 @@
-import { parseSqlDump, extractDatabase } from '@sql-extractor/core'
+import { parseDump, extractDatabase } from '@sql-extractor/core'
 import type { ExtractionOptions, SqlDump } from '@sql-extractor/core'
 import { readSqlFile, writeOutputFile } from '../utils/io.js'
 import { resolveDatabase, resolveTables, resolveOutputPath } from './prompts.js'
@@ -18,7 +18,7 @@ export async function extractCommand(
   const sql = await readSqlFile(filePath)
 
   // 2. Parse the SQL dump
-  const dump: SqlDump = parseSqlDump(sql)
+  const dump: SqlDump = parseDump(sql)
 
   // 3. Validate databases exist
   if (dump.databases.length === 0) {

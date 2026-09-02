@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { parseSqlDump } from '../src/parser/index.js'
+import { parseDump } from '../src/parser/index.js'
 import { extractDatabase } from '../src/extractor/index.js'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -10,11 +10,11 @@ const samplePath = resolve(
 )
 
 describe('integration: parse → extract', () => {
-  let dump: ReturnType<typeof parseSqlDump>
+  let dump: ReturnType<typeof parseDump>
 
   beforeAll(() => {
     const sql = readFileSync(samplePath, 'utf-8')
-    dump = parseSqlDump(sql)
+    dump = parseDump(sql)
   })
 
   describe('end-to-end: store_db all tables', () => {
@@ -145,7 +145,7 @@ describe('integration: parse → extract', () => {
         tables: 'all',
       })
 
-      expect(result.sql.startsWith('-- Extracted from SQL dump')).toBe(true)
+      expect(result.sql.startsWith('-- Extracted from MySQL dump')).toBe(true)
     })
 
     it('contains USE statement after CREATE DATABASE', () => {
@@ -221,7 +221,7 @@ describe('integration: parse → extract', () => {
       })
 
       // Re-parse the extracted SQL
-      const reParsed = parseSqlDump(result.sql)
+      const reParsed = parseDump(result.sql)
 
       expect(reParsed.databases.length).toBeGreaterThanOrEqual(1)
       const db = reParsed.databases.find((d) => d.name === 'store_db')
@@ -239,12 +239,12 @@ describe('integration: parse → extract', () => {
         tables: ['customers'],
       })
 
-      const reParsed = parseSqlDump(result.sql)
+      const reParsed = parseDump(result.sql)
       const db = reParsed.databases.find((d) => d.name === 'store_db')!
       const customers = db.tables.find((t) => t.name === 'customers')!
 
-      expect(customers.insertStatements[0]).toContain('Alice Johnson')
-      expect(customers.insertStatements[0]).toContain('Bob Smith')
+      expect(customers.dataStatements[0]).toContain('Alice Johnson')
+      expect(customers.dataStatements[0]).toContain('Bob Smith')
     })
   })
 })

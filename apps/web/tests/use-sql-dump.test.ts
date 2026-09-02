@@ -74,8 +74,8 @@ describe('useSqlDump', () => {
     const shop = dump.databases[0]
     expect(shop.tables.map((t) => t.name)).toEqual(['users', 'orders'])
     // Table data should be captured
-    expect(shop.tables[0].insertStatements).toHaveLength(1)
-    expect(shop.tables[0].insertStatements[0]).toContain("'alice@example.com'")
+    expect(shop.tables[0].dataStatements).toHaveLength(1)
+    expect(shop.tables[0].dataStatements[0]).toContain("'alice@example.com'")
   })
 
   it('rejects an empty file instead of stalling on an empty dump', () => {
@@ -102,7 +102,7 @@ describe('useSqlDump', () => {
 
     expect(ok).toBe(false)
     expect(result.current.dump).toBeNull()
-    expect(result.current.error).toContain('No databases or tables were found')
+    expect(result.current.error).toContain('Unsupported database format')
   })
 
   it('recovers a database name from a dump that declares none', () => {

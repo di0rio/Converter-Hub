@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
-import { parseSqlDump } from '@sql-extractor/core'
+import { parseDump } from '@sql-extractor/core'
 import { TableViewer } from '@/components/table-viewer'
 
 // Synthetic fixture — no real data.
@@ -14,7 +14,7 @@ const DUMP = [
   'CREATE TABLE `empty_table` (`id` int NOT NULL);',
 ].join('\n')
 
-const database = parseSqlDump(DUMP).databases[0]
+const database = parseDump(DUMP).databases[0]
 const users = database.tables[0]
 const emptyTable = database.tables[1]
 
@@ -57,7 +57,7 @@ describe('TableViewer', () => {
   })
 
   it('renders values as text, never as markup', () => {
-    const hostile = parseSqlDump(
+    const hostile = parseDump(
       [
         'CREATE TABLE `t` (`id` int NOT NULL, `payload` text);',
         "INSERT INTO `t` VALUES (1,'<img src=x onerror=alert(1)>');",
@@ -81,7 +81,7 @@ describe('TableViewer', () => {
 
   it('does not render every row for a large table', () => {
     const values = Array.from({ length: 5000 }, (_, i) => `(${i + 1},'n${i}','x')`).join(',')
-    const big = parseSqlDump(
+    const big = parseDump(
       [
         'CREATE TABLE `big` (`id` int NOT NULL, `name` varchar(50), `note` text);',
         `INSERT INTO \`big\` VALUES ${values};`,

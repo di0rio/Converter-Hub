@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { parseSqlDump } from '../src/parser/index.js'
+import { parseDump } from '../src/parser/index.js'
 import { extractDatabase } from '../src/extractor/index.js'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -10,11 +10,11 @@ const samplePath = resolve(
 )
 
 describe('extractDatabase', () => {
-  let dump: ReturnType<typeof parseSqlDump>
+  let dump: ReturnType<typeof parseDump>
 
   beforeAll(() => {
     const sql = readFileSync(samplePath, 'utf-8')
-    dump = parseSqlDump(sql)
+    dump = parseDump(sql)
   })
 
   describe('extracting all tables', () => {
@@ -91,7 +91,7 @@ describe('extractDatabase', () => {
         tables: 'all',
       })
 
-      expect(result.sql).toContain('-- Extracted from SQL dump')
+      expect(result.sql).toContain('-- Extracted from MySQL dump')
       expect(result.sql).toContain('-- Database: store_db')
       expect(result.sql).toContain('-- Tables: 4')
     })
@@ -212,14 +212,14 @@ describe('extractDatabase', () => {
       expect(result.database).toBe('store_db')
       expect(result.tableCount).toBe(0)
       // Still produces a valid dump with the database and preamble, just no tables
-      expect(result.sql).toContain('Extracted from SQL dump')
+      expect(result.sql).toContain('Extracted from MySQL dump')
       expect(result.sql).toContain('CREATE DATABASE')
       expect(result.sql).toContain('store_db')
       expect(result.sql).not.toContain('CREATE TABLE')
     })
 
     it('returns empty result for empty database', () => {
-      const emptyDump = parseSqlDump(`
+      const emptyDump = parseDump(`
 CREATE DATABASE IF NOT EXISTS \`empty_db\`;
 USE \`empty_db\`;
 `)
@@ -236,7 +236,7 @@ USE \`empty_db\`;
   describe('immutability', () => {
     it('does not mutate the original dump', () => {
       const originalSql = readFileSync(samplePath, 'utf-8')
-      const originalDump = parseSqlDump(originalSql)
+      const originalDump = parseDump(originalSql)
 
       // Deep clone for comparison
       const originalDatabases = JSON.parse(
