@@ -1,6 +1,6 @@
 export { parseSqlDump } from './parser/index.js'
 export { extractDatabase } from './extractor/index.js'
-export { toTabular, extractColumns } from './tabular/index.js'
+export { toTabular, extractColumns, countRows } from './tabular/index.js'
 export { generateExport, toCsv, toXlsx, createZip } from './generator/index.js'
 
 export type { TabularTable } from './tabular/index.js'

@@ -195,6 +195,24 @@ function extractInsertColumns(insertStatement: string): string[] | null {
 }
 
 /**
+ * Number of data rows a table holds.
+ *
+ * Counts the value tuples inside every INSERT statement, so one multi-row
+ * INSERT counts as its rows rather than as one statement. CREATE TABLE,
+ * comments and blank lines are not data and are never counted.
+ *
+ * This skips literal decoding, so it stays cheap enough to call for every
+ * table in a dump.
+ */
+export function countRows(table: Table): number {
+  let total = 0
+  for (const statement of table.insertStatements) {
+    total += extractTuples(statement).length
+  }
+  return total
+}
+
+/**
  * Flatten a parsed table into the columns and rows a CSV or spreadsheet needs.
  *
  * This reads only the SQL text already captured by the parser. Nothing is
