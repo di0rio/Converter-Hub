@@ -22,5 +22,8 @@
   "devDependencies": {
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
   }
 }
