@@ -1,12 +1,13 @@
 {
   "name": "sql-database-extractor",
   "private": true,
+  "description": "A privacy-conscious MySQL/MariaDB SQL dump extraction tool",
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev:web": "bun run --filter web dev",
     "dev:cli": "bun run --filter sql-extractor dev",
     "build": "bun run --filter @sql-extractor/core build && bun run --filter sql-extractor build && bun run --filter web build",
-    "test": "bun run --filter @sql-extractor/core test && bun run --filter sql-extractor test",
+    "test": "bun run --filter @sql-extractor/core test && bun run --filter sql-extractor test && bun run --filter web test",
     "typecheck": "bun run --filter @sql-extractor/core typecheck && bun run --filter sql-extractor typecheck && bun run --filter web typecheck",
     "lint": "bun run --filter web lint"
   }
