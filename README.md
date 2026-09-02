@@ -1,10 +1,10 @@
 # SQL Database Extractor
 
-A MySQL/MariaDB SQL dump extraction tool. Parse SQL dump files, select databases and tables, extract specific data, and generate new SQL dumps.
+A MySQL/MariaDB SQL dump extraction tool. Parse SQL dump files, select databases and tables, and export the result as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
 
 ## Why
 
-SQL dump files are often large, monolithic exports containing multiple databases and tables. This tool lets you pick exactly what you need and produce a clean, smaller dump — without installing a database server or uploading your data anywhere.
+SQL dump files are often large, monolithic exports containing multiple databases and tables. This tool lets you pick exactly what you need and produce a clean, smaller export — as SQL, CSV or Excel — without installing a database server or uploading your data anywhere.
 
 ## Privacy Model
 
