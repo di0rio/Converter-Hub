@@ -12,6 +12,7 @@ export function useSqlDump() {
   const [fileName, setFileName] = useState<string>('')
   const [selectedDatabase, setSelectedDatabase] = useState<string>('')
   const [selectedTables, setSelectedTables] = useState<string[]>([])
+  const [previewTableName, setPreviewTableName] = useState<string>('')
   const [exportFormat, setExportFormat] = useState<ExportFormat>('sql')
   const [status, setStatus] = useState<ConversionStatus>('idle')
   const [result, setResult] = useState<ExportResult | null>(null)
@@ -39,6 +40,7 @@ export function useSqlDump() {
   /** Drop the table selection as well as the archive built from it. */
   const clearSelection = useCallback(() => {
     setSelectedTables([])
+    setPreviewTableName('')
     clearResult()
   }, [clearResult])
 
@@ -103,11 +105,16 @@ export function useSqlDump() {
   const toggleTable = useCallback(
     (tableName: string) => {
       clearResult()
-      setSelectedTables((prev) =>
-        prev.includes(tableName)
+      setSelectedTables((prev) => {
+        const next = prev.includes(tableName)
           ? prev.filter((t) => t !== tableName)
-          : [...prev, tableName],
-      )
+          : [...prev, tableName]
+
+        // Preview follows the selection: the table just ticked, or whatever
+        // is still selected once one is unticked.
+        setPreviewTableName(next.includes(tableName) ? tableName : (next[0] ?? ''))
+        return next
+      })
     },
     [clearResult],
   )
@@ -116,7 +123,11 @@ export function useSqlDump() {
     if (!database) return
     const all = database.tables.map((t) => t.name)
     clearResult()
-    setSelectedTables((prev) => (prev.length === all.length ? [] : all))
+    setSelectedTables((prev) => {
+      const next = prev.length === all.length ? [] : all
+      setPreviewTableName(next[0] ?? '')
+      return next
+    })
   }, [database, clearResult])
 
   const selectFormat = useCallback(
@@ -127,6 +138,13 @@ export function useSqlDump() {
     },
     [],
   )
+
+  const previewTable = useMemo(
+    () => database?.tables.find((t) => t.name === previewTableName) ?? null,
+    [database, previewTableName],
+  )
+
+  const previewTableName_ = previewTableName
 
   const allTablesSelected =
     database != null && selectedTables.length === database.tables.length
@@ -179,6 +197,8 @@ export function useSqlDump() {
     selectedTables,
     exportFormat,
     database,
+    previewTable,
+    previewTableName: previewTableName_,
     status,
     result,
     error,
@@ -189,6 +209,7 @@ export function useSqlDump() {
     selectDatabase,
     toggleTable,
     toggleAllTables,
+    setPreviewTableName,
     selectFormat,
     convert,
     reset,

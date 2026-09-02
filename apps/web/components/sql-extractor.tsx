@@ -4,6 +4,7 @@ import { useSqlDump } from '@/hooks/use-sql-dump'
 import { FileUpload } from '@/components/file-upload'
 import { DatabaseSelect } from '@/components/database-select'
 import { TableSelect } from '@/components/table-select'
+import { TableViewer } from '@/components/table-viewer'
 import { FormatSelect } from '@/components/format-select'
 import { DownloadStep } from '@/components/download-step'
 import { AlertCircle } from 'lucide-react'
@@ -17,6 +18,8 @@ export function SqlExtractor() {
     selectedTables,
     exportFormat,
     database,
+    previewTable,
+    previewTableName,
     status,
     result,
     error,
@@ -27,6 +30,7 @@ export function SqlExtractor() {
     selectDatabase,
     toggleTable,
     toggleAllTables,
+    setPreviewTableName,
     selectFormat,
     convert,
     reset,
@@ -77,10 +81,14 @@ export function SqlExtractor() {
             selectedTables={selectedTables}
             allSelected={allTablesSelected}
             someSelected={someTablesSelected}
+            previewTableName={previewTableName}
             onToggle={toggleTable}
             onToggleAll={toggleAllTables}
+            onPreview={setPreviewTableName}
           />
         )}
+
+        {previewTable && <TableViewer table={previewTable} />}
 
         {database && !databaseHasTables && (
           <p className="text-sm text-muted-foreground">
