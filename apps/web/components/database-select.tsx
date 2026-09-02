@@ -3,19 +3,29 @@
 import { Database } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, Radio } from '@/components/ui/radio-group'
-import type { Database as DatabaseType } from '@sql-extractor/core'
+import type {
+  Database as DatabaseType,
+  FormatDescriptor,
+} from '@sql-extractor/core'
 
 interface DatabaseSelectProps {
   databases: DatabaseType[]
   value: string
   onChange: (name: string) => void
+  /** Supplies the word this engine uses for a grouping of tables. */
+  sourceFormat: FormatDescriptor
 }
 
-export function DatabaseSelect({ databases, value, onChange }: DatabaseSelectProps) {
+export function DatabaseSelect({
+  databases,
+  value,
+  onChange,
+  sourceFormat,
+}: DatabaseSelectProps) {
   return (
     <section aria-labelledby="step-database">
       <Label id="step-database" className="mb-3 block text-base font-semibold sm:text-sm">
-        Select database
+        Select {sourceFormat.namespace}
       </Label>
 
       <RadioGroup value={value} onValueChange={onChange}>
@@ -26,7 +36,14 @@ export function DatabaseSelect({ databases, value, onChange }: DatabaseSelectPro
           >
             <Radio value={db.name} />
             <Database className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm">{db.name}</span>
+            <span className="text-sm">
+              {/* A schema belongs to a database. Showing the owner keeps two
+                  same-named schemas from looking like one entry. */}
+              {db.catalog && (
+                <span className="text-muted-foreground">{db.catalog}.</span>
+              )}
+              {db.name}
+            </span>
             <span className="ml-auto text-xs text-muted-foreground">
               {db.tables.length} {db.tables.length === 1 ? 'table' : 'tables'}
             </span>

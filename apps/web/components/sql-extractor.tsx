@@ -17,6 +17,8 @@ export function SqlExtractor() {
     selectedDatabase,
     selectedTables,
     exportFormat,
+    sourceFormat,
+    confidence,
     database,
     previewTable,
     previewTableName,
@@ -36,7 +38,8 @@ export function SqlExtractor() {
     reset,
   } = useSqlDump()
 
-  const showDatabases = dump != null && dump.databases.length > 0
+  const showDatabases =
+    dump != null && sourceFormat != null && dump.databases.length > 0
   const databaseHasTables = database != null && database.tables.length > 0
 
   return (
@@ -46,7 +49,7 @@ export function SqlExtractor() {
           SQL Database Extractor
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Extract databases and tables from MySQL dumps locally.
+          Extract tables from a database dump, locally in your browser.
         </p>
       </header>
 
@@ -65,6 +68,8 @@ export function SqlExtractor() {
           onFile={loadFile}
           onError={reportFileError}
           fileName={fileName || null}
+          sourceFormat={sourceFormat}
+          confidence={confidence}
         />
 
         {showDatabases && (
@@ -72,6 +77,7 @@ export function SqlExtractor() {
             databases={dump.databases}
             value={selectedDatabase}
             onChange={selectDatabase}
+            sourceFormat={sourceFormat}
           />
         )}
 
@@ -91,9 +97,10 @@ export function SqlExtractor() {
           <FloatingPreview table={previewTable} onPreview={setPreviewTableName} />
         )}
 
-        {database && !databaseHasTables && (
+        {database && !databaseHasTables && sourceFormat && (
           <p className="text-sm text-muted-foreground">
-            No tables were found in {database.name}. Pick another database.
+            No tables were found in {database.name}. Pick another{' '}
+            {sourceFormat.namespace}.
           </p>
         )}
 

@@ -19,7 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SQL Database Extractor",
-  description: "Extract databases and tables from MySQL/MariaDB SQL dumps locally",
+  description:
+    "Extract tables from MySQL, MariaDB and PostgreSQL dumps locally, in your browser",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

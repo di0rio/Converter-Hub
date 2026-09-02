@@ -318,3 +318,68 @@ describe('useSqlDump', () => {
     expect(result.current.step).toBe('file')
   })
 })
+
+describe('useSqlDump: source formats', () => {
+  it('reads a PostgreSQL dump and reports it as such', () => {
+    const { result } = renderHook(() => useSqlDump())
+
+    const pg = [
+      '-- PostgreSQL database dump',
+      "SET client_encoding = 'UTF8';",
+      'CREATE TABLE public.people (id integer NOT NULL, name text);',
+      'COPY public.people (id, name) FROM stdin;',
+      '1\tAda Example',
+      '\\.',
+    ].join('\n')
+
+    act(() => {
+      result.current.loadFile(pg, 'shop.sql')
+    })
+
+    expect(result.current.dump?.format).toBe('postgresql')
+    expect(result.current.sourceFormat?.namespace).toBe('schema')
+    expect(result.current.confidence).toBe('detected')
+    expect(result.current.selectedDatabase).toBe('public')
+  })
+
+  it('marks plain SQL as assumed rather than detected', () => {
+    const { result } = renderHook(() => useSqlDump())
+
+    act(() => {
+      result.current.loadFile(
+        "CREATE TABLE t (id int, name varchar(10));\nINSERT INTO t VALUES (1,'a');",
+        'plain.sql',
+      )
+    })
+
+    expect(result.current.confidence).toBe('assumed')
+    expect(result.current.sourceFormat?.id).toBe('mysql')
+  })
+
+  it('exports a PostgreSQL dump to CSV through the shared generator', async () => {
+    const { result } = renderHook(() => useSqlDump())
+
+    const pg = [
+      '-- PostgreSQL database dump',
+      'CREATE TABLE public.people (id integer NOT NULL, name text);',
+      'COPY public.people (id, name) FROM stdin;',
+      '1\tAda Example',
+      '\\.',
+    ].join('\n')
+
+    act(() => {
+      result.current.loadFile(pg, 'shop.sql')
+    })
+    act(() => {
+      result.current.toggleTable('people')
+    })
+    act(() => {
+      result.current.selectFormat('csv')
+    })
+    act(() => {
+      result.current.convert()
+    })
+    await waitFor(() => expect(result.current.status).toBe('done'))
+    expect(result.current.result?.files).toEqual(['people.csv'])
+  })
+})

@@ -1,8 +1,20 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { parseDump, generateExport, UnsupportedFormatError } from '@sql-extractor/core'
-import type { SqlDump, ExportFormat, ExportResult } from '@sql-extractor/core'
+import {
+  parseDump,
+  generateExport,
+  detectFormat,
+  describeFormat,
+  UnsupportedFormatError,
+} from '@sql-extractor/core'
+import type {
+  SqlDump,
+  ExportFormat,
+  ExportResult,
+  FormatConfidence,
+  FormatDescriptor,
+} from '@sql-extractor/core'
 
 export type Step = 'file' | 'database' | 'tables' | 'export'
 export type ConversionStatus = 'idle' | 'converting' | 'done'
@@ -14,6 +26,7 @@ export function useSqlDump() {
   const [selectedTables, setSelectedTables] = useState<string[]>([])
   const [previewTableName, setPreviewTableName] = useState<string>('')
   const [exportFormat, setExportFormat] = useState<ExportFormat>('sql')
+  const [confidence, setConfidence] = useState<FormatConfidence | null>(null)
   const [status, setStatus] = useState<ConversionStatus>('idle')
   const [result, setResult] = useState<ExportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +42,15 @@ export function useSqlDump() {
   const database = useMemo(
     () => dump?.databases.find((d) => d.name === selectedDatabase) ?? null,
     [dump, selectedDatabase],
+  )
+
+  /**
+   * The engine the loaded dump was read as. Drives the words the UI uses:
+   * PostgreSQL groups tables by schema, MySQL and MariaDB by database.
+   */
+  const sourceFormat: FormatDescriptor | null = useMemo(
+    () => (dump ? describeFormat(dump.format) : null),
+    [dump],
   )
 
   /** A previous archive no longer matches the current choices. */
@@ -49,6 +71,8 @@ export function useSqlDump() {
       setSelectedDatabase('')
       clearSelection()
 
+      setConfidence(null)
+
       if (content.trim().length === 0) {
         setDump(null)
         setFileName('')
@@ -56,12 +80,16 @@ export function useSqlDump() {
         return false
       }
 
+      // Detect once and hand the answer to the parser, so the UI can say
+      // whether the engine was recognised or only assumed.
+      const detection = detectFormat(content)
+
       // The core names the source engine from the dump's own markers and
       // refuses anything it cannot place. Its message is safe to show as-is:
       // it carries no SQL, no paths and nothing about the parser.
       let parsed: SqlDump
       try {
-        parsed = parseDump(content)
+        parsed = parseDump(content, { format: detection.format ?? undefined })
       } catch (err) {
         setDump(null)
         setFileName('')
@@ -82,6 +110,7 @@ export function useSqlDump() {
 
       setDump(parsed)
       setFileName(name)
+      setConfidence(detection.confidence)
       setError(null)
 
       // A dump with exactly one database has nothing to choose between.
@@ -179,6 +208,7 @@ export function useSqlDump() {
   const reset = useCallback(() => {
     setDump(null)
     setFileName('')
+    setConfidence(null)
     setSelectedDatabase('')
     setExportFormat('sql')
     clearSelection()
@@ -192,6 +222,8 @@ export function useSqlDump() {
     selectedDatabase,
     selectedTables,
     exportFormat,
+    sourceFormat,
+    confidence,
     database,
     previewTable,
     previewTableName: previewTableName_,

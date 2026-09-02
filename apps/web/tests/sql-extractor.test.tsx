@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SqlExtractor } from '@/components/sql-extractor'
 import { useSqlDump } from '@/hooks/use-sql-dump'
+import { DATABASE_FORMATS } from '@sql-extractor/core'
 
 // Mock the hook to control component state deterministically.
 // The hook's real logic is tested separately in use-sql-dump.test.ts.
@@ -37,6 +38,8 @@ function baseHookState(overrides: Record<string, unknown> = {}) {
     selectedDatabase: '',
     selectedTables: [],
     exportFormat: 'sql' as const,
+    sourceFormat: DATABASE_FORMATS.mysql,
+    confidence: 'detected' as const,
     database: null,
     previewTable: null,
     previewTableName: '',
@@ -71,7 +74,7 @@ describe('SqlExtractor', () => {
     expect(
       screen.getByRole('heading', { name: /SQL Database Extractor/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Select SQL file/i)).toBeInTheDocument()
+    expect(screen.getByText(/Select a database dump/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Choose SQL file/i })).toBeInTheDocument()
   })
 
@@ -84,11 +87,11 @@ describe('SqlExtractor', () => {
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
     expect(input.accept).toBe('.sql,text/plain')
-    // The section is labelled "Select SQL file" and the input is associated with the
+    // The section is labelled "Select a database dump" and the input is associated with the
     // visible label via htmlFor.
-    expect(screen.getByRole('region', { name: /Select SQL file/i })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /Select a database dump/i })).toBeInTheDocument()
     expect(
-      screen.getAllByLabelText(/Select SQL file/i).some((el) => el.getAttribute('type') === 'file'),
+      screen.getAllByLabelText(/Select a database dump/i).some((el) => el.getAttribute('type') === 'file'),
     ).toBe(true)
     expect(screen.getByText(/processed entirely in your browser/i)).toBeInTheDocument()
   })
@@ -310,5 +313,83 @@ describe('SqlExtractor', () => {
     render(<SqlExtractor />)
     fireEvent.click(screen.getByRole('button', { name: /Start over/i }))
     expect(reset).toHaveBeenCalled()
+  })
+})
+
+describe('SqlExtractor: source formats', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('advertises only the formats that have a parser behind them', () => {
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({ sourceFormat: null, confidence: null }),
+    )
+
+    render(<SqlExtractor />)
+
+    expect(screen.getByText(/Supported: MySQL · MariaDB · PostgreSQL\./)).toBeInTheDocument()
+  })
+
+  it('names the engine a loaded dump was recognised as', () => {
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({
+        fileName: 'shop.sql',
+        sourceFormat: DATABASE_FORMATS.postgresql,
+        confidence: 'detected',
+      }),
+    )
+
+    render(<SqlExtractor />)
+
+    expect(screen.getByText(/Read as a PostgreSQL dump\./)).toBeInTheDocument()
+  })
+
+  it('says an engine was assumed rather than claiming a detection', () => {
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({
+        fileName: 'hand-written.sql',
+        sourceFormat: DATABASE_FORMATS.mysql,
+        confidence: 'assumed',
+      }),
+    )
+
+    render(<SqlExtractor />)
+
+    expect(
+      screen.getByText(/No engine markers found — read as MySQL\./),
+    ).toBeInTheDocument()
+  })
+
+  it('calls a PostgreSQL grouping a schema, not a database', () => {
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({
+        step: 'database',
+        fileName: 'shop.sql',
+        sourceFormat: DATABASE_FORMATS.postgresql,
+        confidence: 'detected',
+        dump: {
+          format: 'postgresql' as const,
+          databases: [
+            {
+              name: 'public',
+              catalog: 'shop',
+              createStatement: '',
+              useStatement: '',
+              tables: [{ name: 'customers' }],
+            },
+          ],
+          preamble: '',
+          postamble: '',
+        },
+      }),
+    )
+
+    render(<SqlExtractor />)
+
+    expect(screen.getByText(/Select schema/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Select database/i)).not.toBeInTheDocument()
+    // The owning database is shown rather than dropped.
+    expect(screen.getByText('shop.')).toBeInTheDocument()
   })
 })
