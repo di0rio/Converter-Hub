@@ -1,0 +1,37 @@
+# Code owners for SQL Database Extractor.
+#
+# NOTE: this file only has effect when branch protection on the default branch
+# enables "Require review from Code Owners". Without that setting it is
+# documentation, not enforcement.
+
+# Default owner for everything not matched below.
+*                           @di0rio
+
+# --- Security-sensitive paths ------------------------------------------------
+# Changes here can execute code on CI runners or on a maintainer's machine,
+# or can alter what dependencies resolve to. They always need owner review.
+
+# CI/CD definitions and repository automation.
+/.github/                   @di0rio
+
+# Manifests and lockfiles: dependency and lifecycle-script surface.
+/package.json               @di0rio
+/bun.lock                   @di0rio
+/packages/core/package.json @di0rio
+/apps/cli/package.json      @di0rio
+/apps/web/package.json      @di0rio
+/apps/web/bun.lock          @di0rio
+
+# Scripts that run outside the test sandbox.
+/apps/web/scripts/          @di0rio
+
+# AI agent instructions and permissions. These are policy a maintainer's
+# tooling loads automatically; treat them as code, not documentation.
+/AGENTS.md                  @di0rio
+/apps/web/AGENTS.md         @di0rio
+/opencode.json              @di0rio
+/.claude/                   @di0rio
+/.opencode/                 @di0rio
+
+# Security policy.
+/SECURITY.md                @di0rio
