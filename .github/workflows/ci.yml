@@ -16,6 +16,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       # TODO(security): pin these two actions to a full commit SHA. Read the
       # SHA from each action's own release page before pinning - a mutable tag
@@ -37,12 +38,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
+      # Build the core package before typechecking its consumers. The generated
+      # packages/core/dist output is gitignored and absent on a fresh checkout.
+      - name: Build core
+        run: bun run --filter @sql-extractor/core build
+
       - name: Typecheck
         run: bun run typecheck
 
-      # Build must run before test: apps/web resolves @sql-extractor/core
-      # through packages/core/dist, which is gitignored and absent on a fresh
-      # checkout until the core build produces it.
       - name: Build
         run: bun run build
 
