@@ -1,4 +1,5 @@
 import prompts from 'prompts'
+import { describeFormat } from '@sql-extractor/core'
 import type { SqlDump, Database } from '@sql-extractor/core'
 import type { ExtractOptions } from './extract.js'
 
@@ -6,12 +7,16 @@ export async function resolveDatabase(
   dump: SqlDump,
   databaseName?: string,
 ): Promise<string> {
+  // MySQL and MariaDB group tables by database, PostgreSQL by schema. Say
+  // whichever the dump at hand actually uses.
+  const grouping = describeFormat(dump.format).namespace
+
   if (databaseName) {
     const db = dump.databases.find((d) => d.name === databaseName)
     if (!db) {
       const names = dump.databases.map((d) => d.name).join(', ')
       throw new Error(
-        `Error: Database not found: ${databaseName}\nAvailable databases: ${names}`,
+        `Error: ${grouping === 'schema' ? 'Schema' : 'Database'} not found: ${databaseName}\nAvailable ${grouping}s: ${names}`,
       )
     }
     return databaseName
@@ -20,7 +25,7 @@ export async function resolveDatabase(
   const response = await prompts({
     type: 'select',
     name: 'database',
-    message: 'Select a database',
+    message: `Select a ${grouping}`,
     choices: dump.databases.map((db) => ({
       title: db.name,
       value: db.name,
@@ -28,7 +33,7 @@ export async function resolveDatabase(
   })
 
   if (!response.database) {
-    console.log('No database selected. Exiting.')
+    console.log(`No ${grouping} selected. Exiting.`)
     process.exit(1)
   }
 

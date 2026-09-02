@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
+import { SUPPORTED_FORMATS } from '@sql-extractor/core'
 import { extractCommand } from './commands/extract.js'
 import type { ExtractOptions } from './commands/extract.js'
+
+const FORMATS = SUPPORTED_FORMATS.map((format) => format.id).join(', ')
 
 const program = new Command()
 
 program
   .name('sql-extractor')
-  .description('Extract databases and tables from MySQL/MariaDB SQL dumps')
+  .description(`Extract databases and tables from SQL dumps (${FORMATS})`)
   .version('0.1.0')
 
 program
@@ -16,6 +19,10 @@ program
   .option('-a, --all', 'Extract all tables')
   .option('-t, --tables <list>', 'Comma-separated table names to extract')
   .option('-o, --output <path>', 'Output file path')
+  .option(
+    '-f, --format <name>',
+    `Source database format (${FORMATS}); detected from the dump when omitted`,
+  )
   .action(async (file: string, options: ExtractOptions) => {
     try {
       await extractCommand(file, options)
