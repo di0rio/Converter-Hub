@@ -8,6 +8,33 @@
 
 **Tech Stack:** Bun, TypeScript (strict), Next.js 16+, React 19, Tailwind CSS 4, COSS UI, Lucide React, Vitest
 
+## Status
+
+All implementation phases are **complete and green**:
+
+- **Core** — 71 tests passing; parse, extract, generation implemented; build + typecheck pass
+  (`packages/core/src/{types,parser,extractor,index}.ts`, `packages/core/dist/`)
+- **CLI** — 8 tests passing; interactive + `--database/--all/--tables/--output` flags
+  (`apps/cli/src/{index.ts,commands,utils}`)
+- **Web** — 20 tests passing; `useSqlDump` hook + components, client-side processing only
+  (`apps/web/{hooks,components}`)
+- **Integration** — `bun run typecheck`, `bun run test`, `bun run build` all pass from root.
+  Both CLI and Web import `@sql-extractor/core` (no duplicated logic).
+- **Open source** — `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `LICENSE`,
+  `.github/` (issue templates, PR template, `ci.yml`).
+- **Security/privacy** — local-only processing, no telemetry/analytics/external APIs; synthetic
+  fixtures only (`example.com`); no `.env`/secrets/credentials in tree.
+
+**Remaining / known caveats (require user action, not automated):**
+- **Commit & release-readiness:** no commits have been made. Untracked source includes
+  `packages/core/src/parser/`, `packages/core/src/extractor/`, `packages/core/tests/`,
+  `apps/cli/src/commands|utils|tests`, and all `apps/web` work. `git add` + commit before release.
+- **Web lint is a pre-existing tooling failure:** `eslint-config-next`'s `typescript-eslint` does
+  not yet support the scaffold's TypeScript 7.0. Non-blocking for typecheck/test/build.
+- **Vitest duplicate-React fix:** Bun hard-links react into divergent paths, causing React 19
+  hook crashes in tests. Resolved via symlinks + `resolve.dedupe` (see
+  `apps/web/scripts/ensure-react-symlinks.mjs`, wired as `postinstall`).
+
 ## Global Constraints
 
 - MySQL and MariaDB ONLY — no PostgreSQL, SQLite, generic SQL
