@@ -5,7 +5,7 @@
   "description": "Web interface for extracting databases and tables from MySQL/MariaDB SQL dumps",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "bun run --filter @sql-extractor/core build && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
