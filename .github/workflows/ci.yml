@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# Least privilege. Pull requests from forks carry untrusted code, so the job
+# token is read-only. Any future job that needs write access (release,
+# publish, labelling) must live in a separate workflow that never checks out
+# pull-request code.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # TODO(security): pin these two actions to a full commit SHA. Read the
+      # SHA from each action's own release page before pinning - a mutable tag
+      # lets a compromise of the action run here with no diff in this repo.
+      - uses: actions/checkout@v4
+        with:
+          # Do not leave the token in .git/config for later steps to reach.
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Pinned to match "packageManager" in apps/web/package.json.
+          bun-version: 1.4.0
+
+      # --ignore-scripts stops dependency lifecycle scripts from executing in
+      # CI, which is the main supply-chain path a pull request can reach.
+      # --frozen-lockfile fails the build if a manifest and the lockfile
+      # disagree, so dependency changes cannot slip in unlocked.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # Build must run before test: apps/web resolves @sql-extractor/core
+      # through packages/core/dist, which is gitignored and absent on a fresh
+      # checkout until the core build produces it.
+      - name: Build
+        run: bun run build
+
+      - name: Test
+        run: bun run test
