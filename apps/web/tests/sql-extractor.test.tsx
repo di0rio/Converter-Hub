@@ -36,15 +36,20 @@ function baseHookState(overrides: Record<string, unknown> = {}) {
     fileName: '',
     selectedDatabase: '',
     selectedTables: [],
+    exportFormat: 'sql' as const,
     database: null,
+    status: 'idle' as const,
+    result: null,
     error: null,
     allTablesSelected: false,
     someTablesSelected: false,
     loadFile: vi.fn(),
+    reportFileError: vi.fn(),
     selectDatabase: vi.fn(),
     toggleTable: vi.fn(),
     toggleAllTables: vi.fn(),
-    extract: vi.fn(() => null),
+    selectFormat: vi.fn(),
+    convert: vi.fn(),
     reset: vi.fn(),
     ...overrides,
   }
@@ -175,7 +180,7 @@ describe('SqlExtractor', () => {
   it('shows the download step once tables are selected', () => {
     mockedUseSqlDump.mockReturnValue(
       baseHookState({
-        step: 'download',
+        step: 'export',
         fileName: 'store.sql',
         selectedDatabase: 'shop_db',
         selectedTables: ['users'],
@@ -195,21 +200,62 @@ describe('SqlExtractor', () => {
         },
         allTablesSelected: true,
         someTablesSelected: false,
-        extract: vi.fn(() => ({
-          sql: '-- extracted\nCREATE TABLE users;\n',
-          database: 'shop_db',
-          tableCount: 1,
-        })),
       }),
     )
 
     render(<SqlExtractor />)
 
-    expect(screen.getByLabelText(/Download/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Download SQL/i })).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup', { name: /Export format/i })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /SQL/i })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /CSV/i })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Excel/i })).toBeInTheDocument()
+
+    expect(screen.getByLabelText(/Convert and download/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Convert/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Start over/i })).toBeInTheDocument()
-    expect(screen.getByText('shop_db')).toBeInTheDocument()
-    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText(/1 table ready to convert/i)).toBeInTheDocument()
+  })
+
+  it('offers the archive for download once conversion has finished', () => {
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({
+        step: 'export',
+        fileName: 'store.sql',
+        selectedDatabase: 'shop_db',
+        selectedTables: ['users'],
+        exportFormat: 'csv' as const,
+        status: 'done' as const,
+        result: {
+          filename: 'shop_db-export.zip',
+          bytes: new Uint8Array([1, 2, 3]),
+          files: ['users.csv'],
+          tableCount: 1,
+        },
+      }),
+    )
+
+    render(<SqlExtractor />)
+
+    expect(screen.getByRole('button', { name: /Download ZIP/i })).toBeInTheDocument()
+    expect(screen.getByText('shop_db-export.zip')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Convert$/i })).not.toBeInTheDocument()
+  })
+
+  it('selects an export format through the format buttons', () => {
+    const selectFormat = vi.fn()
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({
+        step: 'export',
+        selectedDatabase: 'shop_db',
+        selectedTables: ['users'],
+        selectFormat,
+      }),
+    )
+
+    render(<SqlExtractor />)
+    fireEvent.click(screen.getByRole('radio', { name: /Excel/i }))
+
+    expect(selectFormat).toHaveBeenCalledWith('xlsx')
   })
 
   it('invokes onFile when a file is uploaded', async () => {
@@ -232,7 +278,7 @@ describe('SqlExtractor', () => {
     const reset = vi.fn()
     mockedUseSqlDump.mockReturnValue(
       baseHookState({
-        step: 'download',
+        step: 'export',
         fileName: 'store.sql',
         selectedDatabase: 'shop_db',
         selectedTables: ['users'],

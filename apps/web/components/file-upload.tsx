@@ -7,19 +7,25 @@ import { Label } from '@/components/ui/label'
 
 interface FileUploadProps {
   onFile: (content: string, name: string) => void
+  onError: (message: string) => void
   fileName: string | null
 }
 
-export function FileUpload({ onFile, fileName }: FileUploadProps) {
+export function FileUpload({ onFile, onError, fileName }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    file.text().then((content) => {
-      onFile(content, file.name)
-    })
+    file
+      .text()
+      .then((content) => {
+        onFile(content, file.name)
+      })
+      .catch(() => {
+        onError('That file could not be read. It may have been moved or renamed.')
+      })
 
     // Reset input so the same file can be re-selected
     if (inputRef.current) {

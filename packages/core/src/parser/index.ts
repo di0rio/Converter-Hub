@@ -334,6 +334,16 @@ function extractTableNameFromLock(sql: string): string | null {
 }
 
 /**
+ * Recover a database name from the mysqldump header comment.
+ * `mysqldump <db>` writes "-- Host: localhost    Database: shop" but emits no
+ * CREATE DATABASE or USE statement, so this is the only name available.
+ */
+function extractDatabaseNameFromHeader(sql: string): string | null {
+  const match = sql.match(/^--\s*Host:.*?Database:\s*([A-Za-z0-9_$]+)/im)
+  return match?.[1] ?? null
+}
+
+/**
  * Parse a MySQL/MariaDB SQL dump string into a structured SqlDump.
  */
 export function parseSqlDump(sql: string): SqlDump {
@@ -346,6 +356,24 @@ export function parseSqlDump(sql: string): SqlDump {
   let currentDatabase: Database | null = null
   let currentTable: Table | null = null
   let preambleComplete = false
+
+  // A single-database dump (`mysqldump <db>`) carries no CREATE DATABASE and no
+  // USE. Without a fallback its tables would have nowhere to attach and the dump
+  // would parse as having zero databases.
+  const fallbackDatabaseName = extractDatabaseNameFromHeader(sql) ?? 'database'
+
+  function ensureDatabase(): Database {
+    if (!currentDatabase) {
+      currentDatabase = {
+        name: fallbackDatabaseName,
+        createStatement: '',
+        useStatement: '',
+        tables: [],
+      }
+      preambleComplete = true
+    }
+    return currentDatabase
+  }
 
   function flushCurrentTable() {
     if (currentTable && currentDatabase) {
@@ -406,10 +434,11 @@ export function parseSqlDump(sql: string): SqlDump {
       case 'create_table': {
         flushCurrentTable()
         const tableName = extractTableNameFromCreate(stmt)
-        if (tableName && currentDatabase) {
+        if (tableName) {
+          const db = ensureDatabase()
           currentTable = {
             name: tableName,
-            database: currentDatabase.name,
+            database: db.name,
             createStatement: stmt,
             insertStatements: [],
             indexes: [],
@@ -427,10 +456,11 @@ export function parseSqlDump(sql: string): SqlDump {
       case 'insert': {
         if (currentTable) {
           currentTable.insertStatements.push(stmt)
-        } else if (currentDatabase) {
+        } else {
           // Insert without a preceding CREATE TABLE — try to find or create a table entry
           const tableName = extractTableNameFromInsert(stmt)
           if (tableName) {
+            const currentDatabase = ensureDatabase()
             // Look for existing table in current database
             const existing = currentDatabase.tables.find(
               (t) => t.name === tableName
