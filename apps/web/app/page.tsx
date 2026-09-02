@@ -2,7 +2,7 @@ import { SqlExtractor } from '@/components/sql-extractor'
 
 export default function Home() {
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
+    <main className="no-scrollbar flex min-h-dvh items-start justify-center overflow-y-auto p-4 py-10">
       <SqlExtractor />
     </main>
   )

@@ -240,3 +240,28 @@
     @apply font-sans font-mono;
   }
 }
+
+/* Hide the scrollbar chrome without disabling scrolling.
+   Wheel, trackpad, keyboard and touch all keep working; only the visible
+   track is removed. Applied to the page and to the viewer's scroll panes. */
+@utility no-scrollbar {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* legacy Edge */
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+}
+
+@layer base {
+  html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+}
