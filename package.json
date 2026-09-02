@@ -1,7 +1,7 @@
 {
   "name": "sql-database-extractor",
   "private": true,
-  "description": "A privacy-conscious MySQL/MariaDB SQL dump extraction tool",
+  "description": "A privacy-conscious database dump extraction tool for MySQL, MariaDB and PostgreSQL",
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev:web": "bun run --filter web dev",

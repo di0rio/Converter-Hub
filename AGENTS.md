@@ -2,7 +2,7 @@
 
 ## What This Project Does
 
-A MySQL/MariaDB SQL dump extraction tool. Parse SQL dump files, select databases and tables, extract specific data, and generate new SQL dumps.
+A database dump extraction tool. Parse MySQL, MariaDB and PostgreSQL dumps, select databases or schemas and tables, extract specific data, and generate new dumps.
 
 **User workflow:**
 1. Select SQL file
@@ -37,7 +37,7 @@ sql-database-extractor/
 - **UI Components:** COSS UI (Base UI + Tailwind)
 - **Icons:** Lucide React
 - **Build:** Bun
-- **SQL Support:** MySQL and MariaDB only
+- **Source formats:** MySQL, MariaDB and PostgreSQL only. Dialect-specific SQL belongs under `packages/core/src/parser/<format>/`; nothing above the `FormatParser` interface may branch on format.
 
 **Explicitly out of scope:** PostgreSQL, SQLite, generic SQL abstractions, Redux, MUI, server-side database connections.
 

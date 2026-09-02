@@ -2,7 +2,7 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
-  "description": "Web interface for extracting databases and tables from MySQL/MariaDB SQL dumps",
+  "description": "Web interface for extracting databases and tables from MySQL, MariaDB and PostgreSQL dumps",
   "scripts": {
     "dev": "next dev",
     "build": "bun run --filter @sql-extractor/core build && next build",

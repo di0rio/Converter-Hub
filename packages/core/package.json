@@ -2,7 +2,7 @@
   "name": "@sql-extractor/core",
   "version": "0.1.0",
   "private": true,
-  "description": "SQL parsing and extraction logic for MySQL/MariaDB dumps",
+  "description": "SQL parsing and extraction logic for MySQL, MariaDB and PostgreSQL dumps",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

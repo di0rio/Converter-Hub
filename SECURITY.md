@@ -38,7 +38,7 @@ SQL Database Extractor processes **untrusted input** (SQL dump files) and should
 
 ### What the Tool Does
 
-- Parses SQL dump files using a pragmatic, MySQL/MariaDB-specific parser
+- Parses SQL dump files using a pragmatic, per-engine parser (MySQL, MariaDB, PostgreSQL)
 - Extracts selected databases and tables into SQL, CSV or Excel files, packaged as a ZIP
 - Builds every archive in memory; the ZIP is produced and downloaded locally
 - All processing happens locally — no data leaves your machine

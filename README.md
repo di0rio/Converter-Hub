@@ -1,10 +1,76 @@
 # SQL Database Extractor
 
-A MySQL/MariaDB SQL dump extraction tool. Parse SQL dump files, select databases and tables, and export the result as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
+A database dump extraction tool. Read a MySQL, MariaDB or PostgreSQL dump, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
 
 ## Why
 
-SQL dump files are often large, monolithic exports containing multiple databases and tables. This tool lets you pick exactly what you need and produce a clean, smaller export — as SQL, CSV or Excel — without installing a database server or uploading your data anywhere.
+Database dumps are often large, monolithic exports containing many databases and tables. This tool lets you pick exactly what you need and produce a clean, smaller export — as SQL, CSV or Excel — without installing a database server or uploading your data anywhere.
+
+## Supported Formats
+
+### Source formats
+
+| Format | How rows are read | Grouping |
+|--------|-------------------|----------|
+| MySQL | `INSERT` statements | database |
+| MariaDB | `INSERT` statements | database |
+| PostgreSQL | `COPY ... FROM stdin` blocks and `INSERT` statements | schema |
+
+Nothing else is supported. SQLite, SQL Server, Oracle and other dialects are
+rejected rather than parsed on a best-effort basis.
+
+### Export formats
+
+| Format | Output |
+|--------|--------|
+| SQL | One `.sql` file, in the dialect the dump came from |
+| CSV | One `.csv` per table, UTF-8 with a byte order mark |
+| XLSX | One workbook, one sheet per table |
+
+Source format and export format are independent: any supported dump can be
+exported to any of the three. CSV and XLSX are engine-neutral, because they are
+written from the normalised rows rather than from SQL.
+
+### Format detection
+
+The source engine is detected from markers the dump's own tool writes — version
+comments, `LOCK TABLES`, `COPY ... FROM stdin`, `SET search_path`, and so on.
+Detection is deliberately conservative:
+
+- Markers from two engines at once produce no answer rather than a guess.
+- SQL carrying no engine markers at all — a hand-written `CREATE TABLE` plus
+  `INSERT`s — is read as MySQL, and the app says it assumed rather than
+  detected the format.
+- A file with nothing recognisable in it is refused as *Unsupported database
+  format*.
+
+The CLI's `--format` overrides detection. The core's `parseDump(sql, { format })`
+does the same.
+
+### Databases and schemas
+
+MySQL and MariaDB group tables by database. PostgreSQL groups them by schema
+inside a database. The tool does not pretend these are the same thing: it uses
+the source engine's own word in the UI and in the CLI, and when a PostgreSQL
+dump names the owning database, that name is kept alongside the schema rather
+than discarded.
+
+### Known limitations
+
+- **SQL export preserves the source dialect; it does not convert between
+  dialects.** A PostgreSQL dump exports to PostgreSQL SQL. There is no
+  translation layer, and none is claimed.
+- **Foreign keys can outlive their targets.** Exporting a subset of tables keeps
+  each table's own constraints, which may reference tables you did not select.
+- **Stored routines, views, triggers and grants are not extracted.** They are
+  preserved in the dump's trailing statements where they appear there, but they
+  are not offered as selectable objects.
+- **PostgreSQL binary and custom-format dumps are not supported.** Only the
+  plain-text output of `pg_dump` and `pg_dumpall` can be read.
+- **SQLite is not supported.** A `.dump` file has no database or schema to
+  select, so it would need a different selection model rather than a different
+  parser; inventing a database name for it would be misleading. Implementing it
+  is possible but has not been done.
 
 ## Privacy Model
 
@@ -17,8 +83,8 @@ This project processes untrusted SQL input (your dump files). While every reason
 
 ## Limitations
 
-- **MySQL and MariaDB only.** PostgreSQL, SQLite, and other SQL dialects are not supported.
-- **Pragmatic parser.** The parser handles common mysqldump output but is not a universal SQL parser. Edge cases in highly unusual dump formats may not parse correctly.
+- **Three engines only.** See [Supported Formats](#supported-formats). Anything else is refused rather than half-parsed.
+- **Pragmatic parsers.** Each parser handles the output its engine's dump tool writes; none is a universal SQL parser. Edge cases in highly unusual dump formats may not parse correctly.
 - **Memory-bound.** Entire files are loaded into memory. Very large dumps (multi-gigabyte) may exhaust available memory depending on your environment.
 
 ## Quick Start
@@ -53,6 +119,9 @@ Open [http://localhost:3000](http://localhost:3000), upload a `.sql` file, selec
 # Extract all tables from a specific database
 bun run --filter sql-extractor dev -- dump.sql -d store_db -a -o output.sql
 
+# Read the file as a specific engine instead of detecting it
+bun run --filter sql-extractor dev -- dump.sql -f postgresql -d public -a -o output.sql
+
 # Extract specific tables
 bun run --filter sql-extractor dev -- dump.sql -d store_db -t customers,orders -o output.sql
 
@@ -78,8 +147,30 @@ sql-database-extractor/
     web/           Next.js web interface
     cli/           Command-line interface
   examples/
-    sample-mysql-dump.sql   Synthetic sample dump
+    mysql/sample.sql        Synthetic sample dumps, one per
+    mariadb/sample.sql      supported source format
+    postgresql/sample.sql
 ```
+
+Inside the core:
+
+```
+packages/core/src/
+  formats/       Which engines exist, what they call things, how to detect them
+  parser/
+    shared/      Lexical helpers and the FormatParser interface
+    mysql/       MySQL and MariaDB (one dialect, two labels)
+    postgresql/
+  types/         The normalised dump model every other layer works on
+  extractor/     Rebuilds SQL from the model
+  tabular/       Turns the model into columns and rows
+  generator/     CSV, XLSX and ZIP
+```
+
+Dialect-specific SQL lives only under `parser/<format>/`. Everything above it
+works on the normalised model, so adding an engine means writing one
+`FormatParser` and registering it — no changes to the extractor, the generators
+or the UI.
 
 - `packages/core` — No I/O, no UI. Pure parsing and extraction logic.
 - `apps/cli` — CLI interface. Imports from core. No UI code.
@@ -130,13 +221,13 @@ Before considering any change complete:
 | Icons | Lucide React |
 | Build | Bun |
 | Tests | Vitest |
-| SQL Support | MySQL and MariaDB only |
+| Source formats | MySQL, MariaDB, PostgreSQL |
 
-**Explicitly out of scope:** PostgreSQL, SQLite, generic SQL abstractions, Redux, MUI, server-side database connections.
+**Explicitly out of scope:** SQLite and other dialects, dialect conversion, generic SQL abstractions, Redux, MUI, server-side database connections.
 
 ## Sample Data
 
-The `examples/` directory contains a synthetic SQL dump file with fictional data. This file is safe to use in examples and tests — it contains no real personal or production data.
+The `examples/` directory holds one synthetic dump per supported source format. Every name, address and value in them is invented. They are safe to use in examples and tests — they contain no real personal or production data, and no credentials.
 
 ## Contributing
 

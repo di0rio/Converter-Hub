@@ -1,6 +1,6 @@
 # SQL Database Extractor — Web Interface
 
-A Next.js web interface for extracting databases and tables from MySQL/MariaDB SQL dump files.
+A Next.js web interface for extracting databases and tables from MySQL, MariaDB and PostgreSQL dump files.
 
 ## Getting Started
 

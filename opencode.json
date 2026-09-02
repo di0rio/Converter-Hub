@@ -11,7 +11,7 @@
       "color": "primary"
     },
     "core-agent": {
-      "description": "Handles SQL dump parsing, extraction logic, SQL generation, core domain types, and MySQL/MariaDB compatibility. Use for SQL parser work, core library changes, and domain type modifications.",
+      "description": "Handles SQL dump parsing, extraction logic, SQL generation, core domain types, and per-engine dialect compatibility (MySQL, MariaDB, PostgreSQL). Use for SQL parser work, core library changes, and domain type modifications.",
       "mode": "subagent",
       "color": "accent"
     },
