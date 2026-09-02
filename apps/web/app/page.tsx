@@ -2,7 +2,9 @@ import { SqlExtractor } from '@/components/sql-extractor'
 
 export default function Home() {
   return (
-    <main className="no-scrollbar flex min-h-dvh items-start justify-center overflow-y-auto p-4 py-10">
+    // The shell owns the viewport height so the workspace can fill what is left
+    // instead of growing the page.
+    <main className="flex h-dvh w-full overflow-hidden p-4 lg:p-6">
       <SqlExtractor />
     </main>
   )

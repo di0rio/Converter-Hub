@@ -1,10 +1,13 @@
 'use client'
 
+import { useCallback, useMemo } from 'react'
+import { countRows } from '@sql-extractor/core'
 import { useSqlDump } from '@/hooks/use-sql-dump'
+import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { FileUpload } from '@/components/file-upload'
 import { DatabaseSelect } from '@/components/database-select'
 import { TableSelect } from '@/components/table-select'
-import { FloatingPreview } from '@/components/floating-preview'
+import { Workspace } from '@/components/workspace'
 import { FormatSelect } from '@/components/format-select'
 import { DownloadStep } from '@/components/download-step'
 import { AlertCircle } from 'lucide-react'
@@ -20,8 +23,6 @@ export function SqlExtractor() {
     sourceFormat,
     confidence,
     database,
-    previewTable,
-    previewTableName,
     status,
     result,
     error,
@@ -32,17 +33,61 @@ export function SqlExtractor() {
     selectDatabase,
     toggleTable,
     toggleAllTables,
-    setPreviewTableName,
     selectFormat,
     convert,
     reset,
   } = useSqlDump()
 
+  const {
+    windows,
+    openWindow,
+    closeWindow,
+    closeAllWindows,
+    focusWindow,
+    updateWindow,
+    setBounds,
+  } = usePreviewWindows()
+
   const showDatabases =
     dump != null && sourceFormat != null && dump.databases.length > 0
   const databaseHasTables = database != null && database.tables.length > 0
 
-  return (
+  // Counting walks every INSERT, so do it once per database and share the
+  // result with both the list and the windows.
+  const rowCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    if (database) {
+      for (const table of database.tables) counts.set(table.name, countRows(table))
+    }
+    return counts
+  }, [database])
+
+  // Previews belong to the database they were opened from; switching databases
+  // closes them rather than leaving windows pointing at tables that are gone.
+  const handleSelectDatabase = useCallback(
+    (name: string) => {
+      closeAllWindows()
+      selectDatabase(name)
+    },
+    [closeAllWindows, selectDatabase],
+  )
+
+  const handleReset = useCallback(() => {
+    closeAllWindows()
+    reset()
+  }, [closeAllWindows, reset])
+
+  const handleLoadFile = useCallback(
+    (content: string, name: string) => {
+      closeAllWindows()
+      return loadFile(content, name)
+    },
+    [closeAllWindows, loadFile],
+  )
+
+  const previewedTables = windows.map((w) => w.tableName)
+
+  const selectionPanel = (
     <div className="w-full max-w-lg space-y-8">
       <header>
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
@@ -65,7 +110,7 @@ export function SqlExtractor() {
 
       <div className="space-y-8">
         <FileUpload
-          onFile={loadFile}
+          onFile={handleLoadFile}
           onError={reportFileError}
           fileName={fileName || null}
           sourceFormat={sourceFormat}
@@ -76,7 +121,7 @@ export function SqlExtractor() {
           <DatabaseSelect
             databases={dump.databases}
             value={selectedDatabase}
-            onChange={selectDatabase}
+            onChange={handleSelectDatabase}
             sourceFormat={sourceFormat}
           />
         )}
@@ -87,14 +132,12 @@ export function SqlExtractor() {
             selectedTables={selectedTables}
             allSelected={allTablesSelected}
             someSelected={someTablesSelected}
-            previewTableName={previewTableName}
+            rowCounts={rowCounts}
+            previewedTables={previewedTables}
             onToggle={toggleTable}
             onToggleAll={toggleAllTables}
+            onPreview={openWindow}
           />
-        )}
-
-        {database && databaseHasTables && (
-          <FloatingPreview table={previewTable} onPreview={setPreviewTableName} />
         )}
 
         {database && !databaseHasTables && sourceFormat && (
@@ -112,12 +155,37 @@ export function SqlExtractor() {
               result={result}
               tableCount={selectedTables.length}
               onConvert={convert}
-              onReset={reset}
+              onReset={handleReset}
               onError={reportFileError}
             />
           </>
         )}
       </div>
+    </div>
+  )
+
+  return (
+    // Two panes on desktop, stacked on narrow screens. The selection column is
+    // a fixed track so opening a preview can never resize or reflow it.
+    <div className="flex h-full w-full flex-col gap-6 lg:flex-row lg:gap-8">
+      <div className="no-scrollbar flex shrink-0 justify-center overflow-y-auto lg:w-[34rem] lg:justify-start lg:pr-2">
+        {selectionPanel}
+      </div>
+
+      {databaseHasTables && (
+        <div className="min-h-[24rem] min-w-0 flex-1 lg:h-full lg:min-h-0">
+          <Workspace
+            database={database}
+            windows={windows}
+            rowCounts={rowCounts}
+            onOpen={openWindow}
+            onClose={closeWindow}
+            onFocus={focusWindow}
+            onChange={updateWindow}
+            onMeasure={setBounds}
+          />
+        </div>
+      )}
     </div>
   )
 }

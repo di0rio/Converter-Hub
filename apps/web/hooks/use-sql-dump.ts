@@ -24,7 +24,6 @@ export function useSqlDump() {
   const [fileName, setFileName] = useState<string>('')
   const [selectedDatabase, setSelectedDatabase] = useState<string>('')
   const [selectedTables, setSelectedTables] = useState<string[]>([])
-  const [previewTableName, setPreviewTableName] = useState<string>('')
   const [exportFormat, setExportFormat] = useState<ExportFormat>('sql')
   const [confidence, setConfidence] = useState<FormatConfidence | null>(null)
   const [status, setStatus] = useState<ConversionStatus>('idle')
@@ -62,7 +61,6 @@ export function useSqlDump() {
   /** Drop the table selection as well as the archive built from it. */
   const clearSelection = useCallback(() => {
     setSelectedTables([])
-    setPreviewTableName('')
     clearResult()
   }, [clearResult])
 
@@ -164,13 +162,6 @@ export function useSqlDump() {
     [],
   )
 
-  const previewTable = useMemo(
-    () => database?.tables.find((t) => t.name === previewTableName) ?? null,
-    [database, previewTableName],
-  )
-
-  const previewTableName_ = previewTableName
-
   const allTablesSelected =
     database != null && selectedTables.length === database.tables.length
   const someTablesSelected =
@@ -225,8 +216,6 @@ export function useSqlDump() {
     sourceFormat,
     confidence,
     database,
-    previewTable,
-    previewTableName: previewTableName_,
     status,
     result,
     error,
@@ -237,7 +226,6 @@ export function useSqlDump() {
     selectDatabase,
     toggleTable,
     toggleAllTables,
-    setPreviewTableName,
     selectFormat,
     convert,
     reset,
