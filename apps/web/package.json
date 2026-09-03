@@ -10,7 +10,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "setup": "node scripts/ensure-react-symlinks.mjs",
-    "test": "node scripts/ensure-react-symlinks.mjs && vitest run"
+    "test": "bun run --filter @sql-extractor/core build && node scripts/ensure-react-symlinks.mjs && vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

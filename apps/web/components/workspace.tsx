@@ -13,7 +13,7 @@ import {
 export const TABLE_DRAG_TYPE = 'application/x-sql-table'
 
 interface WorkspaceProps {
-  database: Database
+  database: Database | null
   windows: PreviewWindowState[]
   rowCounts: Map<string, number>
   onOpen: (tableName: string, at?: { x: number; y: number }) => void
@@ -115,7 +115,7 @@ export function Workspace({
     })
   }
 
-  const tables = new Map(database.tables.map((t) => [t.name, t]))
+  const tables = new Map(database?.tables.map((t) => [t.name, t]) ?? [])
   // A window whose table vanished (database switched) must not render.
   const open = windows.filter((w) => tables.has(w.tableName))
 

@@ -172,20 +172,18 @@ export function SqlExtractor() {
         {selectionPanel}
       </div>
 
-      {databaseHasTables && (
-        <div className="min-h-[24rem] min-w-0 flex-1 lg:h-full lg:min-h-0">
-          <Workspace
-            database={database}
-            windows={windows}
-            rowCounts={rowCounts}
-            onOpen={openWindow}
-            onClose={closeWindow}
-            onFocus={focusWindow}
-            onChange={updateWindow}
-            onMeasure={setBounds}
-          />
-        </div>
-      )}
+      <div className="min-h-[24rem] min-w-0 flex-1 lg:h-full lg:min-h-0">
+        <Workspace
+          database={database}
+          windows={windows}
+          rowCounts={rowCounts}
+          onOpen={openWindow}
+          onClose={closeWindow}
+          onFocus={focusWindow}
+          onChange={updateWindow}
+          onMeasure={setBounds}
+        />
+      </div>
     </div>
   )
 }
