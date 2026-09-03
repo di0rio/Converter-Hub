@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import {
   containWindow,
+  frontWindow,
   usePreviewWindows,
   WINDOW_DEFAULT_HEIGHT,
   WINDOW_DEFAULT_WIDTH,
@@ -19,6 +20,9 @@ const win = (patch: Partial<PreviewWindow> = {}): PreviewWindow => ({
   y: 0,
   width: WINDOW_DEFAULT_WIDTH,
   height: WINDOW_DEFAULT_HEIGHT,
+  z: 1,
+  minimized: false,
+  restore: null,
   ...patch,
 })
 
@@ -93,8 +97,20 @@ describe('usePreviewWindows', () => {
     act(() => result.current.openWindow('users'))
 
     expect(result.current.windows).toHaveLength(2)
-    // Front-most is last.
-    expect(result.current.windows.at(-1)!.tableName).toBe('users')
+    expect(frontWindow(result.current.windows)!.tableName).toBe('users')
+  })
+
+  it('keeps insertion order in the array so no DOM node ever moves', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.setMode('windows'))
+    act(() => result.current.openWindow('users'))
+    act(() => result.current.openWindow('orders'))
+    act(() => result.current.focusWindow(result.current.windows[0].id))
+
+    expect(result.current.windows.map((w) => w.tableName)).toEqual([
+      'users',
+      'orders',
+    ])
   })
 
   it('places a dropped window at the drop point', () => {
@@ -123,7 +139,7 @@ describe('usePreviewWindows', () => {
     const users = result.current.windows[0]
     act(() => result.current.focusWindow(users.id))
 
-    expect(result.current.windows.map((w) => w.tableName)).toEqual(['orders', 'users'])
+    expect(frontWindow(result.current.windows)!.tableName).toBe('users')
   })
 
   it('keeps the order when focusing the front-most window', () => {
@@ -204,5 +220,100 @@ describe('usePreviewWindows', () => {
     const before = result.current.windows
     act(() => result.current.setBounds(BOUNDS))
     expect(result.current.windows).toBe(before)
+  })
+
+  it('defaults to a full-width preview, not floating windows', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    expect(result.current.mode).toBe('full')
+    expect(result.current.layout).toBe('tabs')
+  })
+
+  it('collapses a window to its title bar and back', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.openWindow('users'))
+    const id = result.current.windows[0].id
+
+    act(() => result.current.toggleMinimize(id))
+    expect(result.current.windows[0].minimized).toBe(true)
+
+    act(() => result.current.toggleMinimize(id))
+    expect(result.current.windows[0].minimized).toBe(false)
+  })
+
+  it('maximises to the workspace and restores the previous geometry', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.setBounds(BOUNDS))
+    act(() => result.current.openWindow('users', { x: 40, y: 30 }))
+    const id = result.current.windows[0].id
+
+    act(() => result.current.toggleMaximize(id))
+    expect(result.current.windows[0]).toMatchObject({
+      x: 0,
+      y: 0,
+      width: BOUNDS.width,
+      height: BOUNDS.height,
+    })
+
+    act(() => result.current.toggleMaximize(id))
+    expect(result.current.windows[0]).toMatchObject({
+      x: 40,
+      y: 30,
+      width: WINDOW_DEFAULT_WIDTH,
+      height: WINDOW_DEFAULT_HEIGHT,
+      restore: null,
+    })
+  })
+
+  it('drops the maximised state as soon as the window is moved by hand', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.setBounds(BOUNDS))
+    act(() => result.current.openWindow('users'))
+    const id = result.current.windows[0].id
+
+    act(() => result.current.toggleMaximize(id))
+    act(() => result.current.updateWindow(id, { x: 60, y: 60 }))
+
+    expect(result.current.windows[0].restore).toBeNull()
+  })
+
+  it('keeps a maximised window filling a workspace that changed size', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.setBounds(BOUNDS))
+    act(() => result.current.openWindow('users'))
+    act(() => result.current.toggleMaximize(result.current.windows[0].id))
+
+    act(() => result.current.setBounds({ width: 500, height: 400 }))
+
+    expect(result.current.windows[0]).toMatchObject({ width: 500, height: 400 })
+  })
+
+  it('replaces the open table in the single layout', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.setLayout('single'))
+    act(() => result.current.openWindow('users'))
+    act(() => result.current.openWindow('orders'))
+
+    expect(result.current.windows.map((w) => w.tableName)).toEqual(['orders'])
+  })
+
+  it('keeps only the front-most table when the single layout is adopted', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.openWindow('users'))
+    act(() => result.current.openWindow('orders'))
+    act(() => result.current.focusWindow(result.current.windows[0].id))
+
+    act(() => result.current.setLayout('single'))
+
+    expect(result.current.windows.map((w) => w.tableName)).toEqual(['users'])
+  })
+
+  it('expands collapsed windows when the windowed mode is entered', () => {
+    const { result } = renderHook(() => usePreviewWindows())
+    act(() => result.current.openWindow('users'))
+    act(() => result.current.toggleMinimize(result.current.windows[0].id))
+
+    act(() => result.current.setMode('windows'))
+
+    expect(result.current.windows[0].minimized).toBe(false)
   })
 })

@@ -40,11 +40,17 @@ export function SqlExtractor() {
 
   const {
     windows,
+    mode,
+    layout,
     openWindow,
     closeWindow,
     closeAllWindows,
     focusWindow,
     updateWindow,
+    toggleMinimize,
+    toggleMaximize,
+    setMode,
+    setLayout,
     setBounds,
   } = usePreviewWindows()
 
@@ -177,9 +183,16 @@ export function SqlExtractor() {
           database={database}
           windows={windows}
           rowCounts={rowCounts}
+          mode={mode}
+          layout={layout}
           onOpen={openWindow}
           onClose={closeWindow}
+          onCloseAll={closeAllWindows}
           onFocus={focusWindow}
+          onMinimize={toggleMinimize}
+          onMaximize={toggleMaximize}
+          onModeChange={setMode}
+          onLayoutChange={setLayout}
           onChange={updateWindow}
           onMeasure={setBounds}
         />

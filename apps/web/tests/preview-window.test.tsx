@@ -19,13 +19,19 @@ const state: PreviewWindowState = {
   y: 40,
   width: 400,
   height: 260,
+  z: 1,
+  minimized: false,
+  restore: null,
 }
 
 function setup(overrides: Partial<React.ComponentProps<typeof PreviewWindow>> = {}) {
   const handlers = {
     onFocus: vi.fn(),
     onClose: vi.fn(),
+    onMinimize: vi.fn(),
+    onMaximize: vi.fn(),
     onChange: vi.fn(),
+    onSnapPreview: vi.fn(),
   }
   const view = render(
     <PreviewWindow
@@ -33,6 +39,7 @@ function setup(overrides: Partial<React.ComponentProps<typeof PreviewWindow>> = 
       table={table}
       rowCount={2}
       active
+      bounds={{ width: 800, height: 600 }}
       {...handlers}
       {...overrides}
     />,
@@ -153,11 +160,65 @@ describe('PreviewWindow', () => {
 
   it('marks the active window more prominently than an inactive one', () => {
     const { unmount } = setup({ active: true })
-    expect(screen.getByRole('dialog').className).toContain('shadow-lg')
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-active')
     unmount()
 
     setup({ active: false })
-    expect(screen.getByRole('dialog').className).not.toContain('shadow-lg')
+    expect(screen.getByRole('dialog')).not.toHaveAttribute('data-active')
+  })
+
+  it('paints at the depth its stacking order asks for', () => {
+    setup({ window: { ...state, z: 7 } })
+    expect(screen.getByRole('dialog')).toHaveStyle({ zIndex: '7' })
+  })
+
+  it('lifts a collapsed window above every expanded one, so it stays reachable', () => {
+    setup({ window: { ...state, z: 7, minimized: true } })
+    expect(
+      Number(screen.getByRole('dialog').style.zIndex),
+    ).toBeGreaterThan(10_000)
+  })
+
+  it('collapses to its title bar, hiding the table but not the name', () => {
+    setup({ window: { ...state, minimized: true } })
+
+    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+    expect(within(header()).getByText('users')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toHaveStyle({ height: '33px' })
+    expect(
+      screen.queryByLabelText('Resize users preview'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('collapses and expands from the title bar', () => {
+    const { onMinimize } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse users preview' }))
+    expect(onMinimize).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers to restore, not to maximise, once it already fills the workspace', () => {
+    const { onMaximize } = setup({
+      window: { ...state, restore: { x: 1, y: 2, width: 3, height: 4 } },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restore users preview' }))
+    expect(onMaximize).toHaveBeenCalledTimes(1)
+  })
+
+  it('maximises on a double click of the title bar', () => {
+    const { onMaximize } = setup()
+    fireEvent.doubleClick(header())
+    expect(onMaximize).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not start a drag from a title-bar control', () => {
+    const { onChange } = setup()
+    const close = screen.getByRole('button', { name: 'Close users preview' })
+
+    pointer(close, 'pointerdown', { clientX: 300, clientY: 40 })
+    pointer(header(), 'pointermove', { clientX: 500, clientY: 400 })
+
+    expect(onChange).not.toHaveBeenCalled()
   })
 
   it('keeps the table inside the window rather than letting it set the size', () => {

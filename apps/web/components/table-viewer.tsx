@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toTabular } from '@sql-extractor/core'
 import type { Table } from '@sql-extractor/core'
 import { Label } from '@/components/ui/label'
@@ -31,12 +31,27 @@ export function TableViewer({
 }: TableViewerProps) {
   const [scrollTop, setScrollTop] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [measured, setMeasured] = useState<number | null>(null)
 
   // Parsing is the expensive step, so it happens once per table, not per render.
   const data = useMemo(() => toTabular(table), [table])
   const total = data.rows.length
 
-  const viewportHeight = height ?? VIEWPORT_HEIGHT
+  // A bare viewer stretches to whatever frame it was dropped into — a resized
+  // window, a tile in a grid — so it measures itself rather than trusting a
+  // pixel height threaded down from a parent that may not know it yet.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!bare || !el || typeof ResizeObserver === 'undefined') return
+
+    const read = () => setMeasured(el.clientHeight)
+    read()
+    const observer = new ResizeObserver(read)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [bare, total])
+
+  const viewportHeight = measured ?? height ?? VIEWPORT_HEIGHT
   const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT) + OVERSCAN * 2
   const first = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN)
   const last = Math.min(total, first + visibleCount)
@@ -82,7 +97,13 @@ export function TableViewer({
           style={bare ? undefined : { height: viewportHeight }}
         >
           <table className="w-max min-w-full border-collapse text-sm">
-            <thead className="sticky top-0 z-10 bg-background">
+            {/* The sticky header has to be opaque in the colour of whatever
+                frame holds it, or rows show through it as they scroll under. */}
+            <thead
+              className={
+                'sticky top-0 z-10 ' + (bare ? 'bg-card' : 'bg-background')
+              }
+            >
               <tr className="border-b border-border">
                 <th
                   scope="col"
