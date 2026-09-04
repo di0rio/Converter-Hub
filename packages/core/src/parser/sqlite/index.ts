@@ -1,4 +1,5 @@
 import type { SqlDump, Database, Table } from '../../types/index.js'
+import type { DatabaseFormat } from '../../formats/index.js'
 import type { FormatParser, DataBlock } from '../shared/format-parser.js'
 import { SQLITE_DIALECT, splitScript } from '../shared/dialect.js'
 import {
@@ -102,7 +103,10 @@ function isInternalTable(name: string): boolean {
 /**
  * Parse a SQLite `.dump` script into a normalised SqlDump.
  */
-export function parseSqliteDump(sql: string): SqlDump {
+export function parseSqliteDump(
+  sql: string,
+  format: SqliteFamilyFormat = 'sqlite',
+): SqlDump {
   const statements = splitScript(sql, SQLITE_DIALECT)
 
   const database: Database = {
@@ -130,7 +134,7 @@ export function parseSqliteDump(sql: string): SqlDump {
     const created: Table = {
       name,
       database: 'main',
-      format: 'sqlite',
+      format,
       createStatement: '',
       preDataStatements: [],
       dataStatements: [],
@@ -232,7 +236,7 @@ export function parseSqliteDump(sql: string): SqlDump {
   }
 
   return {
-    format: 'sqlite',
+    format,
     databases: [database],
     preamble: preamble.trimEnd(),
     postamble: postamble.trimEnd(),
@@ -253,10 +257,22 @@ function countDataRows(statement: string): number {
   return countInsertRows(statement, SQLITE_DIALECT)
 }
 
-export const sqliteParser: FormatParser = {
-  format: 'sqlite',
-  parse: parseSqliteDump,
-  readColumns,
-  readDataBlock,
-  countDataRows,
+/**
+ * The engines whose dumps this parser reads. DuckDB's shell is forked from
+ * SQLite's, so its .dump output has the same shape; the engine underneath is
+ * a different product and is reported as one.
+ */
+export type SqliteFamilyFormat = Extract<DatabaseFormat, 'sqlite' | 'duckdb'>
+
+/** One reader, one identity per product. */
+export function createSqliteParser(format: SqliteFamilyFormat): FormatParser {
+  return {
+    format,
+    parse: (sql) => parseSqliteDump(sql, format),
+    readColumns,
+    readDataBlock,
+    countDataRows,
+  }
 }
+
+export const sqliteParser: FormatParser = createSqliteParser('sqlite')

@@ -7,7 +7,13 @@ import { readColumns, readDataBlock, countDataRows } from './rows.js'
 /** The engines this parser reads. Their dump syntax is the same. */
 export type MysqlFamilyFormat = Extract<
   DatabaseFormat,
-  'mysql' | 'mariadb' | 'tidb'
+  | 'mysql'
+  | 'mariadb'
+  | 'tidb'
+  | 'percona'
+  | 'aurora-mysql'
+  | 'singlestore'
+  | 'starrocks'
 >
 
 /**

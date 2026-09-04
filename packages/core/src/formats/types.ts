@@ -10,6 +10,10 @@ export type DatabaseFormat =
   | 'mysql'
   | 'mariadb'
   | 'tidb'
+  | 'percona'
+  | 'aurora-mysql'
+  | 'singlestore'
+  | 'starrocks'
   // PostgreSQL family
   | 'postgresql'
   | 'cockroachdb'
@@ -18,6 +22,7 @@ export type DatabaseFormat =
   | 'redshift'
   | 'timescaledb'
   | 'citus'
+  | 'enterprisedb'
   // SQL Server family
   | 'sqlserver'
   | 'synapse'

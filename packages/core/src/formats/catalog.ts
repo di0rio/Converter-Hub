@@ -170,6 +170,51 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     ],
   },
 
+  percona: {
+    id: 'percona',
+    label: 'Percona Server',
+    status: 'supported',
+    family: 'mysql',
+    ...DATABASE,
+    // mysqldump writes the server version it read from, and Percona's carries
+    // its own name and build suffix.
+    markers: [/\bPercona\b/i, /\bXtraDB\b/i],
+  },
+
+  'aurora-mysql': {
+    id: 'aurora-mysql',
+    label: 'Aurora MySQL',
+    status: 'supported',
+    family: 'mysql',
+    ...DATABASE,
+    // Aurora reports itself as e.g. 8.0.mysql_aurora.3.04.0.
+    markers: [/\bmysql_aurora\b/i, /\baurora_[a-z_]+\b/i],
+  },
+
+  singlestore: {
+    id: 'singlestore',
+    label: 'SingleStore',
+    status: 'supported',
+    family: 'mysql',
+    ...DATABASE,
+    markers: [/\bSHARD\s+KEY\b/i, /\bSingleStore\b/i, /\bMemSQL\b/i],
+  },
+
+  starrocks: {
+    id: 'starrocks',
+    label: 'StarRocks',
+    status: 'supported',
+    family: 'mysql',
+    ...DATABASE,
+    // StarRocks writes its own table shape after the column list.
+    markers: [
+      /\bENGINE\s*=\s*OLAP\b/i,
+      /\b(DUPLICATE|AGGREGATE|PRIMARY)\s+KEY\s*\([^)]*\)\s*(COMMENT|DISTRIBUTED|PARTITION)/i,
+      /\bBUCKETS\s+\d+/i,
+      /\bStarRocks\b/i,
+    ],
+  },
+
   // -------------------------------------------------- PostgreSQL family
 
   postgresql: {
@@ -245,6 +290,16 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     markers: [/\bcreate_distributed_table\s*\(/i, /\bcreate_reference_table\s*\(/i, /\bcitus\b/i],
   },
 
+  enterprisedb: {
+    id: 'enterprisedb',
+    label: 'EnterpriseDB',
+    status: 'supported',
+    family: 'postgresql',
+    ...SCHEMA,
+    // EDB Postgres Advanced Server writes its own session settings.
+    markers: [/\bedb_[a-z_]+\b/i, /\bEnterpriseDB\b/i, /\bedbspl\b/i],
+  },
+
   // -------------------------------------------------- SQL Server family
 
   sqlserver: {
@@ -259,7 +314,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   synapse: {
     id: 'synapse',
     label: 'Azure Synapse Analytics',
-    status: 'planned',
+    status: 'supported',
     family: 'sqlserver',
     ...SCHEMA,
     markers: [
@@ -284,7 +339,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   duckdb: {
     id: 'duckdb',
     label: 'DuckDB',
-    status: 'planned',
+    status: 'supported',
     family: 'sqlite',
     ...DATABASE,
     markers: [/^--\s*DuckDB\b/im, /\bduckdb_[a-z_]+\b/i, /\bCREATE\s+SEQUENCE\b[\s\S]*\bSTART\s+\d+/i],

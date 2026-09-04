@@ -4,8 +4,8 @@ import type { SqlDump } from '../types/index.js'
 import type { FormatParser } from './shared/format-parser.js'
 import { createMysqlParser } from './mysql/index.js'
 import { createPostgresParser } from './postgresql/index.js'
-import { sqliteParser } from './sqlite/index.js'
-import { sqlserverParser } from './sqlserver/index.js'
+import { createSqliteParser } from './sqlite/index.js'
+import { createSqlServerParser } from './sqlserver/index.js'
 import { firebirdParser } from './firebird/index.js'
 
 /**
@@ -22,6 +22,10 @@ const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
   mysql: createMysqlParser('mysql'),
   mariadb: createMysqlParser('mariadb'),
   tidb: createMysqlParser('tidb'),
+  percona: createMysqlParser('percona'),
+  'aurora-mysql': createMysqlParser('aurora-mysql'),
+  singlestore: createMysqlParser('singlestore'),
+  starrocks: createMysqlParser('starrocks'),
 
   // PostgreSQL family. Sharing the reader is not the same as being the same
   // product: each keeps its own format stamp so a Greenplum dump is reported
@@ -33,10 +37,13 @@ const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
   redshift: createPostgresParser('redshift'),
   timescaledb: createPostgresParser('timescaledb'),
   citus: createPostgresParser('citus'),
+  enterprisedb: createPostgresParser('enterprisedb'),
 
   // Dialects with readers of their own.
-  sqlite: sqliteParser,
-  sqlserver: sqlserverParser,
+  sqlite: createSqliteParser('sqlite'),
+  duckdb: createSqliteParser('duckdb'),
+  sqlserver: createSqlServerParser('sqlserver'),
+  synapse: createSqlServerParser('synapse'),
   firebird: firebirdParser,
 }
 

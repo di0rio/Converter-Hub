@@ -372,6 +372,7 @@ export type PostgresFamilyFormat = Extract<
   | 'redshift'
   | 'timescaledb'
   | 'citus'
+  | 'enterprisedb'
 >
 
 /** One reader, one identity per product. */

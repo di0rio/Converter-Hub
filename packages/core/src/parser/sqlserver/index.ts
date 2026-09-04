@@ -1,4 +1,5 @@
 import type { SqlDump, Database, Table } from '../../types/index.js'
+import type { DatabaseFormat } from '../../formats/index.js'
 import type { FormatParser } from '../shared/format-parser.js'
 import type { DataBlock } from '../shared/format-parser.js'
 import { SQLSERVER_DIALECT, splitScript } from '../shared/dialect.js'
@@ -57,7 +58,10 @@ function classifyStatement(sql: string): StatementType {
  * semicolon. Statement text is stored verbatim, so a SQL export stays valid
  * T-SQL. Nothing here is executed.
  */
-export function parseSqlServerDump(sql: string): SqlDump {
+export function parseSqlServerDump(
+  sql: string,
+  format: SqlServerFamilyFormat = 'sqlserver',
+): SqlDump {
   const statements = splitScript(sql, SQLSERVER_DIALECT)
 
   const schemas = new Map<string, Database>()
@@ -100,7 +104,7 @@ export function parseSqlServerDump(sql: string): SqlDump {
     const created: Table = {
       name,
       database: schema,
-      format: 'sqlserver',
+      format,
       createStatement: '',
       preDataStatements: [],
       dataStatements: [],
@@ -216,7 +220,7 @@ export function parseSqlServerDump(sql: string): SqlDump {
   }
 
   return {
-    format: 'sqlserver',
+    format,
     databases: [...schemas.values()],
     preamble: preamble.trimEnd(),
     postamble: postamble.trimEnd(),
@@ -235,10 +239,27 @@ export function countDataRows(statement: string): number {
   return countInsertRows(statement, SQLSERVER_DIALECT)
 }
 
-export const sqlserverParser: FormatParser = {
-  format: 'sqlserver',
-  parse: parseSqlServerDump,
-  readColumns,
-  readDataBlock,
-  countDataRows,
+/**
+ * The engines whose scripts this parser reads. Synapse is T-SQL plus its own
+ * table-shape clauses, which sit outside the column list and so do not change
+ * how the script is read — but it stays its own product, not a relabelling.
+ */
+export type SqlServerFamilyFormat = Extract<
+  DatabaseFormat,
+  'sqlserver' | 'synapse'
+>
+
+/** One reader, one identity per product. */
+export function createSqlServerParser(
+  format: SqlServerFamilyFormat,
+): FormatParser {
+  return {
+    format,
+    parse: (sql) => parseSqlServerDump(sql, format),
+    readColumns,
+    readDataBlock,
+    countDataRows,
+  }
 }
+
+export const sqlserverParser: FormatParser = createSqlServerParser('sqlserver')

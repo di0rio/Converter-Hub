@@ -1,6 +1,6 @@
 # SQL Database Extractor
 
-A database dump extraction tool. Read a SQL dump from any of a dozen supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
+A database dump extraction tool. Read a SQL dump from any of 19 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
 
 ## Why
 
@@ -21,14 +21,21 @@ every one of them through detection, parsing and all three exports on each run.
 | MySQL | `INSERT` | database | |
 | MariaDB | `INSERT` | database | |
 | TiDB | `INSERT` | database | Dumpling output; `/*T![...] */` comments preserved |
+| Percona Server | `INSERT` | database | mysqldump output; identified by its server version |
+| Aurora MySQL | `INSERT` | database | mysqldump output; identified by `mysql_aurora` |
+| SingleStore | `INSERT` | database | `SHARD KEY` / `SORT KEY` clauses preserved |
+| StarRocks | `INSERT` | database | `ENGINE=OLAP`, key model and bucketing preserved |
 | PostgreSQL | `COPY ... FROM stdin`, `INSERT` | schema | |
 | YugabyteDB | `COPY`, `INSERT` | schema | `ysql_dump` output |
 | Greenplum | `COPY`, `INSERT` | schema | `DISTRIBUTED BY` clauses preserved |
 | Amazon Redshift | `INSERT` | schema | DDL plus INSERTs; see the note below |
 | TimescaleDB | `COPY`, `INSERT` | schema | `create_hypertable()` preserved |
 | Citus | `COPY`, `INSERT` | schema | distribution calls preserved |
+| EnterpriseDB | `COPY`, `INSERT` | schema | EDB Postgres Advanced Server; `edb_` settings |
 | Microsoft SQL Server | `INSERT` | schema | `GO` batches, `[bracketed]` identifiers |
+| Azure Synapse Analytics | `INSERT` | schema | T-SQL plus `DISTRIBUTION` / columnstore clauses |
 | SQLite | `INSERT` | database | `sqlite3 .dump` output |
+| DuckDB | `INSERT` | database | `duckdb` shell `.dump` output |
 | Firebird | `INSERT` | schema | `SET TERM` bodies handled |
 
 **Experimental — readable, not advertised in the app:**
@@ -37,8 +44,7 @@ every one of them through detection, parsing and all three exports on each run.
 |--------|-----|
 | CockroachDB | A column family written with an unquoted name (`FAMILY fam_0 (id)`) cannot be told apart from a column named `family`, so it stays in the column list and shows up as an extra empty column. The quoted form `cockroach dump` normally writes is handled. |
 
-**Recognised but not readable yet:** Azure Synapse Analytics, DuckDB, Oracle
-Database, IBM Db2. A dump from one of these is *identified* — the app says which
+**Recognised but not readable yet:** Oracle Database, IBM Db2. A dump from one of these is *identified* — the app says which
 engine it is and that it is not supported yet — rather than being refused as
 unrecognisable or half-parsed.
 
@@ -53,6 +59,12 @@ are recorded with the reason rather than left to look like an oversight:
 | Trino, Presto | Query engines over other stores. They own no data and have no dump format of their own. |
 | Apache Hive | Metadata lives in the metastore, rows live as files on HDFS or S3. Neither is a SQL dump. |
 | Apache Impala | A query engine over Hive-managed storage. Rows are files, not `INSERT` statements. |
+
+A product is listed only when it is a distinct database engine *and* its dumps
+carry a marker identifying it. Hosting a another engine does not qualify, so
+Supabase, Neon, AlloyDB, Aurora PostgreSQL and Azure SQL Database are read as
+PostgreSQL or SQL Server rather than listed separately — they parse fine, they
+just are not different engines.
 
 Non-SQL databases (MongoDB, Redis, Cassandra, DynamoDB, Elasticsearch, Neo4j)
 are out of scope by design, not pending. Importing them would be a different
