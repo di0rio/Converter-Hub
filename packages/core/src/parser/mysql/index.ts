@@ -259,7 +259,7 @@ function classifyStatement(sql: string): StatementType {
  */
 function databaseNameFromCreate(sql: string): string | null {
   const match = stripLeadingComments(sql).match(
-    /CREATE\s+DATABASE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)[`"]?/i
+    /CREATE\s+DATABASE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)[`"]?/i,
   )
   return match?.[1] ?? null
 }
@@ -277,7 +277,7 @@ function databaseNameFromUse(sql: string): string | null {
  */
 function tableNameFromCreate(sql: string): string | null {
   const match = stripLeadingComments(sql).match(
-    /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)[`"]?/i
+    /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)[`"]?/i,
   )
   return match?.[1] ?? null
 }
@@ -287,7 +287,7 @@ function tableNameFromCreate(sql: string): string | null {
  */
 function tableNameFromInsert(sql: string): string | null {
   const match = stripLeadingComments(sql).match(
-    /INSERT\s+INTO\s+[`"]?(\w+)[`"]?/i
+    /INSERT\s+INTO\s+[`"]?(\w+)[`"]?/i,
   )
   return match?.[1] ?? null
 }
@@ -430,7 +430,7 @@ export function parseMysqlDump(
             const currentDatabase = ensureDatabase()
             // Look for existing table in current database
             const existing = currentDatabase.tables.find(
-              (t) => t.name === tableName
+              (t) => t.name === tableName,
             )
             if (existing) {
               existing.dataStatements.push(stmt)

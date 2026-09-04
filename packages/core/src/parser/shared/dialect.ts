@@ -255,7 +255,10 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
 
   /** Whether the text ends at the END that closes such a body. */
   function endsCompoundBody(text: string): boolean {
-    return new RegExp('\\bEND\\s*' + escapeForRegExp(terminator) + '\\s*$', 'i').test(text)
+    return new RegExp(
+      '\\bEND\\s*' + escapeForRegExp(terminator) + '\\s*$',
+      'i',
+    ).test(text)
   }
 
   function flush(): void {

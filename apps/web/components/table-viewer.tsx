@@ -57,7 +57,10 @@ export function TableViewer({
   const last = Math.min(total, first + visibleCount)
 
   // Only the visible window becomes DOM nodes; the rest is padding height.
-  const window = useMemo(() => data.rows.slice(first, last), [data.rows, first, last])
+  const window = useMemo(
+    () => data.rows.slice(first, last),
+    [data.rows, first, last],
+  )
 
   const padTop = first * ROW_HEIGHT
   const padBottom = Math.max(0, (total - last) * ROW_HEIGHT)
@@ -71,10 +74,16 @@ export function TableViewer({
     : 'rounded-lg border border-input px-4 py-6 text-center text-sm text-muted-foreground'
 
   return (
-    <section aria-labelledby="step-preview" className={bare ? 'h-full' : undefined}>
+    <section
+      aria-labelledby="step-preview"
+      className={bare ? 'h-full' : undefined}
+    >
       {!hideHeader && (
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <Label id="step-preview" className="text-base font-semibold sm:text-sm">
+          <Label
+            id="step-preview"
+            className="text-base font-semibold sm:text-sm"
+          >
             Preview
           </Label>
           <span className="text-xs text-muted-foreground">
@@ -86,7 +95,9 @@ export function TableViewer({
       )}
 
       {data.columns.length === 0 ? (
-        <p className={messageFrame}>No columns could be read from this table.</p>
+        <p className={messageFrame}>
+          No columns could be read from this table.
+        </p>
       ) : total === 0 ? (
         <p className={messageFrame}>This table has no data rows.</p>
       ) : (
@@ -126,14 +137,20 @@ export function TableViewer({
             <tbody>
               {padTop > 0 && (
                 <tr aria-hidden="true">
-                  <td colSpan={data.columns.length + 1} style={{ height: padTop }} />
+                  <td
+                    colSpan={data.columns.length + 1}
+                    style={{ height: padTop }}
+                  />
                 </tr>
               )}
 
               {window.map((row, index) => {
                 const rowNumber = first + index + 1
                 return (
-                  <tr key={rowNumber} className="border-b border-border/60 last:border-0">
+                  <tr
+                    key={rowNumber}
+                    className="border-b border-border/60 last:border-0"
+                  >
                     <td
                       className="px-3 py-1.5 text-right align-top text-xs tabular-nums text-muted-foreground"
                       style={{ height: ROW_HEIGHT }}
@@ -149,7 +166,9 @@ export function TableViewer({
                           title={value ?? undefined}
                         >
                           {value === null ? (
-                            <span className="text-muted-foreground italic">NULL</span>
+                            <span className="text-muted-foreground italic">
+                              NULL
+                            </span>
                           ) : (
                             value
                           )}
@@ -162,7 +181,10 @@ export function TableViewer({
 
               {padBottom > 0 && (
                 <tr aria-hidden="true">
-                  <td colSpan={data.columns.length + 1} style={{ height: padBottom }} />
+                  <td
+                    colSpan={data.columns.length + 1}
+                    style={{ height: padBottom }}
+                  />
                 </tr>
               )}
             </tbody>

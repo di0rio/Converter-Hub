@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 
 const samplePath = resolve(
   import.meta.dirname,
-  '../../../examples/mysql/sample.sql'
+  '../../../examples/mysql/sample.sql',
 )
 
 describe('integration: parse → extract', () => {
@@ -169,9 +169,7 @@ describe('integration: parse → extract', () => {
 
       const tables = ['customers', 'products', 'orders']
       for (const tableName of tables) {
-        const createIdx = result.sql.indexOf(
-          `CREATE TABLE \`${tableName}\``
-        )
+        const createIdx = result.sql.indexOf(`CREATE TABLE \`${tableName}\``)
         const insertIdx = result.sql.indexOf(`INSERT INTO \`${tableName}\``)
 
         expect(createIdx).toBeGreaterThan(-1)
@@ -227,10 +225,7 @@ describe('integration: parse → extract', () => {
       const db = reParsed.databases.find((d) => d.name === 'store_db')
       expect(db).toBeDefined()
       expect(db!.tables).toHaveLength(2)
-      expect(db!.tables.map((t) => t.name)).toEqual([
-        'customers',
-        'products',
-      ])
+      expect(db!.tables.map((t) => t.name)).toEqual(['customers', 'products'])
     })
 
     it('re-parsed data matches original', () => {

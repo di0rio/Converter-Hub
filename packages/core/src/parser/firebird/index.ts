@@ -1,7 +1,11 @@
 import type { SqlDump, Database, Table } from '../../types/index.js'
 import type { FormatParser } from '../shared/format-parser.js'
 import { FIREBIRD_DIALECT, splitScript } from '../shared/dialect.js'
-import { countInsertRows, readColumns as readColumnsWith, readInsertBlock } from '../shared/script-parser.js'
+import {
+  countInsertRows,
+  readColumns as readColumnsWith,
+  readInsertBlock,
+} from '../shared/script-parser.js'
 import { stripLeadingComments } from '../shared/syntax.js'
 import { IDENT, displayName, identAfter, normalizeKey } from './identifiers.js'
 import { findGeneratorOwners } from './generators.js'
@@ -32,12 +36,18 @@ function classify(sql: string): StatementType {
   if (clean.length === 0) return 'comment'
 
   if (/^CREATE\s+DATABASE\b/i.test(clean)) return 'create_database'
-  if (/^CREATE\s+(?:GENERATOR|SEQUENCE)\b/i.test(clean)) return 'create_generator'
+  if (/^CREATE\s+(?:GENERATOR|SEQUENCE)\b/i.test(clean))
+    return 'create_generator'
   if (/^CREATE\s+TABLE\b/i.test(clean)) return 'create_table'
-  if (/^CREATE\s+(?:OR\s+ALTER\s+)?TRIGGER\b/i.test(clean)) return 'create_trigger'
+  if (/^CREATE\s+(?:OR\s+ALTER\s+)?TRIGGER\b/i.test(clean))
+    return 'create_trigger'
   if (/^INSERT\s+INTO\b/i.test(clean)) return 'insert'
   if (/^ALTER\s+TABLE\b/i.test(clean)) return 'alter_table'
-  if (/^CREATE\s+(?:UNIQUE\s+)?(?:ASC(?:ENDING)?\s+|DESC(?:ENDING)?\s+)?INDEX\b/i.test(clean)) {
+  if (
+    /^CREATE\s+(?:UNIQUE\s+)?(?:ASC(?:ENDING)?\s+|DESC(?:ENDING)?\s+)?INDEX\b/i.test(
+      clean,
+    )
+  ) {
     return 'create_index'
   }
 
@@ -159,13 +169,21 @@ export function parseFirebirdDump(sql: string): SqlDump {
           database.name = name
           database.createStatement = stmt
         } else {
-          database = { name, createStatement: stmt, useStatement: '', tables: [] }
+          database = {
+            name,
+            createStatement: stmt,
+            useStatement: '',
+            tables: [],
+          }
         }
         break
       }
 
       case 'create_table': {
-        const raw = identAfter(clean, String.raw`CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`)
+        const raw = identAfter(
+          clean,
+          String.raw`CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`,
+        )
         if (raw) {
           const table = ensureTable(raw)
           table.createStatement = stmt
@@ -176,7 +194,10 @@ export function parseFirebirdDump(sql: string): SqlDump {
       }
 
       case 'create_generator': {
-        const raw = identAfter(clean, String.raw`CREATE\s+(?:GENERATOR|SEQUENCE)\s+(?:IF\s+NOT\s+EXISTS\s+)?`)
+        const raw = identAfter(
+          clean,
+          String.raw`CREATE\s+(?:GENERATOR|SEQUENCE)\s+(?:IF\s+NOT\s+EXISTS\s+)?`,
+        )
         const owner = raw ? generatorOwners.get(normalizeKey(raw)) : undefined
         if (owner) {
           attachOrBuffer(owner, stmt)
@@ -189,7 +210,9 @@ export function parseFirebirdDump(sql: string): SqlDump {
       case 'create_trigger': {
         const raw = identAfter(
           clean,
-          String.raw`CREATE\s+(?:OR\s+ALTER\s+)?TRIGGER\s+` + IDENT + String.raw`\s+FOR`,
+          String.raw`CREATE\s+(?:OR\s+ALTER\s+)?TRIGGER\s+` +
+            IDENT +
+            String.raw`\s+FOR`,
         )
         if (raw) {
           attachOrBuffer(raw, stmt)

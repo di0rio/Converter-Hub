@@ -7,7 +7,11 @@ import {
   readColumns as readColumnsShared,
   readInsertBlock,
 } from '../shared/script-parser.js'
-import { SQLITE_SYNTAX, stripLeadingComments, unquoteIdentifier } from '../shared/syntax.js'
+import {
+  SQLITE_SYNTAX,
+  stripLeadingComments,
+  unquoteIdentifier,
+} from '../shared/syntax.js'
 
 /**
  * Parse the output of `sqlite3 mydb.db .dump`.
@@ -30,7 +34,8 @@ const DOUBLE_QUOTED = '"(?:[^"]|"")+"'
 const BACK_QUOTED = '`(?:[^`]|``)+`'
 const BRACKETED = '\\[[^\\]]*\\]'
 const BARE = '[A-Za-z_][A-Za-z0-9_$]*'
-const IDENTIFIER = '(?:' + DOUBLE_QUOTED + '|' + BACK_QUOTED + '|' + BRACKETED + '|' + BARE + ')'
+const IDENTIFIER =
+  '(?:' + DOUBLE_QUOTED + '|' + BACK_QUOTED + '|' + BRACKETED + '|' + BARE + ')'
 
 /** The identifier that follows `prefix` (a regex source string), unquoted. */
 function nameAfter(sql: string, prefix: string): string | null {
@@ -74,10 +79,13 @@ function classifyStatement(clean: string): StatementType {
   if (/^BEGIN\b/i.test(clean)) return 'begin'
   if (/^COMMIT\b/i.test(clean)) return 'commit'
   if (/^ROLLBACK\b/i.test(clean)) return 'rollback'
-  if (/^CREATE\s+(?:TEMP(?:ORARY)?\s+)?TABLE\b/i.test(clean)) return 'create_table'
+  if (/^CREATE\s+(?:TEMP(?:ORARY)?\s+)?TABLE\b/i.test(clean))
+    return 'create_table'
   if (/^CREATE\s+(?:UNIQUE\s+)?INDEX\b/i.test(clean)) return 'create_index'
-  if (/^CREATE\s+(?:TEMP(?:ORARY)?\s+)?TRIGGER\b/i.test(clean)) return 'create_trigger'
-  if (/^CREATE\s+(?:TEMP(?:ORARY)?\s+)?VIEW\b/i.test(clean)) return 'create_view'
+  if (/^CREATE\s+(?:TEMP(?:ORARY)?\s+)?TRIGGER\b/i.test(clean))
+    return 'create_trigger'
+  if (/^CREATE\s+(?:TEMP(?:ORARY)?\s+)?VIEW\b/i.test(clean))
+    return 'create_view'
   if (/^INSERT\b/i.test(clean)) return 'insert'
   if (/^DELETE\s+FROM\b/i.test(clean)) return 'delete'
   if (/^DROP\s+TABLE\b/i.test(clean)) return 'drop_table'

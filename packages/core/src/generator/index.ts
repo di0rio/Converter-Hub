@@ -45,13 +45,15 @@ export function toCsv(table: TabularTable): string {
 // --------------------------------------------------------------- XLSX
 
 function xmlEscape(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    // XML 1.0 forbids most control characters outright.
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+  return (
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      // XML 1.0 forbids most control characters outright.
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+  )
 }
 
 /**
@@ -99,7 +101,9 @@ function sheetXml(table: TabularTable): string {
           return '<c r="' + ref + '"><v>' + value + '</v></c>'
         }
         return (
-          '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' +
+          '<c r="' +
+          ref +
+          '" t="inlineStr"><is><t xml:space="preserve">' +
           xmlEscape(String(value)) +
           '</t></is></c>'
         )
@@ -112,7 +116,9 @@ function sheetXml(table: TabularTable): string {
   return (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    '<sheetData>' + rows.join('') + '</sheetData></worksheet>'
+    '<sheetData>' +
+    rows.join('') +
+    '</sheetData></worksheet>'
   )
 }
 
@@ -133,7 +139,8 @@ export function toXlsx(tables: TabularTable[]): Uint8Array {
     sheets
       .map(
         (s) =>
-          '<Override PartName="/xl/worksheets/sheet' + s.id +
+          '<Override PartName="/xl/worksheets/sheet' +
+          s.id +
           '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>',
       )
       .join('') +
@@ -152,7 +159,13 @@ export function toXlsx(tables: TabularTable[]): Uint8Array {
     sheets
       .map(
         (s) =>
-          '<sheet name="' + xmlEscape(s.name) + '" sheetId="' + s.id + '" r:id="rId' + s.id + '"/>',
+          '<sheet name="' +
+          xmlEscape(s.name) +
+          '" sheetId="' +
+          s.id +
+          '" r:id="rId' +
+          s.id +
+          '"/>',
       )
       .join('') +
     '</sheets></workbook>'
@@ -163,9 +176,12 @@ export function toXlsx(tables: TabularTable[]): Uint8Array {
     sheets
       .map(
         (s) =>
-          '<Relationship Id="rId' + s.id +
+          '<Relationship Id="rId' +
+          s.id +
           '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"' +
-          ' Target="worksheets/sheet' + s.id + '.xml"/>',
+          ' Target="worksheets/sheet' +
+          s.id +
+          '.xml"/>',
       )
       .join('') +
     '</Relationships>'
@@ -207,7 +223,8 @@ export function generateExport(
   format: ExportFormat,
 ): ExportResult {
   const database = dump.databases.find((d) => d.name === options.database)
-  if (!database) throw new Error('Selected database is not present in this dump.')
+  if (!database)
+    throw new Error('Selected database is not present in this dump.')
 
   const selected =
     options.tables === 'all'
@@ -234,7 +251,10 @@ export function generateExport(
       files.push({ name, content: strToU8(toCsv(toTabular(table))) })
     }
   } else {
-    files.push({ name: base + '.xlsx', content: toXlsx(selected.map(toTabular)) })
+    files.push({
+      name: base + '.xlsx',
+      content: toXlsx(selected.map(toTabular)),
+    })
   }
 
   return {

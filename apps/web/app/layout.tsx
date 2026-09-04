@@ -1,35 +1,43 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
-import "./globals.css";
-import { cn } from "@/lib/utils";
+import type { Metadata } from 'next'
+import { Geist, Geist_Mono, Inter } from 'next/font/google'
+import './globals.css'
+import { cn } from '@/lib/utils'
 
-const interHeading = Inter({subsets:['latin'],variable:'--font-heading'});
+const interHeading = Inter({ subsets: ['latin'], variable: '--font-heading' })
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+})
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
 
 export const metadata: Metadata = {
-  title: "SQL Database Extractor",
+  title: 'SQL Database Extractor',
   description:
-    "Extract tables from MySQL, MariaDB and PostgreSQL dumps locally, in your browser",
-};
+    'Extract tables from MySQL, MariaDB and PostgreSQL dumps locally, in your browser',
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable, interHeading.variable)}
+      className={cn(
+        'h-full',
+        'antialiased',
+        geistSans.variable,
+        geistMono.variable,
+        'font-sans',
+        inter.variable,
+        interHeading.variable,
+      )}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
-  );
+  )
 }

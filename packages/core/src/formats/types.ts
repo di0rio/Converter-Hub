@@ -55,7 +55,11 @@ export type DatabaseFormat =
  * Anything below `supported` stays out of the UI's format list. The status is
  * what keeps the advertised list and the implementation from drifting apart.
  */
-export type SupportStatus = 'supported' | 'experimental' | 'planned' | 'not_applicable'
+export type SupportStatus =
+  | 'supported'
+  | 'experimental'
+  | 'planned'
+  | 'not_applicable'
 
 /**
  * What a format calls the grouping a user picks from.

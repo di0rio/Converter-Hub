@@ -19,7 +19,9 @@ export const IDENT = String.raw`(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)`
 
 /** The identifier immediately following `prefix`, unmatched if none is there. */
 export function identAfter(sql: string, prefix: string): string | null {
-  const match = new RegExp(prefix + String.raw`\s*(` + IDENT + ')', 'i').exec(sql)
+  const match = new RegExp(prefix + String.raw`\s*(` + IDENT + ')', 'i').exec(
+    sql,
+  )
   return match ? (match[1] as string) : null
 }
 
@@ -34,5 +36,7 @@ export function displayName(raw: string): string {
  */
 export function normalizeKey(raw: string): string {
   const trimmed = raw.trim()
-  return trimmed.startsWith('"') ? 'Q:' + displayName(trimmed) : 'U:' + trimmed.toUpperCase()
+  return trimmed.startsWith('"')
+    ? 'Q:' + displayName(trimmed)
+    : 'U:' + trimmed.toUpperCase()
 }

@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
-import { ChevronRightIcon } from "lucide-react";
-import type * as React from "react";
-import { cn } from "@/lib/utils";
+import { ContextMenu as ContextMenuPrimitive } from '@base-ui/react/context-menu'
+import { ChevronRightIcon } from 'lucide-react'
+import type * as React from 'react'
+import { cn } from '@/lib/utils'
 
 export const ContextMenu: typeof ContextMenuPrimitive.Root =
-  ContextMenuPrimitive.Root;
+  ContextMenuPrimitive.Root
 
 export const ContextMenuPortal: typeof ContextMenuPrimitive.Portal =
-  ContextMenuPrimitive.Portal;
+  ContextMenuPrimitive.Portal
 
 export function ContextMenuTrigger({
   className,
@@ -24,26 +24,26 @@ export function ContextMenuTrigger({
     >
       {children}
     </ContextMenuPrimitive.Trigger>
-  );
+  )
 }
 
 export function ContextMenuPopup({
   children,
   className,
   sideOffset = 4,
-  align = "center",
+  align = 'center',
   alignOffset,
-  side = "bottom",
+  side = 'bottom',
   anchor,
   portalProps,
   ...props
 }: ContextMenuPrimitive.Popup.Props & {
-  align?: ContextMenuPrimitive.Positioner.Props["align"];
-  sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
-  alignOffset?: ContextMenuPrimitive.Positioner.Props["alignOffset"];
-  side?: ContextMenuPrimitive.Positioner.Props["side"];
-  anchor?: ContextMenuPrimitive.Positioner.Props["anchor"];
-  portalProps?: ContextMenuPrimitive.Portal.Props;
+  align?: ContextMenuPrimitive.Positioner.Props['align']
+  sideOffset?: ContextMenuPrimitive.Positioner.Props['sideOffset']
+  alignOffset?: ContextMenuPrimitive.Positioner.Props['alignOffset']
+  side?: ContextMenuPrimitive.Positioner.Props['side']
+  anchor?: ContextMenuPrimitive.Positioner.Props['anchor']
+  portalProps?: ContextMenuPrimitive.Portal.Props
 }): React.ReactElement {
   return (
     <ContextMenuPortal {...portalProps}>
@@ -70,7 +70,7 @@ export function ContextMenuPopup({
         </ContextMenuPrimitive.Popup>
       </ContextMenuPrimitive.Positioner>
     </ContextMenuPortal>
-  );
+  )
 }
 
 export function ContextMenuGroup(
@@ -78,17 +78,17 @@ export function ContextMenuGroup(
 ): React.ReactElement {
   return (
     <ContextMenuPrimitive.Group data-slot="context-menu-group" {...props} />
-  );
+  )
 }
 
 export function ContextMenuItem({
   className,
   inset,
-  variant = "default",
+  variant = 'default',
   ...props
 }: ContextMenuPrimitive.Item.Props & {
-  inset?: boolean;
-  variant?: "default" | "destructive";
+  inset?: boolean
+  variant?: 'default' | 'destructive'
 }): React.ReactElement {
   return (
     <ContextMenuPrimitive.Item
@@ -101,18 +101,18 @@ export function ContextMenuItem({
       data-variant={variant}
       {...props}
     />
-  );
+  )
 }
 
 export function ContextMenuLinkItem({
   className,
   inset,
-  variant = "default",
+  variant = 'default',
   closeOnClick = true,
   ...props
 }: ContextMenuPrimitive.LinkItem.Props & {
-  inset?: boolean;
-  variant?: "default" | "destructive";
+  inset?: boolean
+  variant?: 'default' | 'destructive'
 }): React.ReactElement {
   return (
     <ContextMenuPrimitive.LinkItem
@@ -126,32 +126,32 @@ export function ContextMenuLinkItem({
       data-variant={variant}
       {...props}
     />
-  );
+  )
 }
 
 export function ContextMenuCheckboxItem({
   className,
   children,
   checked,
-  variant = "default",
+  variant = 'default',
   ...props
 }: ContextMenuPrimitive.CheckboxItem.Props & {
-  variant?: "default" | "switch";
+  variant?: 'default' | 'switch'
 }): React.ReactElement {
   return (
     <ContextMenuPrimitive.CheckboxItem
       checked={checked}
       className={cn(
         "grid min-h-8 in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] cursor-default items-center gap-2 rounded-sm py-1 ps-2 text-base text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
-        variant === "switch"
-          ? "grid-cols-[1fr_auto] gap-4 pe-1.5"
-          : "grid-cols-[.75rem_1fr] pe-4",
+        variant === 'switch'
+          ? 'grid-cols-[1fr_auto] gap-4 pe-1.5'
+          : 'grid-cols-[.75rem_1fr] pe-4',
         className,
       )}
       data-slot="context-menu-checkbox-item"
       {...props}
     >
-      {variant === "switch" ? (
+      {variant === 'switch' ? (
         <>
           <span className="col-start-1">{children}</span>
           <ContextMenuPrimitive.CheckboxItemIndicator
@@ -183,7 +183,7 @@ export function ContextMenuCheckboxItem({
         </>
       )}
     </ContextMenuPrimitive.CheckboxItem>
-  );
+  )
 }
 
 export function ContextMenuRadioGroup(
@@ -194,7 +194,7 @@ export function ContextMenuRadioGroup(
       data-slot="context-menu-radio-group"
       {...props}
     />
-  );
+  )
 }
 
 export function ContextMenuRadioItem({
@@ -229,7 +229,7 @@ export function ContextMenuRadioItem({
       </ContextMenuPrimitive.RadioItemIndicator>
       <span className="col-start-2">{children}</span>
     </ContextMenuPrimitive.RadioItem>
-  );
+  )
 }
 
 export function ContextMenuGroupLabel({
@@ -237,19 +237,19 @@ export function ContextMenuGroupLabel({
   inset,
   ...props
 }: ContextMenuPrimitive.GroupLabel.Props & {
-  inset?: boolean;
+  inset?: boolean
 }): React.ReactElement {
   return (
     <ContextMenuPrimitive.GroupLabel
       className={cn(
-        "px-2 py-1.5 font-medium text-muted-foreground text-xs data-inset:ps-9 sm:data-inset:ps-8",
+        'px-2 py-1.5 font-medium text-muted-foreground text-xs data-inset:ps-9 sm:data-inset:ps-8',
         className,
       )}
       data-inset={inset}
       data-slot="context-menu-label"
       {...props}
     />
-  );
+  )
 }
 
 export function ContextMenuSeparator({
@@ -258,27 +258,27 @@ export function ContextMenuSeparator({
 }: ContextMenuPrimitive.Separator.Props): React.ReactElement {
   return (
     <ContextMenuPrimitive.Separator
-      className={cn("mx-2 my-1 h-px bg-border", className)}
+      className={cn('mx-2 my-1 h-px bg-border', className)}
       data-slot="context-menu-separator"
       {...props}
     />
-  );
+  )
 }
 
 export function ContextMenuShortcut({
   className,
   ...props
-}: React.ComponentProps<"kbd">): React.ReactElement {
+}: React.ComponentProps<'kbd'>): React.ReactElement {
   return (
     <kbd
       className={cn(
-        "ms-auto font-medium font-sans text-muted-foreground/72 text-xs tracking-widest",
+        'ms-auto font-medium font-sans text-muted-foreground/72 text-xs tracking-widest',
         className,
       )}
       data-slot="context-menu-shortcut"
       {...props}
     />
-  );
+  )
 }
 
 export function ContextMenuSub(
@@ -286,7 +286,7 @@ export function ContextMenuSub(
 ): React.ReactElement {
   return (
     <ContextMenuPrimitive.SubmenuRoot data-slot="context-menu-sub" {...props} />
-  );
+  )
 }
 
 export function ContextMenuSubTrigger({
@@ -295,7 +295,7 @@ export function ContextMenuSubTrigger({
   children,
   ...props
 }: ContextMenuPrimitive.SubmenuTrigger.Props & {
-  inset?: boolean;
+  inset?: boolean
 }): React.ReactElement {
   return (
     <ContextMenuPrimitive.SubmenuTrigger
@@ -310,21 +310,21 @@ export function ContextMenuSubTrigger({
       {children}
       <ChevronRightIcon className="ms-auto -me-0.5 opacity-80" />
     </ContextMenuPrimitive.SubmenuTrigger>
-  );
+  )
 }
 
 export function ContextMenuSubPopup({
   className,
   sideOffset = 0,
   alignOffset,
-  align = "start",
+  align = 'start',
   ...props
 }: ContextMenuPrimitive.Popup.Props & {
-  align?: ContextMenuPrimitive.Positioner.Props["align"];
-  sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
-  alignOffset?: ContextMenuPrimitive.Positioner.Props["alignOffset"];
+  align?: ContextMenuPrimitive.Positioner.Props['align']
+  sideOffset?: ContextMenuPrimitive.Positioner.Props['sideOffset']
+  alignOffset?: ContextMenuPrimitive.Positioner.Props['alignOffset']
 }): React.ReactElement {
-  const defaultAlignOffset = align !== "center" ? -5 : undefined;
+  const defaultAlignOffset = align !== 'center' ? -5 : undefined
 
   return (
     <ContextMenuPopup
@@ -336,7 +336,7 @@ export function ContextMenuSubPopup({
       sideOffset={sideOffset}
       {...props}
     />
-  );
+  )
 }
 
-export { ContextMenuPrimitive };
+export { ContextMenuPrimitive }

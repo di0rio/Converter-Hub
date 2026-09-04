@@ -1,14 +1,22 @@
 {
   "name": "sql-database-extractor",
   "private": true,
-  "description": "A privacy-conscious database dump extraction tool for MySQL, MariaDB and PostgreSQL",
-  "workspaces": ["packages/*", "apps/*"],
+  "description": "A privacy-conscious database dump extraction tool for every engine in the format catalog",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev:web": "bun run --filter web dev",
     "dev:cli": "bun run --filter sql-extractor dev",
     "build": "bun run --filter @sql-extractor/core build && bun run --filter sql-extractor build && bun run --filter web build",
     "test": "bun run --filter @sql-extractor/core test && bun run --filter sql-extractor test && bun run --filter web test",
     "typecheck": "bun run --filter @sql-extractor/core typecheck && bun run --filter sql-extractor typecheck && bun run --filter web typecheck",
-    "lint": "bun run --filter web lint"
+    "lint": "bun run --filter web lint",
+    "format": "biome format --write .",
+    "format:check": "biome format ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12"
   }
 }

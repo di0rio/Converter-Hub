@@ -24,7 +24,9 @@ const state: PreviewWindowState = {
   restore: null,
 }
 
-function setup(overrides: Partial<React.ComponentProps<typeof PreviewWindow>> = {}) {
+function setup(
+  overrides: Partial<React.ComponentProps<typeof PreviewWindow>> = {},
+) {
   const handlers = {
     onFocus: vi.fn(),
     onClose: vi.fn(),
@@ -64,7 +66,12 @@ function pointer(
 ) {
   fireEvent(
     element,
-    new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...init }),
+    new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      ...init,
+    }),
   )
 }
 
@@ -103,10 +110,19 @@ describe('PreviewWindow', () => {
     const { onChange } = setup()
 
     // Grab 50px into the window, then move the pointer by (+100, +70).
-    pointer(header(), 'pointerdown', { clientX: state.x + 50, clientY: state.y + 10 })
-    pointer(header(), 'pointermove', { clientX: state.x + 150, clientY: state.y + 80 })
+    pointer(header(), 'pointerdown', {
+      clientX: state.x + 50,
+      clientY: state.y + 10,
+    })
+    pointer(header(), 'pointermove', {
+      clientX: state.x + 150,
+      clientY: state.y + 80,
+    })
 
-    expect(onChange).toHaveBeenLastCalledWith({ x: state.x + 100, y: state.y + 70 })
+    expect(onChange).toHaveBeenLastCalledWith({
+      x: state.x + 100,
+      y: state.y + 70,
+    })
   })
 
   it('stops moving once the pointer is released', () => {
@@ -174,9 +190,9 @@ describe('PreviewWindow', () => {
 
   it('lifts a collapsed window above every expanded one, so it stays reachable', () => {
     setup({ window: { ...state, z: 7, minimized: true } })
-    expect(
-      Number(screen.getByRole('dialog').style.zIndex),
-    ).toBeGreaterThan(10_000)
+    expect(Number(screen.getByRole('dialog').style.zIndex)).toBeGreaterThan(
+      10_000,
+    )
   })
 
   it('collapses to its title bar, hiding the table but not the name', () => {
@@ -192,7 +208,9 @@ describe('PreviewWindow', () => {
 
   it('collapses and expands from the title bar', () => {
     const { onMinimize } = setup()
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse users preview' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Collapse users preview' }),
+    )
     expect(onMinimize).toHaveBeenCalledTimes(1)
   })
 
@@ -201,7 +219,9 @@ describe('PreviewWindow', () => {
       window: { ...state, restore: { x: 1, y: 2, width: 3, height: 4 } },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Restore users preview' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Restore users preview' }),
+    )
     expect(onMaximize).toHaveBeenCalledTimes(1)
   })
 

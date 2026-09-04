@@ -42,7 +42,10 @@ export function FullPreview({
   if (layout === 'split') {
     // Roughly square, capped at three across so a column never gets too narrow
     // to read a value in.
-    const columns = Math.min(3, Math.max(1, Math.ceil(Math.sqrt(windows.length))))
+    const columns = Math.min(
+      3,
+      Math.max(1, Math.ceil(Math.sqrt(windows.length))),
+    )
     return (
       <div
         className="grid h-full w-full auto-rows-fr gap-2 p-2"
@@ -111,11 +114,16 @@ export function FullPreview({
                   onClick={() => onFocus(w.id)}
                   onKeyDown={(event) => {
                     const step =
-                      event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+                      event.key === 'ArrowRight'
+                        ? 1
+                        : event.key === 'ArrowLeft'
+                          ? -1
+                          : 0
                     if (!step) return
                     event.preventDefault()
                     const index = windows.findIndex((t) => t.id === w.id)
-                    const next = windows[(index + step + windows.length) % windows.length]
+                    const next =
+                      windows[(index + step + windows.length) % windows.length]
                     onFocus(next.id)
                   }}
                   className="flex min-w-0 items-center gap-2 text-xs font-medium outline-none"
@@ -136,7 +144,9 @@ export function FullPreview({
                     'ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-90 ' +
                     'hover:bg-accent hover:text-foreground ' +
                     'focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ' +
-                    (selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')
+                    (selected
+                      ? 'opacity-100'
+                      : 'opacity-0 group-hover:opacity-100')
                   }
                 >
                   <X className="size-3" />
@@ -179,7 +189,9 @@ function PanelHeader({
 }) {
   return (
     <div className="flex h-[33px] shrink-0 items-center gap-2 border-b border-border bg-muted/30 px-2.5">
-      <span className="min-w-0 flex-1 truncate text-xs font-medium">{name}</span>
+      <span className="min-w-0 flex-1 truncate text-xs font-medium">
+        {name}
+      </span>
       <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
         {rowLabel(rows)}
       </span>

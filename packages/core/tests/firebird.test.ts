@@ -1,13 +1,19 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { firebirdParser, parseFirebirdDump } from '../src/parser/firebird/index.js'
+import {
+  firebirdParser,
+  parseFirebirdDump,
+} from '../src/parser/firebird/index.js'
 import type { SqlDump, Table } from '../src/types/index.js'
 
 // The registry (parser/index.ts) does not wire up 'firebird' yet, so the
 // parser is exercised directly rather than through parseDump/getParser.
 
-const samplePath = resolve(import.meta.dirname, '../../../examples/firebird/sample.sql')
+const samplePath = resolve(
+  import.meta.dirname,
+  '../../../examples/firebird/sample.sql',
+)
 
 function database(dump: SqlDump) {
   const found = dump.databases[0]
@@ -29,14 +35,16 @@ function columnsOf(t: Table): string[] {
 /** Row count, summed across every data-carrying statement. */
 function rowCountOf(t: Table): number {
   let total = 0
-  for (const stmt of t.dataStatements) total += firebirdParser.countDataRows(stmt)
+  for (const stmt of t.dataStatements)
+    total += firebirdParser.countDataRows(stmt)
   return total
 }
 
 /** Decoded value tuples from every data statement, in statement order. */
 function rowsOf(t: Table): (string | null)[][] {
   const rows: (string | null)[][] = []
-  for (const stmt of t.dataStatements) rows.push(...firebirdParser.readDataBlock(stmt).rows)
+  for (const stmt of t.dataStatements)
+    rows.push(...firebirdParser.readDataBlock(stmt).rows)
   return rows
 }
 
@@ -65,7 +73,9 @@ describe('parseFirebirdDump', () => {
     it('names the database from CREATE DATABASE, stripping path and extension', () => {
       expect(dump.databases.length).toBe(1)
       expect(database(dump).name).toBe('library')
-      expect(database(dump).createStatement).toContain("CREATE DATABASE 'library.fdb'")
+      expect(database(dump).createStatement).toContain(
+        "CREATE DATABASE 'library.fdb'",
+      )
     })
 
     it('falls back to a stable name when no CREATE DATABASE is present', () => {
@@ -84,11 +94,11 @@ describe('parseFirebirdDump', () => {
 
   describe('table detection', () => {
     it('finds every table declared in the script', () => {
-      expect(database(dump).tables.map((t) => t.name).sort()).toEqual([
-        'AUTHORS',
-        'BOOKS',
-        'BORROWINGS',
-      ])
+      expect(
+        database(dump)
+          .tables.map((t) => t.name)
+          .sort(),
+      ).toEqual(['AUTHORS', 'BOOKS', 'BORROWINGS'])
     })
 
     it('produces exactly one database for the whole script', () => {
@@ -96,7 +106,9 @@ describe('parseFirebirdDump', () => {
     })
 
     it('keeps the CREATE TABLE statement verbatim', () => {
-      expect(table(dump, 'AUTHORS').createStatement).toContain('CREATE TABLE AUTHORS')
+      expect(table(dump, 'AUTHORS').createStatement).toContain(
+        'CREATE TABLE AUTHORS',
+      )
     })
 
     it('never turns a trigger or a procedure into a table', () => {
@@ -158,12 +170,16 @@ describe('parseFirebirdDump', () => {
     })
 
     it('reads an explicit column list from INSERT INTO t (a, b) VALUES (...)', () => {
-      const block = firebirdParser.readDataBlock(table(dump, 'AUTHORS').dataStatements[0] as string)
+      const block = firebirdParser.readDataBlock(
+        table(dump, 'AUTHORS').dataStatements[0] as string,
+      )
       expect(block.columns).toEqual(['ID', 'NAME', 'EMAIL', 'NOTES'])
     })
 
     it('reads null columns when INSERT names every column implicitly', () => {
-      const block = firebirdParser.readDataBlock(table(dump, 'BOOKS').dataStatements[0] as string)
+      const block = firebirdParser.readDataBlock(
+        table(dump, 'BOOKS').dataStatements[0] as string,
+      )
       expect(block.columns).toBeNull()
     })
 
@@ -196,7 +212,7 @@ describe('parseFirebirdDump', () => {
       expect(bookRows[1]?.[1]).toBe('Über die Bücher')
     })
 
-    it('keeps an X\'...\' binary literal exactly as written', () => {
+    it("keeps an X'...' binary literal exactly as written", () => {
       const rows = rowsOf(table(dump, 'BOOKS'))
       expect(rows[0]?.[4]).toBe("X'DEADBEEF'")
       expect(rows[1]?.[4]).toBe("X'CAFEBABE'")
@@ -247,14 +263,20 @@ describe('parseFirebirdDump', () => {
 
     it('orders the generator before the trigger that uses it', () => {
       const pre = table(dump, 'AUTHORS').preDataStatements
-      const genIndex = pre.findIndex((s) => s.includes('CREATE GENERATOR GEN_AUTHORS_ID'))
-      const triggerIndex = pre.findIndex((s) => s.includes('CREATE TRIGGER AUTHORS_BI'))
+      const genIndex = pre.findIndex((s) =>
+        s.includes('CREATE GENERATOR GEN_AUTHORS_ID'),
+      )
+      const triggerIndex = pre.findIndex((s) =>
+        s.includes('CREATE TRIGGER AUTHORS_BI'),
+      )
       expect(genIndex).toBeGreaterThanOrEqual(0)
       expect(triggerIndex).toBeGreaterThan(genIndex)
     })
 
     it('parks a generator value reseed rather than guessing its owner', () => {
-      expect(dump.postamble).toContain('ALTER SEQUENCE GEN_AUTHORS_ID RESTART WITH 4')
+      expect(dump.postamble).toContain(
+        'ALTER SEQUENCE GEN_AUTHORS_ID RESTART WITH 4',
+      )
     })
   })
 
@@ -291,7 +313,9 @@ describe('parseFirebirdDump', () => {
 
       const orphan = parsed.databases[0]?.tables[0]
       expect(orphan?.name).toBe('orphan')
-      const block = firebirdParser.readDataBlock(orphan?.dataStatements[0] as string)
+      const block = firebirdParser.readDataBlock(
+        orphan?.dataStatements[0] as string,
+      )
       expect(block.columns).toEqual(['a', 'b'])
       expect(block.rows).toEqual([['1', 'one']])
     })

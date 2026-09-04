@@ -50,7 +50,9 @@ describe('parseDump: PostgreSQL', () => {
     })
 
     it('keeps the CREATE SCHEMA statement with the schema that declares one', () => {
-      expect(schema(dump, 'inventory').createStatement).toContain('CREATE SCHEMA')
+      expect(schema(dump, 'inventory').createStatement).toContain(
+        'CREATE SCHEMA',
+      )
     })
 
     it('records the implicit public schema even though nothing declares it', () => {
@@ -66,7 +68,9 @@ describe('parseDump: PostgreSQL', () => {
         'orders',
         'audit_log',
       ])
-      expect(schema(dump, 'inventory').tables.map((t) => t.name)).toEqual(['parts'])
+      expect(schema(dump, 'inventory').tables.map((t) => t.name)).toEqual([
+        'parts',
+      ])
     })
 
     it('strips the schema qualifier from the table name', () => {
@@ -154,14 +158,23 @@ describe('parseDump: PostgreSQL', () => {
   describe('statement placement', () => {
     it('puts the nextval default before the rows and the constraints after', () => {
       const customers = table(dump, 'public', 'customers')
-      expect(customers.preDataStatements.join('\n')).toContain('SET DEFAULT nextval')
-      expect(customers.postDataStatements.join('\n')).toContain('ADD CONSTRAINT')
+      expect(customers.preDataStatements.join('\n')).toContain(
+        'SET DEFAULT nextval',
+      )
+      expect(customers.postDataStatements.join('\n')).toContain(
+        'ADD CONSTRAINT',
+      )
     })
 
     it('keeps a sequence with the table that owns it', () => {
       const customers = table(dump, 'public', 'customers')
-      const all = [...customers.preDataStatements, ...customers.postDataStatements]
-      expect(all.join('\n')).toContain('CREATE SEQUENCE public.customers_id_seq')
+      const all = [
+        ...customers.preDataStatements,
+        ...customers.postDataStatements,
+      ]
+      expect(all.join('\n')).toContain(
+        'CREATE SEQUENCE public.customers_id_seq',
+      )
       expect(all.join('\n')).toContain('setval')
       // Never in the shared postamble, where a partial export would drag it
       // along for tables the user did not select.
@@ -169,9 +182,9 @@ describe('parseDump: PostgreSQL', () => {
     })
 
     it('attaches an index to the table it is declared on', () => {
-      expect(table(dump, 'public', 'orders').postDataStatements.join('\n')).toContain(
-        'CREATE INDEX orders_customer_id_idx',
-      )
+      expect(
+        table(dump, 'public', 'orders').postDataStatements.join('\n'),
+      ).toContain('CREATE INDEX orders_customer_id_idx')
     })
 
     it('keeps session settings in the preamble', () => {

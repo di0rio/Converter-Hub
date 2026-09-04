@@ -108,7 +108,10 @@ export function parseCassandraDump(sql: string): SqlDump {
     return created
   }
 
-  function existingTableNamedBy(statement: string, prefix: string): Table | null {
+  function existingTableNamedBy(
+    statement: string,
+    prefix: string,
+  ): Table | null {
     const qualified = qualifiedNameAfter(statement, prefix)
     if (!qualified) return null
     const keyspace = qualified.schema ?? currentKeyspace ?? DEFAULT_KEYSPACE
@@ -116,7 +119,8 @@ export function parseCassandraDump(sql: string): SqlDump {
   }
 
   function attach(table: Table, statement: string): void {
-    if (table.dataStatements.length > 0) table.postDataStatements.push(statement)
+    if (table.dataStatements.length > 0)
+      table.postDataStatements.push(statement)
     else table.preDataStatements.push(statement)
   }
 

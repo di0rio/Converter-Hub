@@ -283,7 +283,12 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
-    markers: [/\bDISTKEY\s*\(/i, /\bSORTKEY\s*\(/i, /\bDISTSTYLE\b/i, /\bENCODE\s+[a-z]/i],
+    markers: [
+      /\bDISTKEY\s*\(/i,
+      /\bSORTKEY\s*\(/i,
+      /\bDISTSTYLE\b/i,
+      /\bENCODE\s+[a-z]/i,
+    ],
   },
 
   timescaledb: {
@@ -292,7 +297,11 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
-    markers: [/\bcreate_hypertable\s*\(/i, /\btimescaledb\b/i, /\b_timescaledb_/i],
+    markers: [
+      /\bcreate_hypertable\s*\(/i,
+      /\btimescaledb\b/i,
+      /\b_timescaledb_/i,
+    ],
   },
 
   citus: {
@@ -301,7 +310,11 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
-    markers: [/\bcreate_distributed_table\s*\(/i, /\bcreate_reference_table\s*\(/i, /\bcitus\b/i],
+    markers: [
+      /\bcreate_distributed_table\s*\(/i,
+      /\bcreate_reference_table\s*\(/i,
+      /\bcitus\b/i,
+    ],
   },
 
   enterprisedb: {
@@ -356,7 +369,11 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'sqlite',
     ...DATABASE,
-    markers: [/^--\s*DuckDB\b/im, /\bduckdb_[a-z_]+\b/i, /\bCREATE\s+SEQUENCE\b[\s\S]*\bSTART\s+\d+/i],
+    markers: [
+      /^--\s*DuckDB\b/im,
+      /\bduckdb_[a-z_]+\b/i,
+      /\bCREATE\s+SEQUENCE\b[\s\S]*\bSTART\s+\d+/i,
+    ],
   },
 
   // ------------------------------------------------- standalone dialects

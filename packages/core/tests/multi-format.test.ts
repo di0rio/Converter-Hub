@@ -134,7 +134,10 @@ describe('SQL export preserves the source dialect', () => {
 
       // generateExport packages everything as a ZIP, so read the SQL from the
       // extractor directly rather than from the archive bytes.
-      const sql = extractDatabase(dump, { database: database.name, tables: 'all' }).sql
+      const sql = extractDatabase(dump, {
+        database: database.name,
+        tables: 'all',
+      }).sql
 
       // The header names the engine the dump came from, not a target.
       expect(sql).toContain(describeFormat(descriptor.id).label)

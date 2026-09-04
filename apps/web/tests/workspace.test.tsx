@@ -136,7 +136,9 @@ describe('Workspace', () => {
   it('renders an open window with its table data', () => {
     setup({ windows: [openWindow()] })
 
-    expect(screen.getByRole('dialog', { name: 'users preview' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('dialog', { name: 'users preview' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('Ana')).toBeInTheDocument()
     expect(screen.queryByText(/drop a table here/i)).not.toBeInTheDocument()
   })
@@ -184,7 +186,9 @@ describe('Workspace', () => {
     setup({ mode: 'full', windows: [openWindow()] })
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('tabpanel', { name: 'users preview' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('tabpanel', { name: 'users preview' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('Ana')).toBeInTheDocument()
   })
 
@@ -232,12 +236,16 @@ describe('Workspace', () => {
 
   it('hides the layout choice that only applies to the full mode', () => {
     setup({ mode: 'windows' })
-    expect(screen.queryByRole('radio', { name: 'Split' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('radio', { name: 'Split' }),
+    ).not.toBeInTheDocument()
   })
 
   it('closes everything at once, and only offers to while something is open', () => {
     const { onCloseAll, rerender } = setup()
-    expect(screen.queryByRole('button', { name: 'Close all' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Close all' }),
+    ).not.toBeInTheDocument()
 
     rerender(
       <Workspace
@@ -265,6 +273,8 @@ describe('Workspace', () => {
 
   it('keeps the toolbar out of the way until a database is loaded', () => {
     setup({ database: null })
-    expect(screen.queryByRole('radiogroup', { name: 'Preview mode' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('radiogroup', { name: 'Preview mode' }),
+    ).not.toBeInTheDocument()
   })
 })

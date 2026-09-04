@@ -27,7 +27,9 @@ describe('TableViewer', () => {
 
   it('renders column headers from the parsed table', () => {
     render(<TableViewer table={users} />)
-    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent)
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((h) => h.textContent)
     expect(headers).toEqual(['#', 'id', 'name', 'note'])
   })
 
@@ -80,7 +82,10 @@ describe('TableViewer', () => {
   })
 
   it('does not render every row for a large table', () => {
-    const values = Array.from({ length: 5000 }, (_, i) => `(${i + 1},'n${i}','x')`).join(',')
+    const values = Array.from(
+      { length: 5000 },
+      (_, i) => `(${i + 1},'n${i}','x')`,
+    ).join(',')
     const big = parseDump(
       [
         'CREATE TABLE `big` (`id` int NOT NULL, `name` varchar(50), `note` text);',

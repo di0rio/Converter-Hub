@@ -59,15 +59,22 @@ function classifyStatement(sql: string): StatementType {
   const clean = statementHead(sql)
   if (clean.length === 0) return 'comment'
 
-  if (/^ALTER\s+SESSION\s+SET\s+CURRENT_SCHEMA\b/i.test(clean)) return 'current_schema'
+  if (/^ALTER\s+SESSION\s+SET\s+CURRENT_SCHEMA\b/i.test(clean))
+    return 'current_schema'
   if (/^(CREATE|ALTER)\s+USER\b/i.test(clean)) return 'create_user'
-  if (/^CREATE\s+(?:GLOBAL\s+TEMPORARY\s+)?TABLE\b/i.test(clean)) return 'create_table'
+  if (/^CREATE\s+(?:GLOBAL\s+TEMPORARY\s+)?TABLE\b/i.test(clean))
+    return 'create_table'
   if (/^INSERT\s+INTO\b/i.test(clean)) return 'insert'
   if (/^ALTER\s+TABLE\b/i.test(clean)) return 'alter_table'
-  if (/^CREATE\s+(?:UNIQUE\s+|BITMAP\s+)?INDEX\b/i.test(clean)) return 'create_index'
+  if (/^CREATE\s+(?:UNIQUE\s+|BITMAP\s+)?INDEX\b/i.test(clean))
+    return 'create_index'
   if (/^(CREATE|ALTER|DROP)\s+SEQUENCE\b/i.test(clean)) return 'sequence'
   // A PL/SQL body is preserved as text; this project never implements PL/SQL.
-  if (/^CREATE\s+(OR\s+REPLACE\s+)?(TRIGGER|PROCEDURE|FUNCTION|PACKAGE|TYPE)\b/i.test(clean)) {
+  if (
+    /^CREATE\s+(OR\s+REPLACE\s+)?(TRIGGER|PROCEDURE|FUNCTION|PACKAGE|TYPE)\b/i.test(
+      clean,
+    )
+  ) {
     return 'plsql'
   }
   if (/^(SET|ALTER\s+SESSION)\b/i.test(clean)) return 'set'
@@ -153,7 +160,10 @@ export function parseOracleDump(sql: string): SqlDump {
    * Trailing DDL for a table that was never created belongs to the dump, not
    * to a table entry invented for it.
    */
-  function existingTableNamedBy(statement: string, prefix: string): Table | null {
+  function existingTableNamedBy(
+    statement: string,
+    prefix: string,
+  ): Table | null {
     const qualified = qualifiedNameAfter(statement, prefix)
     if (!qualified) return null
     const schema = qualified.schema ?? currentSchema ?? DEFAULT_SCHEMA
@@ -166,7 +176,8 @@ export function parseOracleDump(sql: string): SqlDump {
    * the script put it, which is the only ordering a script carries.
    */
   function attach(table: Table, statement: string): void {
-    if (table.dataStatements.length > 0) table.postDataStatements.push(statement)
+    if (table.dataStatements.length > 0)
+      table.postDataStatements.push(statement)
     else table.preDataStatements.push(statement)
   }
 
@@ -204,7 +215,10 @@ export function parseOracleDump(sql: string): SqlDump {
       case 'create_user': {
         // A user is a schema in Oracle. Record the name without creating an
         // entry: a schema with no tables is nothing a user can select.
-        const name = qualifiedNameAfter(stmt, String.raw`(?:CREATE|ALTER)\s+USER\s+`)
+        const name = qualifiedNameAfter(
+          stmt,
+          String.raw`(?:CREATE|ALTER)\s+USER\s+`,
+        )
         if (name && currentSchema === null) currentSchema = name.name
         park(stmt)
         break

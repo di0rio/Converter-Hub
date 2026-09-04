@@ -24,7 +24,10 @@ export function DatabaseSelect({
 }: DatabaseSelectProps) {
   return (
     <section aria-labelledby="step-database">
-      <Label id="step-database" className="mb-3 block text-base font-semibold sm:text-sm">
+      <Label
+        id="step-database"
+        className="mb-3 block text-base font-semibold sm:text-sm"
+      >
         Select {sourceFormat.namespace}
       </Label>
 

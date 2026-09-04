@@ -47,7 +47,9 @@ export function listEntries(dir: string): Entry[] {
 }
 
 /** Interactively navigate the filesystem with arrow keys and pick a .sql file. */
-export async function browseForFile(startDir: string = process.cwd()): Promise<string> {
+export async function browseForFile(
+  startDir: string = process.cwd(),
+): Promise<string> {
   let dir = resolve(startDir)
 
   for (;;) {
@@ -55,7 +57,9 @@ export async function browseForFile(startDir: string = process.cwd()): Promise<s
     const parent = dirname(dir)
 
     const choices: Entry[] = [
-      ...(parent !== dir ? [{ title: '.. (up a directory)', value: parent, isDir: true }] : []),
+      ...(parent !== dir
+        ? [{ title: '.. (up a directory)', value: parent, isDir: true }]
+        : []),
       ...entries,
       { title: 'Type a path manually', value: MANUAL_ENTRY, isDir: false },
     ]

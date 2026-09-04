@@ -18,24 +18,27 @@ describe('splitScript', () => {
     })
 
     it('does not split on a semicolon inside a string', () => {
-      expect(splitScript("INSERT INTO t VALUES ('a;b');", MYSQL_DIALECT)).toEqual([
-        "INSERT INTO t VALUES ('a;b');",
-      ])
+      expect(
+        splitScript("INSERT INTO t VALUES ('a;b');", MYSQL_DIALECT),
+      ).toEqual(["INSERT INTO t VALUES ('a;b');"])
     })
 
     it('does not split on a semicolon inside a line comment', () => {
       const sql = '-- a; comment\nSELECT 1;'
-      expect(splitScript(sql, MYSQL_DIALECT)).toEqual(['-- a; comment\nSELECT 1;'])
-    })
-
-    it('does not split inside a quoted identifier', () => {
-      expect(splitScript('CREATE TABLE `a;b` (x int);', MYSQL_DIALECT)).toEqual([
-        'CREATE TABLE `a;b` (x int);',
+      expect(splitScript(sql, MYSQL_DIALECT)).toEqual([
+        '-- a; comment\nSELECT 1;',
       ])
     })
 
+    it('does not split inside a quoted identifier', () => {
+      expect(splitScript('CREATE TABLE `a;b` (x int);', MYSQL_DIALECT)).toEqual(
+        ['CREATE TABLE `a;b` (x int);'],
+      )
+    })
+
     it('does not split inside a dollar-quoted body', () => {
-      const sql = "CREATE FUNCTION f() RETURNS int AS $$ SELECT 1; $$ LANGUAGE sql;"
+      const sql =
+        'CREATE FUNCTION f() RETURNS int AS $$ SELECT 1; $$ LANGUAGE sql;'
       expect(splitScript(sql, POSTGRES_DIALECT)).toHaveLength(1)
     })
   })
@@ -43,11 +46,16 @@ describe('splitScript', () => {
   describe('SQL Server batches', () => {
     it('treats GO as a batch separator rather than a statement', () => {
       const sql = ['SELECT 1', 'GO', 'SELECT 2', 'GO'].join('\n')
-      expect(splitScript(sql, SQLSERVER_DIALECT)).toEqual(['SELECT 1', 'SELECT 2'])
+      expect(splitScript(sql, SQLSERVER_DIALECT)).toEqual([
+        'SELECT 1',
+        'SELECT 2',
+      ])
     })
 
     it('does not end a batch on GO inside a string value', () => {
-      const sql = ["INSERT t VALUES (N'line", 'GO', "still one value');"].join('\n')
+      const sql = ["INSERT t VALUES (N'line", 'GO', "still one value');"].join(
+        '\n',
+      )
       expect(splitScript(sql, SQLSERVER_DIALECT)).toHaveLength(1)
     })
 
@@ -151,8 +159,12 @@ describe('splitScript', () => {
 
       const statements = splitScript(sql, FIREBIRD_DIALECT)
       // The trigger survives whole, and the INSERT after the swap-back splits.
-      expect(statements.some((s) => s.includes('IF (NEW.ID IS NULL)'))).toBe(true)
-      expect(statements.some((s) => s.startsWith('INSERT INTO authors'))).toBe(true)
+      expect(statements.some((s) => s.includes('IF (NEW.ID IS NULL)'))).toBe(
+        true,
+      )
+      expect(statements.some((s) => s.startsWith('INSERT INTO authors'))).toBe(
+        true,
+      )
     })
   })
 })

@@ -118,7 +118,8 @@ function readTuples(insertStatement: string): string[][] {
 function readInsertColumns(insertStatement: string): string[] | null {
   const valuesIndex = insertStatement.search(/\bVALUES\b/i)
   const openIndex = insertStatement.indexOf('(')
-  if (openIndex === -1 || (valuesIndex !== -1 && openIndex > valuesIndex)) return null
+  if (openIndex === -1 || (valuesIndex !== -1 && openIndex > valuesIndex))
+    return null
 
   const body = readBalanced(insertStatement, openIndex, MYSQL_SYNTAX)
   return splitTopLevel(body, MYSQL_SYNTAX).map((part) =>

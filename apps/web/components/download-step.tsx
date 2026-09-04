@@ -32,7 +32,9 @@ export function DownloadStep({
       const buffer = new ArrayBuffer(result.bytes.byteLength)
       new Uint8Array(buffer).set(result.bytes)
 
-      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/zip' }))
+      const url = URL.createObjectURL(
+        new Blob([buffer], { type: 'application/zip' }),
+      )
       const anchor = document.createElement('a')
       anchor.href = url
       anchor.download = result.filename
@@ -45,7 +47,10 @@ export function DownloadStep({
 
   return (
     <section aria-labelledby="step-download">
-      <Label id="step-download" className="mb-3 block text-base font-semibold sm:text-sm">
+      <Label
+        id="step-download"
+        className="mb-3 block text-base font-semibold sm:text-sm"
+      >
         Convert and download
       </Label>
 

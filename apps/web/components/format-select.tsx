@@ -12,17 +12,29 @@ interface FormatSelectProps {
 const FORMATS = [
   { id: 'sql' as const, label: 'SQL', hint: 'One .sql dump', Icon: FileCode },
   { id: 'csv' as const, label: 'CSV', hint: 'One file per table', Icon: Table },
-  { id: 'xlsx' as const, label: 'Excel', hint: 'One sheet per table', Icon: FileSpreadsheet },
+  {
+    id: 'xlsx' as const,
+    label: 'Excel',
+    hint: 'One sheet per table',
+    Icon: FileSpreadsheet,
+  },
 ]
 
 export function FormatSelect({ value, onChange }: FormatSelectProps) {
   return (
     <section aria-labelledby="step-format">
-      <Label id="step-format" className="mb-3 block text-base font-semibold sm:text-sm">
+      <Label
+        id="step-format"
+        className="mb-3 block text-base font-semibold sm:text-sm"
+      >
         Export format
       </Label>
 
-      <div role="radiogroup" aria-labelledby="step-format" className="grid grid-cols-3 gap-2">
+      <div
+        role="radiogroup"
+        aria-labelledby="step-format"
+        className="grid grid-cols-3 gap-2"
+      >
         {FORMATS.map(({ id, label, hint, Icon }) => {
           const selected = value === id
           return (

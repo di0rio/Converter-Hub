@@ -36,7 +36,9 @@ function classifyStatement(sql: string): StatementType {
   }
 
   if (/^SET\s+search_path\b/i.test(clean)) return 'search_path'
-  if (/^SELECT\s+(?:pg_catalog\.)?set_config\s*\(\s*'search_path'/i.test(clean)) {
+  if (
+    /^SELECT\s+(?:pg_catalog\.)?set_config\s*\(\s*'search_path'/i.test(clean)
+  ) {
     return 'search_path'
   }
   if (/^SET\b/i.test(clean)) return 'set'
@@ -87,7 +89,9 @@ function readSequenceOwners(statements: string[]): Map<string, string> {
   for (const stmt of statements) {
     const clean = stripLeadingComments(stmt)
 
-    const owned = clean.match(/ALTER\s+SEQUENCE\s+(\S+)\s+OWNED\s+BY\s+([^\s;]+)/i)
+    const owned = clean.match(
+      /ALTER\s+SEQUENCE\s+(\S+)\s+OWNED\s+BY\s+([^\s;]+)/i,
+    )
     if (owned) {
       // schema.table.column, or table.column when the dump left it unqualified.
       const path = owned[2].split('.')
@@ -199,7 +203,10 @@ export function parsePostgresDump(
   function tableNamedBy(sql: string, prefix: string): Table | null {
     const qualified = qualifiedNameAfter(sql, prefix)
     if (!qualified) return null
-    return ensureTable(qualified.schema ?? searchPath ?? DEFAULT_SCHEMA, qualified.name)
+    return ensureTable(
+      qualified.schema ?? searchPath ?? DEFAULT_SCHEMA,
+      qualified.name,
+    )
   }
 
   /** Look up a table written as `schema.table`, or as a bare `table`. */
@@ -228,7 +235,8 @@ export function parsePostgresDump(
    * put it, which is the only ordering information a dump carries.
    */
   function attach(table: Table, statement: string): void {
-    if (table.dataStatements.length > 0) table.postDataStatements.push(statement)
+    if (table.dataStatements.length > 0)
+      table.postDataStatements.push(statement)
     else table.preDataStatements.push(statement)
   }
 
@@ -296,7 +304,8 @@ export function parsePostgresDump(
 
       case 'copy':
       case 'insert': {
-        const prefix = type === 'copy' ? String.raw`COPY` : String.raw`INSERT\s+INTO`
+        const prefix =
+          type === 'copy' ? String.raw`COPY` : String.raw`INSERT\s+INTO`
         const table = tableNamedBy(stmt, prefix)
         if (table) {
           table.dataStatements.push(stmt)
@@ -320,7 +329,10 @@ export function parsePostgresDump(
       }
 
       case 'create_index': {
-        const table = existingTableNamedBy(stmt, String.raw`\bON\s+(?:ONLY\s+)?`)
+        const table = existingTableNamedBy(
+          stmt,
+          String.raw`\bON\s+(?:ONLY\s+)?`,
+        )
         if (table) attach(table, stmt)
         else park(stmt)
         break
@@ -330,7 +342,8 @@ export function parsePostgresDump(
         // A sequence only restores alongside the table that owns it, so it has
         // to travel with that table rather than with the dump.
         const sequence = sequenceNamedBy(stmt)
-        const owner = sequence === null ? undefined : sequenceOwners.get(sequence)
+        const owner =
+          sequence === null ? undefined : sequenceOwners.get(sequence)
         const table = owner === undefined ? null : tableAtPath(owner)
 
         if (table) attach(table, stmt)
@@ -376,7 +389,9 @@ export type PostgresFamilyFormat = Extract<
 >
 
 /** One reader, one identity per product. */
-export function createPostgresParser(format: PostgresFamilyFormat): FormatParser {
+export function createPostgresParser(
+  format: PostgresFamilyFormat,
+): FormatParser {
   return {
     format,
     parse: (sql) => parsePostgresDump(sql, format),

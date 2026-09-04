@@ -241,7 +241,10 @@ export function unquoteIdentifier(raw: string, syntax: SqlSyntax): string {
 
   const closer = identifierCloserFor(syntax, first)
   if (closer !== null && value.endsWith(closer)) {
-    return value.slice(1, -1).split(closer + closer).join(closer)
+    return value
+      .slice(1, -1)
+      .split(closer + closer)
+      .join(closer)
   }
 
   return value

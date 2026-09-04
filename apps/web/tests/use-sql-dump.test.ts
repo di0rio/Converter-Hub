@@ -97,7 +97,10 @@ describe('useSqlDump', () => {
 
     let ok = true
     act(() => {
-      ok = result.current.loadFile('hello world, not a dump at all', 'notes.txt')
+      ok = result.current.loadFile(
+        'hello world, not a dump at all',
+        'notes.txt',
+      )
     })
 
     expect(ok).toBe(false)
@@ -112,7 +115,7 @@ describe('useSqlDump', () => {
       '-- MySQL dump 10.13',
       '-- Host: localhost    Database: shop',
       'CREATE TABLE `users` (`id` int NOT NULL, PRIMARY KEY (`id`));',
-      "INSERT INTO `users` VALUES (1);",
+      'INSERT INTO `users` VALUES (1);',
     ].join('\n')
 
     act(() => {
@@ -120,7 +123,9 @@ describe('useSqlDump', () => {
     })
 
     expect(result.current.dump?.databases.map((d) => d.name)).toEqual(['shop'])
-    expect(result.current.dump?.databases[0].tables.map((t) => t.name)).toEqual(['users'])
+    expect(result.current.dump?.databases[0].tables.map((t) => t.name)).toEqual(
+      ['users'],
+    )
   })
 
   it('selects a database and exposes it', () => {

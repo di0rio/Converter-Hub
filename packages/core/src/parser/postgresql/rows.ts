@@ -5,7 +5,12 @@ import {
   stripLeadingComments,
 } from '../shared/syntax.js'
 import type { DataBlock } from '../shared/format-parser.js'
-import { COPY_FROM_STDIN, columnListAfter, isCopyStatement, unquote } from './lexer.js'
+import {
+  COPY_FROM_STDIN,
+  columnListAfter,
+  isCopyStatement,
+  unquote,
+} from './lexer.js'
 
 /** Clauses inside CREATE TABLE that declare something other than a column. */
 const CONSTRAINT_KEYWORDS = [
@@ -186,7 +191,8 @@ function readTuples(statement: string): string[][] {
 function readInsertColumns(statement: string): string[] | null {
   const valuesIndex = statement.search(/\bVALUES\b/i)
   const openIndex = statement.indexOf('(')
-  if (openIndex === -1 || (valuesIndex !== -1 && openIndex > valuesIndex)) return null
+  if (openIndex === -1 || (valuesIndex !== -1 && openIndex > valuesIndex))
+    return null
 
   return columnListAfter(statement, openIndex)
 }
@@ -202,7 +208,8 @@ function readInsertColumns(statement: string): string[] | null {
  */
 export function readDataBlock(statement: string): DataBlock {
   if (isCopyStatement(statement)) {
-    const header = COPY_FROM_STDIN.exec(stripLeadingComments(statement))?.[0] ?? ''
+    const header =
+      COPY_FROM_STDIN.exec(stripLeadingComments(statement))?.[0] ?? ''
     return {
       columns: columnListAfter(header, 0),
       rows: copyDataLines(statement).map((line) =>

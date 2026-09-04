@@ -113,7 +113,8 @@ function memberOf(
   let bestHits = 0
 
   for (const descriptor of ALL_FORMATS) {
-    if (descriptor.family !== family || descriptor.markers.length === 0) continue
+    if (descriptor.family !== family || descriptor.markers.length === 0)
+      continue
 
     const hits = countMatches(sql, descriptor.markers)
     if (hits > bestHits) {

@@ -47,7 +47,6 @@ CREATE TABLE \`posts\` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `
 
-
 // Synthetic PostgreSQL dump fixture (no real production data)
 const POSTGRES_SQL = `--
 -- PostgreSQL database dump
@@ -98,7 +97,11 @@ describe('extractCommand', () => {
   it('throws File not found error for missing file', async () => {
     const missingPath = join(tmpDir, 'non-existent.sql')
     await expect(
-      extractCommand(missingPath, { database: 'shop_db', all: true, output: join(tmpDir, 'o.sql') }),
+      extractCommand(missingPath, {
+        database: 'shop_db',
+        all: true,
+        output: join(tmpDir, 'o.sql'),
+      }),
     ).rejects.toThrow(`Error: File not found: ${missingPath}`)
   })
 

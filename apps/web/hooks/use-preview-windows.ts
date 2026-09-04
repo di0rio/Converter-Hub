@@ -148,13 +148,16 @@ export function usePreviewWindows() {
     (tableName: string, at?: { x: number; y: number }) => {
       setWindows((prev) => {
         topZ.current += 1
-        const single = modeRef.current === 'full' && layoutRef.current === 'single'
+        const single =
+          modeRef.current === 'full' && layoutRef.current === 'single'
 
         const existing = prev.find((w) => w.tableName === tableName)
         // Already open: raise and un-collapse it instead of stacking a duplicate.
         if (existing) {
           const raised = prev.map((w) =>
-            w.id === existing.id ? { ...w, z: topZ.current, minimized: false } : w,
+            w.id === existing.id
+              ? { ...w, z: topZ.current, minimized: false }
+              : w,
           )
           return single ? raised.filter((w) => w.id === existing.id) : raised
         }
@@ -237,7 +240,10 @@ export function usePreviewWindows() {
       prev.map((w) => {
         if (w.id !== id) return w
         if (w.restore) {
-          return containWindow({ ...w, ...w.restore, restore: null }, boundsRef.current)
+          return containWindow(
+            { ...w, ...w.restore, restore: null },
+            boundsRef.current,
+          )
         }
         const bounds = boundsRef.current
         if (bounds.width <= 0 || bounds.height <= 0) return w

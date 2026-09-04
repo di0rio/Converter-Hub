@@ -13,4 +13,3 @@ if (typeof Blob !== 'undefined' && typeof Blob.prototype.text !== 'function') {
     })
   }
 }
-

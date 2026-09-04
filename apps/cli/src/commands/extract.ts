@@ -7,7 +7,11 @@ import {
   SUPPORTED_FORMATS,
   UnsupportedFormatError,
 } from '@sql-extractor/core'
-import type { DatabaseFormat, ExtractionOptions, SqlDump } from '@sql-extractor/core'
+import type {
+  DatabaseFormat,
+  ExtractionOptions,
+  SqlDump,
+} from '@sql-extractor/core'
 import { readSqlFile, writeOutputFile } from '../utils/io.js'
 import { resolveDatabase, resolveTables, resolveOutputPath } from './prompts.js'
 import { browseForFile } from './browse.js'

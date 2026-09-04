@@ -115,7 +115,10 @@ export function parseDb2Dump(sql: string): SqlDump {
     )
   }
 
-  function existingTableNamedBy(statement: string, prefix: string): Table | null {
+  function existingTableNamedBy(
+    statement: string,
+    prefix: string,
+  ): Table | null {
     const qualified = qualifiedNameAfter(statement, prefix)
     if (!qualified) return null
     const schema = qualified.schema ?? currentSchema ?? DEFAULT_SCHEMA
@@ -123,7 +126,8 @@ export function parseDb2Dump(sql: string): SqlDump {
   }
 
   function attach(table: Table, statement: string): void {
-    if (table.dataStatements.length > 0) table.postDataStatements.push(statement)
+    if (table.dataStatements.length > 0)
+      table.postDataStatements.push(statement)
     else table.preDataStatements.push(statement)
   }
 
@@ -163,7 +167,10 @@ export function parseDb2Dump(sql: string): SqlDump {
       }
 
       case 'create_table': {
-        const qualified = qualifiedNameAfter(stmt, String.raw`CREATE\s+TABLE\s+`)
+        const qualified = qualifiedNameAfter(
+          stmt,
+          String.raw`CREATE\s+TABLE\s+`,
+        )
         if (qualified) {
           const table = ensureTable(
             qualified.schema ?? currentSchema ?? DEFAULT_SCHEMA,

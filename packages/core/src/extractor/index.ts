@@ -17,7 +17,7 @@ import { describeFormat } from '../formats/index.js'
  */
 export function extractDatabase(
   dump: SqlDump,
-  options: ExtractionOptions
+  options: ExtractionOptions,
 ): ExtractionResult {
   const database = dump.databases.find((d) => d.name === options.database)
 

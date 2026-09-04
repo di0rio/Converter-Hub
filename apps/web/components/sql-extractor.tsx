@@ -63,7 +63,8 @@ export function SqlExtractor() {
   const rowCounts = useMemo(() => {
     const counts = new Map<string, number>()
     if (database) {
-      for (const table of database.tables) counts.set(table.name, countRows(table))
+      for (const table of database.tables)
+        counts.set(table.name, countRows(table))
     }
     return counts
   }, [database])
@@ -122,7 +123,6 @@ export function SqlExtractor() {
           sourceFormat={sourceFormat}
           confidence={confidence}
         />
-
 
         {showDatabases && (
           <DatabaseSelect

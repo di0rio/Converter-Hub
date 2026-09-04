@@ -46,7 +46,10 @@ const CONSTRAINT_KEYWORDS = new Set([
  * several words (`character varying(255)`, `timestamp without time zone`), so
  * everything after the first token is type or modifier text.
  */
-export function readColumns(createStatement: string, dialect: SqlDialect): string[] {
+export function readColumns(
+  createStatement: string,
+  dialect: SqlDialect,
+): string[] {
   const openIndex = createStatement.indexOf('(')
   if (openIndex === -1) return []
 
@@ -87,7 +90,8 @@ function readQuotedHead(part: string, dialect: SqlDialect): string | null {
     if (open !== first) continue
 
     const end = part.indexOf(close, 1)
-    if (end > 0) return unquoteIdentifier(part.slice(0, end + 1), dialect.syntax)
+    if (end > 0)
+      return unquoteIdentifier(part.slice(0, end + 1), dialect.syntax)
   }
 
   return null
@@ -121,7 +125,8 @@ export function decodeLiteral(raw: string, dialect: SqlDialect): string | null {
 
   // A trailing cast (`'{}'::jsonb`) is type information, not part of the value.
   const cast = value.match(/^([\s\S]*?)::[A-Za-z_][\w\s."[\]]*$/)
-  if (cast && /['"]\s*$/.test(cast[1] as string)) value = (cast[1] as string).trim()
+  if (cast && /['"]\s*$/.test(cast[1] as string))
+    value = (cast[1] as string).trim()
 
   // A one-letter prefix marks the literal's kind without moving where it ends.
   let backslashes = dialect.syntax.backslashEscapes
@@ -194,7 +199,8 @@ function readInsertColumns(
 ): string[] | null {
   const valuesIndex = statement.search(/\bVALUES\b/i)
   const openIndex = statement.indexOf('(')
-  if (openIndex === -1 || (valuesIndex !== -1 && openIndex > valuesIndex)) return null
+  if (openIndex === -1 || (valuesIndex !== -1 && openIndex > valuesIndex))
+    return null
 
   const body = readBalanced(statement, openIndex, dialect.syntax)
   if (body.trim().length === 0) return null
@@ -205,7 +211,10 @@ function readInsertColumns(
 }
 
 /** Decode one INSERT statement into cell values. */
-export function readInsertBlock(statement: string, dialect: SqlDialect): DataBlock {
+export function readInsertBlock(
+  statement: string,
+  dialect: SqlDialect,
+): DataBlock {
   const clean = stripLeadingComments(statement)
   return {
     columns: readInsertColumns(clean, dialect),
@@ -220,6 +229,9 @@ export function readInsertBlock(statement: string, dialect: SqlDialect): DataBlo
  *
  * One multi-row INSERT counts as its rows rather than as one statement.
  */
-export function countInsertRows(statement: string, dialect: SqlDialect): number {
+export function countInsertRows(
+  statement: string,
+  dialect: SqlDialect,
+): number {
   return readTuples(stripLeadingComments(statement), dialect).length
 }

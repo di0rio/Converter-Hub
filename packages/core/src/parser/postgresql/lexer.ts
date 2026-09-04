@@ -40,7 +40,10 @@ function dollarTagAt(sql: string, index: number): string | null {
  * Read a COPY data block: every line after the statement up to and including
  * the `\.` terminator. Returns the raw text and where the scan should resume.
  */
-function readCopyData(sql: string, from: number): { block: string; next: number } {
+function readCopyData(
+  sql: string,
+  from: number,
+): { block: string; next: number } {
   // The COPY statement ends at its semicolon; data starts on the next line.
   const lineEnd = sql.indexOf('\n', from)
   if (lineEnd === -1) return { block: '', next: sql.length }
@@ -244,17 +247,24 @@ export function qualifiedNameAfter(
   sql: string,
   prefix: string,
 ): QualifiedName | null {
-  const match = new RegExp(prefix + String.raw`\s*` + QUALIFIED_NAME, 'i').exec(sql)
+  const match = new RegExp(prefix + String.raw`\s*` + QUALIFIED_NAME, 'i').exec(
+    sql,
+  )
   if (!match) return null
 
   const first = unquote(match[1])
   const second = match[2] ? unquote(match[2]) : null
 
-  return second !== null ? { schema: first, name: second } : { schema: null, name: first }
+  return second !== null
+    ? { schema: first, name: second }
+    : { schema: null, name: first }
 }
 
 /** The parenthesised column list of a COPY or INSERT header, if it has one. */
-export function columnListAfter(sql: string, headerEnd: number): string[] | null {
+export function columnListAfter(
+  sql: string,
+  headerEnd: number,
+): string[] | null {
   const open = sql.indexOf('(', headerEnd)
   if (open === -1) return null
 

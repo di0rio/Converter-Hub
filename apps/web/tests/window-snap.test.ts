@@ -38,7 +38,9 @@ describe('snapTarget', () => {
       width: 400,
       height: 300,
     })
-    expect(snapTarget({ x: BOUNDS.width - 2, y: BOUNDS.height - 2 }, BOUNDS)).toEqual({
+    expect(
+      snapTarget({ x: BOUNDS.width - 2, y: BOUNDS.height - 2 }, BOUNDS),
+    ).toEqual({
       x: 400,
       y: 300,
       width: 400,

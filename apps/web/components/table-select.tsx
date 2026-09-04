@@ -60,7 +60,8 @@ function createDragGhost(label: string, detail: string): HTMLElement {
     'box-shadow:0 8px 24px rgb(0 0 0 / 0.18)',
     'pointer-events:none',
   ].join(';')
-  rows.style.cssText = 'opacity:.6;font-weight:400;font-variant-numeric:tabular-nums'
+  rows.style.cssText =
+    'opacity:.6;font-weight:400;font-variant-numeric:tabular-nums'
 
   return ghost
 }

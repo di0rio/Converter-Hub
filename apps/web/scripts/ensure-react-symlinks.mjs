@@ -39,11 +39,15 @@ for (const name of ['react', 'react-dom']) {
   if (!existsSync(target)) continue
 
   const alreadyLinked =
-    existsSync(link) && lstatSync(link).isSymbolicLink() && readlinkSync(link) === target
+    existsSync(link) &&
+    lstatSync(link).isSymbolicLink() &&
+    readlinkSync(link) === target
 
   if (alreadyLinked) continue
 
   if (existsSync(link)) rmSync(link, { recursive: true, force: true })
   symlinkSync(target, link)
-  console.log(`[ensure-react-symlinks] linked ${relative(root, link)} -> ${relative(root, target)}`)
+  console.log(
+    `[ensure-react-symlinks] linked ${relative(root, link)} -> ${relative(root, target)}`,
+  )
 }

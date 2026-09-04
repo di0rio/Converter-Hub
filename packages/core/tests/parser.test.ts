@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 
 const samplePath = resolve(
   import.meta.dirname,
-  '../../../examples/mysql/sample.sql'
+  '../../../examples/mysql/sample.sql',
 )
 
 describe('parseDump', () => {
@@ -19,10 +19,7 @@ describe('parseDump', () => {
 
     it('finds both databases', () => {
       expect(dump.databases).toHaveLength(2)
-      expect(dump.databases.map((d) => d.name)).toEqual([
-        'store_db',
-        'blog_db',
-      ])
+      expect(dump.databases.map((d) => d.name)).toEqual(['store_db', 'blog_db'])
     })
 
     it('parses store_db tables', () => {
@@ -107,9 +104,9 @@ describe('parseDump', () => {
       const storeDb = dump.databases.find((d) => d.name === 'store_db')!
       const customers = storeDb.tables.find((t) => t.name === 'customers')!
       const insertSql = customers.dataStatements[0]
-      expect(insertSql).toContain("Alice Johnson")
-      expect(insertSql).toContain("Bob Smith")
-      expect(insertSql).toContain("Charlie Brown")
+      expect(insertSql).toContain('Alice Johnson')
+      expect(insertSql).toContain('Bob Smith')
+      expect(insertSql).toContain('Charlie Brown')
     })
   })
 

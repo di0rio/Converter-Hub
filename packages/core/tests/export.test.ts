@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { unzipSync, strFromU8 } from 'fflate'
 import { parseDump } from '../src/parser/index.js'
 import { toTabular, extractColumns } from '../src/tabular/index.js'
-import { toCsv, toXlsx, createZip, generateExport } from '../src/generator/index.js'
+import {
+  toCsv,
+  toXlsx,
+  createZip,
+  generateExport,
+} from '../src/generator/index.js'
 
 // Synthetic fixture — no real data.
 const DUMP = [
@@ -173,16 +178,26 @@ describe('zip', () => {
 
 describe('generateExport', () => {
   it('packages SQL as a single dump file', () => {
-    const result = generateExport(dump, { database: 'shop', tables: 'all' }, 'sql')
+    const result = generateExport(
+      dump,
+      { database: 'shop', tables: 'all' },
+      'sql',
+    )
 
     expect(result.filename).toBe('shop-export.zip')
     expect(result.files).toEqual(['shop.sql'])
     expect(result.tableCount).toBe(2)
-    expect(strFromU8(unzipSync(result.bytes)['shop.sql'])).toContain('CREATE TABLE `users`')
+    expect(strFromU8(unzipSync(result.bytes)['shop.sql'])).toContain(
+      'CREATE TABLE `users`',
+    )
   })
 
   it('packages CSV as one file per selected table', () => {
-    const result = generateExport(dump, { database: 'shop', tables: ['orders'] }, 'csv')
+    const result = generateExport(
+      dump,
+      { database: 'shop', tables: ['orders'] },
+      'csv',
+    )
 
     expect(result.files).toEqual(['orders.csv'])
     expect(result.tableCount).toBe(1)
@@ -190,25 +205,33 @@ describe('generateExport', () => {
   })
 
   it('packages XLSX as one workbook', () => {
-    const result = generateExport(dump, { database: 'shop', tables: 'all' }, 'xlsx')
+    const result = generateExport(
+      dump,
+      { database: 'shop', tables: 'all' },
+      'xlsx',
+    )
     expect(result.files).toEqual(['shop.xlsx'])
   })
 
   it('never executes SQL and never reaches the network or filesystem', () => {
     // generateExport returns bytes only; this guards the contract in review.
-    const result = generateExport(dump, { database: 'shop', tables: 'all' }, 'sql')
+    const result = generateExport(
+      dump,
+      { database: 'shop', tables: 'all' },
+      'sql',
+    )
     expect(result.bytes).toBeInstanceOf(Uint8Array)
   })
 
   it('rejects an unknown database', () => {
-    expect(() => generateExport(dump, { database: 'nope', tables: 'all' }, 'sql')).toThrow(
-      /not present/i,
-    )
+    expect(() =>
+      generateExport(dump, { database: 'nope', tables: 'all' }, 'sql'),
+    ).toThrow(/not present/i)
   })
 
   it('rejects an empty table selection', () => {
-    expect(() => generateExport(dump, { database: 'shop', tables: [] }, 'csv')).toThrow(
-      /No tables/i,
-    )
+    expect(() =>
+      generateExport(dump, { database: 'shop', tables: [] }, 'csv'),
+    ).toThrow(/No tables/i)
   })
 })

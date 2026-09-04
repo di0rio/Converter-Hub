@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { detectFormat, SUPPORTED_FORMATS, describeFormat } from '../src/formats/index.js'
+import {
+  detectFormat,
+  SUPPORTED_FORMATS,
+  describeFormat,
+} from '../src/formats/index.js'
 import { parseDump, UnsupportedFormatError } from '../src/parser/index.js'
 import { countRows } from '../src/tabular/index.js'
 
@@ -36,7 +40,7 @@ describe('detectFormat', () => {
 
   it('reports plain SQL as assumed rather than as a detection', () => {
     expect(
-      detectFormat("CREATE TABLE t (id int);\nINSERT INTO t VALUES (1);"),
+      detectFormat('CREATE TABLE t (id int);\nINSERT INTO t VALUES (1);'),
     ).toEqual({ format: 'mysql', confidence: 'assumed' })
   })
 
@@ -59,7 +63,7 @@ describe('detectFormat', () => {
       '-- PostgreSQL database dump',
       'SET search_path = public;',
       'CREATE TABLE public.t (id integer, quoted text);',
-      "COPY public.t (id, quoted) FROM stdin;",
+      'COPY public.t (id, quoted) FROM stdin;',
       '1\ta `backtick` value',
       '\\.',
     ].join('\n')

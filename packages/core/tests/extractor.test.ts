@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 
 const samplePath = resolve(
   import.meta.dirname,
-  '../../../examples/mysql/sample.sql'
+  '../../../examples/mysql/sample.sql',
 )
 
 describe('extractDatabase', () => {
@@ -240,7 +240,7 @@ USE \`empty_db\`;
 
       // Deep clone for comparison
       const originalDatabases = JSON.parse(
-        JSON.stringify(originalDump.databases)
+        JSON.stringify(originalDump.databases),
       )
 
       extractDatabase(originalDump, {
@@ -254,7 +254,10 @@ USE \`empty_db\`;
 
   describe('determinism', () => {
     it('produces the same output for the same input', () => {
-      const options = { database: 'store_db', tables: ['customers'] as string[] }
+      const options = {
+        database: 'store_db',
+        tables: ['customers'] as string[],
+      }
 
       const result1 = extractDatabase(dump, options)
       const result2 = extractDatabase(dump, options)
@@ -267,7 +270,7 @@ USE \`empty_db\`;
     it('produces consistent output across multiple calls', () => {
       const options = { database: 'blog_db', tables: 'all' as const }
       const results = Array.from({ length: 5 }, () =>
-        extractDatabase(dump, options)
+        extractDatabase(dump, options),
       )
 
       for (const result of results) {

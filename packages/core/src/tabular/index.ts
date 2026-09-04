@@ -56,7 +56,8 @@ export function toTabular(table: Table): TabularTable {
 
   for (const statement of table.dataStatements) {
     const block = parser.readDataBlock(statement)
-    if (block.columns && declaredColumns === null) declaredColumns = block.columns
+    if (block.columns && declaredColumns === null)
+      declaredColumns = block.columns
 
     for (const values of block.rows) {
       // A statement that names its columns may list them in another order, or

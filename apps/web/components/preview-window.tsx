@@ -23,7 +23,9 @@ interface PreviewWindowProps {
   onClose: () => void
   onMinimize: () => void
   onMaximize: () => void
-  onChange: (patch: Partial<Omit<PreviewWindowState, 'id' | 'tableName'>>) => void
+  onChange: (
+    patch: Partial<Omit<PreviewWindowState, 'id' | 'tableName'>>,
+  ) => void
   /** Report the region a release would snap to, so the workspace can draw it. */
   onSnapPreview: (rect: Rect | null) => void
 }
@@ -326,7 +328,12 @@ export function PreviewWindow({
       {!win.minimized && (
         <>
           <div className="min-h-0 flex-1 overflow-hidden">
-            <TableViewer table={table} hideHeader height={viewportHeight} bare />
+            <TableViewer
+              table={table}
+              hideHeader
+              height={viewportHeight}
+              bare
+            />
           </div>
 
           <div
@@ -344,7 +351,9 @@ export function PreviewWindow({
               className={
                 'absolute right-1 bottom-1 size-2 rounded-br-[2px] border-r border-b ' +
                 'transition-colors duration-150 group-hover:border-foreground ' +
-                (active ? 'border-muted-foreground/60' : 'border-muted-foreground/30')
+                (active
+                  ? 'border-muted-foreground/60'
+                  : 'border-muted-foreground/30')
               }
             />
           </div>

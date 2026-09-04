@@ -27,7 +27,12 @@ describe('listEntries', () => {
 
     const entries = listEntries(tmpDir)
 
-    expect(entries.map((e) => e.title)).toEqual(['alpha/', 'zeta/', 'a.sql', 'b.sql'])
+    expect(entries.map((e) => e.title)).toEqual([
+      'alpha/',
+      'zeta/',
+      'a.sql',
+      'b.sql',
+    ])
   })
 
   it('filters out non-.sql files and dotfiles', async () => {

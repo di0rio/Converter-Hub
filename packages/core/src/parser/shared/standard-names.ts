@@ -29,7 +29,9 @@ export function qualifiedNameAfter(
   sql: string,
   prefix: string,
 ): QualifiedName | null {
-  const match = new RegExp(prefix + String.raw`\s*` + QUALIFIED_NAME, 'i').exec(sql)
+  const match = new RegExp(prefix + String.raw`\s*` + QUALIFIED_NAME, 'i').exec(
+    sql,
+  )
   if (!match) return null
 
   const first = unquote(match[1] as string)

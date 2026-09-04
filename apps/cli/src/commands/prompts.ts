@@ -118,9 +118,7 @@ export async function resolveTables(
   return tableResponse.tables
 }
 
-export async function resolveOutputPath(
-  outputPath?: string,
-): Promise<string> {
+export async function resolveOutputPath(outputPath?: string): Promise<string> {
   if (outputPath) {
     return outputPath
   }

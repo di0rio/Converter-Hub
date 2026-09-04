@@ -11,7 +11,9 @@ const CREATE = 'CREATE TABLE `t` (`id` int NOT NULL, `name` varchar(50));'
 
 describe('countRows', () => {
   it('counts value tuples, not statements', () => {
-    const table = tableFrom(CREATE + "INSERT INTO `t` VALUES (1,'a'),(2,'b'),(3,'c');")
+    const table = tableFrom(
+      CREATE + "INSERT INTO `t` VALUES (1,'a'),(2,'b'),(3,'c');",
+    )
     expect(table.dataStatements).toHaveLength(1)
     expect(countRows(table)).toBe(3)
   })
@@ -28,7 +30,13 @@ describe('countRows', () => {
 
   it('counts rows in a multiline INSERT', () => {
     const table = tableFrom(
-      [CREATE, 'INSERT INTO `t` VALUES', "(1,'a'),", "(2,'b'),", "(3,'d');"].join('\n'),
+      [
+        CREATE,
+        'INSERT INTO `t` VALUES',
+        "(1,'a'),",
+        "(2,'b'),",
+        "(3,'d');",
+      ].join('\n'),
     )
     expect(countRows(table)).toBe(3)
   })
@@ -59,16 +67,15 @@ describe('countRows', () => {
 
   it('agrees with the rows the viewer would render', () => {
     const table = tableFrom(
-      CREATE + "INSERT INTO `t` VALUES (1,'a'),(2,'b');INSERT INTO `t` VALUES (3,'c');",
+      CREATE +
+        "INSERT INTO `t` VALUES (1,'a'),(2,'b');INSERT INTO `t` VALUES (3,'c');",
     )
     expect(countRows(table)).toBe(toTabular(table).rows.length)
   })
 })
 
 describe('viewer data', () => {
-  const table = tableFrom(
-    CREATE + "INSERT INTO `t` VALUES (1,'Ana'),(2,NULL);",
-  )
+  const table = tableFrom(CREATE + "INSERT INTO `t` VALUES (1,'Ana'),(2,NULL);")
 
   it('exposes column names', () => {
     expect(toTabular(table).columns).toEqual(['id', 'name'])

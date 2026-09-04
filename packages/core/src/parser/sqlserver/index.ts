@@ -40,7 +40,11 @@ function classifyStatement(sql: string): StatementType {
   // T-SQL makes INTO optional: `INSERT [t] (...) VALUES (...)`.
   if (/^INSERT\b/i.test(clean)) return 'insert'
   if (/^ALTER\s+TABLE\b/i.test(clean)) return 'alter_table'
-  if (/^CREATE\s+(?:UNIQUE\s+)?(?:CLUSTERED\s+|NONCLUSTERED\s+)?INDEX\b/i.test(clean)) {
+  if (
+    /^CREATE\s+(?:UNIQUE\s+)?(?:CLUSTERED\s+|NONCLUSTERED\s+)?INDEX\b/i.test(
+      clean,
+    )
+  ) {
     return 'create_index'
   }
   if (/^SET\b/i.test(clean)) return 'set'
@@ -142,7 +146,8 @@ export function parseSqlServerDump(
    * both halves in the right place.
    */
   function attach(table: Table, statement: string): void {
-    if (table.dataStatements.length > 0) table.postDataStatements.push(statement)
+    if (table.dataStatements.length > 0)
+      table.postDataStatements.push(statement)
     else table.preDataStatements.push(statement)
   }
 
@@ -171,9 +176,15 @@ export function parseSqlServerDump(
       }
 
       case 'create_table': {
-        const qualified = qualifiedNameAfter(stmt, String.raw`CREATE\s+TABLE\s+`)
+        const qualified = qualifiedNameAfter(
+          stmt,
+          String.raw`CREATE\s+TABLE\s+`,
+        )
         if (qualified) {
-          const table = ensureTable(qualified.schema ?? DEFAULT_SCHEMA, qualified.name)
+          const table = ensureTable(
+            qualified.schema ?? DEFAULT_SCHEMA,
+            qualified.name,
+          )
           table.createStatement = stmt
         }
         break

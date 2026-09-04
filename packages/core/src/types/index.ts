@@ -11,8 +11,8 @@ export interface SqlDump {
   /** The engine that produced the dump. */
   format: DatabaseFormat
   databases: Database[]
-  preamble: string      // session statements before the first database
-  postamble: string     // trailing statements after the last database
+  preamble: string // session statements before the first database
+  postamble: string // trailing statements after the last database
 }
 
 /**
@@ -24,8 +24,8 @@ export interface Database {
   name: string
   /** Owning database, for formats that nest schemas inside one (PostgreSQL). */
   catalog?: string
-  createStatement: string   // CREATE DATABASE / CREATE SCHEMA (full SQL text)
-  useStatement: string      // statement that switches to it (USE, \connect)
+  createStatement: string // CREATE DATABASE / CREATE SCHEMA (full SQL text)
+  useStatement: string // statement that switches to it (USE, \connect)
   tables: Table[]
 }
 
@@ -43,10 +43,10 @@ export interface Table {
   database: string
   /** The engine this table's statements are written in. */
   format: DatabaseFormat
-  createStatement: string        // Full CREATE TABLE DDL
-  preDataStatements: string[]    // Runs after CREATE TABLE, before the rows
-  dataStatements: string[]       // Row-carrying statements: INSERT, or COPY blocks
-  postDataStatements: string[]   // Runs after the rows: constraints, indexes
+  createStatement: string // Full CREATE TABLE DDL
+  preDataStatements: string[] // Runs after CREATE TABLE, before the rows
+  dataStatements: string[] // Row-carrying statements: INSERT, or COPY blocks
+  postDataStatements: string[] // Runs after the rows: constraints, indexes
 }
 
 export interface ExtractionOptions {

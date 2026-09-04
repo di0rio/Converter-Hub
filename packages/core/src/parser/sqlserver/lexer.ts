@@ -26,12 +26,19 @@ export function unquote(raw: string): string {
 }
 
 /** Read the qualified name that follows `prefix` in a statement. */
-export function qualifiedNameAfter(sql: string, prefix: string): QualifiedName | null {
-  const match = new RegExp(prefix + String.raw`\s*` + QUALIFIED_NAME, 'i').exec(sql)
+export function qualifiedNameAfter(
+  sql: string,
+  prefix: string,
+): QualifiedName | null {
+  const match = new RegExp(prefix + String.raw`\s*` + QUALIFIED_NAME, 'i').exec(
+    sql,
+  )
   if (!match) return null
 
   const first = unquote(match[1] as string)
   const second = match[2] ? unquote(match[2]) : null
 
-  return second !== null ? { schema: first, name: second } : { schema: null, name: first }
+  return second !== null
+    ? { schema: first, name: second }
+    : { schema: null, name: first }
 }

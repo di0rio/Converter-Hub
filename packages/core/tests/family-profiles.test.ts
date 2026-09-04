@@ -118,14 +118,24 @@ describe('family profile: CockroachDB (via postgresParser)', () => {
     const stmt = table(dump, 'public', 'customers').dataStatements[0]
     const block = postgresParser.readDataBlock(stmt)
     expect(block.columns).toEqual(['id', 'full_name', 'email', 'signed_up_at'])
-    expect(block.rows[0]).toEqual(['1', 'Alice Example', 'alice@example.test', '2024-01-15 10:30:00'])
+    expect(block.rows[0]).toEqual([
+      '1',
+      'Alice Example',
+      'alice@example.test',
+      '2024-01-15 10:30:00',
+    ])
     expect(block.rows[1][1]).toBe('Renée Example')
     expect(block.rows[1][2]).toBeNull() // NULL email
   })
 
   it('exports rows with no phantom column, which is what CSV and XLSX receive', () => {
     const tabular = toTabular(table(dump, 'public', 'customers'))
-    expect(tabular.columns).toEqual(['id', 'full_name', 'email', 'signed_up_at'])
+    expect(tabular.columns).toEqual([
+      'id',
+      'full_name',
+      'email',
+      'signed_up_at',
+    ])
     expect(tabular.rows[0]).toEqual([
       '1',
       'Alice Example',
@@ -185,9 +195,9 @@ describe('family profile: YugabyteDB (via postgresParser)', () => {
   })
 
   it('attaches the SPLIT INTO index to the table it indexes', () => {
-    expect(table(dump, 'public', 'customers').postDataStatements.join('\n')).toContain(
-      'CREATE INDEX customers_email_idx',
-    )
+    expect(
+      table(dump, 'public', 'customers').postDataStatements.join('\n'),
+    ).toContain('CREATE INDEX customers_email_idx')
   })
 
   it('reads rows out of the COPY block', () => {
@@ -203,7 +213,12 @@ describe('family profile: YugabyteDB (via postgresParser)', () => {
   it('reads rows out of INSERT statements for the second table', () => {
     expect(countRows(table(dump, 'public', 'orders'))).toBe(2)
     const rows = toTabular(table(dump, 'public', 'orders')).rows
-    expect(rows[0]).toEqual(['1', '11111111-1111-1111-1111-111111111111', 'Widget crate', '129.50'])
+    expect(rows[0]).toEqual([
+      '1',
+      '11111111-1111-1111-1111-111111111111',
+      'Widget crate',
+      '129.50',
+    ])
   })
 })
 
@@ -243,8 +258,12 @@ describe('family profile: Greenplum (via postgresParser)', () => {
   })
 
   it('keeps the trailing distribution clause in the CREATE TABLE text', () => {
-    expect(table(dump, 'public', 'orders').createStatement).toContain('DISTRIBUTED BY (id)')
-    expect(table(dump, 'public', 'audit_log').createStatement).toContain('DISTRIBUTED RANDOMLY')
+    expect(table(dump, 'public', 'orders').createStatement).toContain(
+      'DISTRIBUTED BY (id)',
+    )
+    expect(table(dump, 'public', 'audit_log').createStatement).toContain(
+      'DISTRIBUTED RANDOMLY',
+    )
   })
 
   it('reads rows from the COPY block, including a NULL amount', () => {
@@ -304,8 +323,12 @@ describe('family profile: Amazon Redshift (via postgresParser)', () => {
   })
 
   it('keeps the column-attribute ENCODE clauses in the CREATE TABLE text', () => {
-    expect(table(dump, 'public', 'orders').createStatement).toContain('ENCODE lzo')
-    expect(table(dump, 'public', 'orders').createStatement).toContain('DISTKEY(id)')
+    expect(table(dump, 'public', 'orders').createStatement).toContain(
+      'ENCODE lzo',
+    )
+    expect(table(dump, 'public', 'orders').createStatement).toContain(
+      'DISTKEY(id)',
+    )
   })
 
   it('reads rows from INSERT statements, including a NULL and UTF-8', () => {
@@ -352,7 +375,9 @@ describe('family profile: TimescaleDB (via postgresParser)', () => {
   })
 
   it('parks the create_hypertable() call rather than losing it', () => {
-    expect(dump.postamble).toContain("create_hypertable('public.sensor_readings', 'recorded_at')")
+    expect(dump.postamble).toContain(
+      "create_hypertable('public.sensor_readings', 'recorded_at')",
+    )
   })
 
   it('reads rows from the COPY block, including a NULL value', () => {
@@ -395,7 +420,10 @@ describe('family profile: Citus (via postgresParser)', () => {
   })
 
   it('reads columns for both the reference table and the distributed table', () => {
-    expect(extractColumns(table(dump, 'public', 'regions'))).toEqual(['id', 'name'])
+    expect(extractColumns(table(dump, 'public', 'regions'))).toEqual([
+      'id',
+      'name',
+    ])
     expect(extractColumns(table(dump, 'public', 'events'))).toEqual([
       'id',
       'tenant_id',
@@ -405,7 +433,9 @@ describe('family profile: Citus (via postgresParser)', () => {
 
   it('parks both distribution calls rather than losing them', () => {
     expect(dump.postamble).toContain("create_reference_table('public.regions')")
-    expect(dump.postamble).toContain("create_distributed_table('public.events', 'tenant_id')")
+    expect(dump.postamble).toContain(
+      "create_distributed_table('public.events', 'tenant_id')",
+    )
   })
 
   it('reads rows from INSERT statements', () => {

@@ -24,7 +24,8 @@ function table(dump: SqlDump, schemaName: string, name: string): Table {
 /** Row count for a table, the way `tabular/index.ts` computes it. */
 function countRows(t: Table): number {
   let total = 0
-  for (const statement of t.dataStatements) total += sqlserverParser.countDataRows(statement)
+  for (const statement of t.dataStatements)
+    total += sqlserverParser.countDataRows(statement)
   return total
 }
 
@@ -40,10 +41,12 @@ function tabularRows(t: Table): (string | null)[][] {
     for (const values of block.rows) {
       if (block.columns && columns.length > 0) {
         const named = block.columns
-        rows.push(columns.map((c) => {
-          const i = named.indexOf(c)
-          return i === -1 ? null : (values[i] ?? null)
-        }))
+        rows.push(
+          columns.map((c) => {
+            const i = named.indexOf(c)
+            return i === -1 ? null : (values[i] ?? null)
+          }),
+        )
         continue
       }
       rows.push(values)
@@ -127,23 +130,19 @@ describe('sqlserverParser', () => {
 
   describe('column detection', () => {
     it('reads bracketed columns, including [nvarchar](max)', () => {
-      expect(sqlserverParser.readColumns(table(dump, 'sales', 'customers').createStatement)).toEqual([
-        'id',
-        'name',
-        'note',
-        'ref',
-        'active',
-        'thumbnail',
-      ])
+      expect(
+        sqlserverParser.readColumns(
+          table(dump, 'sales', 'customers').createStatement,
+        ),
+      ).toEqual(['id', 'name', 'note', 'ref', 'active', 'thumbnail'])
     })
 
     it('reads a multi-word bracketed type without mistaking it for a column', () => {
-      expect(sqlserverParser.readColumns(table(dump, 'dbo', 'orders').createStatement)).toEqual([
-        'id',
-        'customer_id',
-        'note',
-        'total',
-      ])
+      expect(
+        sqlserverParser.readColumns(
+          table(dump, 'dbo', 'orders').createStatement,
+        ),
+      ).toEqual(['id', 'customer_id', 'note', 'total'])
     })
 
     it('skips a table-level CONSTRAINT clause', () => {
@@ -249,15 +248,15 @@ describe('sqlserverParser', () => {
     })
 
     it('attaches an ADD CONSTRAINT to the table it names', () => {
-      expect(table(dump, 'sales', 'customers').postDataStatements.join('\n')).toContain(
-        'ADD CONSTRAINT [DF_active]',
-      )
+      expect(
+        table(dump, 'sales', 'customers').postDataStatements.join('\n'),
+      ).toContain('ADD CONSTRAINT [DF_active]')
     })
 
     it('attaches a CREATE INDEX to the table it is declared on', () => {
-      expect(table(dump, 'dbo', 'orders').postDataStatements.join('\n')).toContain(
-        'CREATE INDEX [IX_orders_customer]',
-      )
+      expect(
+        table(dump, 'dbo', 'orders').postDataStatements.join('\n'),
+      ).toContain('CREATE INDEX [IX_orders_customer]')
     })
 
     it('keeps session SET statements in the preamble', () => {
@@ -276,7 +275,7 @@ describe('sqlserverParser', () => {
         [
           'CREATE TABLE widgets ([id] [int] NOT NULL)',
           'GO',
-          "INSERT INTO widgets ([id]) VALUES (1)",
+          'INSERT INTO widgets ([id]) VALUES (1)',
           'GO',
         ].join('\n'),
       )
@@ -309,20 +308,24 @@ describe('sqlserverParser', () => {
         'WITH (DISTRIBUTION = HASH([id]), CLUSTERED COLUMNSTORE INDEX)',
       ].join('\n')
 
-      expect(sqlserverParser.readColumns(synapseCreate)).toEqual(['id', 'amount'])
+      expect(sqlserverParser.readColumns(synapseCreate)).toEqual([
+        'id',
+        'amount',
+      ])
 
       const parsed = sqlserverParser.parse([synapseCreate, 'GO'].join('\n'))
-      const table = parsed.databases[0].tables.find((t) => t.name === 'fact_sales')
+      const table = parsed.databases[0].tables.find(
+        (t) => t.name === 'fact_sales',
+      )
       expect(table).toBeDefined()
       expect(table?.createStatement).toContain('CLUSTERED COLUMNSTORE INDEX')
     })
 
     it('keeps a bracket-escaped identifier readable', () => {
       const parsed = sqlserverParser.parse(
-        [
-          'CREATE TABLE [dbo].[Weird]]Name]([id] [int] NOT NULL)',
-          'GO',
-        ].join('\n'),
+        ['CREATE TABLE [dbo].[Weird]]Name]([id] [int] NOT NULL)', 'GO'].join(
+          '\n',
+        ),
       )
 
       expect(parsed.databases[0].tables[0].name).toBe('Weird]Name')

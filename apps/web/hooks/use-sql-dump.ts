@@ -152,19 +152,15 @@ export function useSqlDump() {
     setSelectedTables((prev) => (prev.length === all.length ? [] : all))
   }, [database, clearResult])
 
-  const selectFormat = useCallback(
-    (format: ExportFormat) => {
-      setExportFormat(format)
-      setResult(null)
-      setStatus('idle')
-    },
-    [],
-  )
+  const selectFormat = useCallback((format: ExportFormat) => {
+    setExportFormat(format)
+    setResult(null)
+    setStatus('idle')
+  }, [])
 
   const allTablesSelected =
     database != null && selectedTables.length === database.tables.length
-  const someTablesSelected =
-    selectedTables.length > 0 && !allTablesSelected
+  const someTablesSelected = selectedTables.length > 0 && !allTablesSelected
 
   const convert = useCallback(() => {
     if (!dump || !selectedDatabase) return
@@ -190,7 +186,9 @@ export function useSqlDump() {
       } catch {
         setResult(null)
         setStatus('idle')
-        setError('Conversion failed. Try a different table selection or format.')
+        setError(
+          'Conversion failed. Try a different table selection or format.',
+        )
       }
     }, 0)
   }, [dump, selectedDatabase, selectedTables, exportFormat])

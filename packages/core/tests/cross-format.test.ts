@@ -76,24 +76,27 @@ describe('the same pipeline runs for every source format', () => {
       it('produces the same tabular result regardless of dialect', () => {
         const tabular = toTabular(table)
         expect(tabular.rows).toHaveLength(testCase.rows)
-        expect(tabular.rows.every((row) => row.length === tabular.columns.length)).toBe(
-          true,
-        )
+        expect(
+          tabular.rows.every((row) => row.length === tabular.columns.length),
+        ).toBe(true)
         expect(tabular.rows.flat()).toContain(testCase.awkwardValue)
       })
 
       for (const exportFormat of ['sql', 'csv', 'xlsx'] as ExportFormat[]) {
-        it('exports to ' + exportFormat + ' through the shared generator', () => {
-          const result = generateExport(
-            dump,
-            { database: testCase.database, tables: [testCase.table] },
-            exportFormat,
-          )
+        it(
+          'exports to ' + exportFormat + ' through the shared generator',
+          () => {
+            const result = generateExport(
+              dump,
+              { database: testCase.database, tables: [testCase.table] },
+              exportFormat,
+            )
 
-          expect(result.tableCount).toBe(1)
-          expect(result.bytes.byteLength).toBeGreaterThan(0)
-          expect(Object.keys(unzipSync(result.bytes))).toEqual(result.files)
-        })
+            expect(result.tableCount).toBe(1)
+            expect(result.bytes.byteLength).toBeGreaterThan(0)
+            expect(Object.keys(unzipSync(result.bytes))).toEqual(result.files)
+          },
+        )
       }
 
       it('writes a CSV holding every row, whichever engine wrote the dump', () => {

@@ -9,7 +9,10 @@ import type { SqlDump, Table } from '../src/types/index.js'
 // and exercised directly, exactly as the mysql/postgresql readers are tested
 // before being registered.
 
-const samplePath = resolve(import.meta.dirname, '../../../examples/sqlite/sample.sql')
+const samplePath = resolve(
+  import.meta.dirname,
+  '../../../examples/sqlite/sample.sql',
+)
 
 function table(dump: SqlDump, name: string): Table {
   const found = dump.databases[0]?.tables.find((t) => t.name === name)
@@ -74,7 +77,9 @@ describe('sqliteParser', () => {
     })
 
     it('unquotes a reserved word used as a table name', () => {
-      expect(table(dump, 'order').createStatement).toContain('CREATE TABLE "order"')
+      expect(table(dump, 'order').createStatement).toContain(
+        'CREATE TABLE "order"',
+      )
     })
 
     it('keeps the CREATE TABLE statement verbatim', () => {
@@ -84,19 +89,15 @@ describe('sqliteParser', () => {
 
   describe('column detection', () => {
     it('reads plain columns in declaration order', () => {
-      expect(sqliteParser.readColumns(table(dump, 'authors').createStatement)).toEqual([
-        'id',
-        'name',
-        'bio',
-      ])
+      expect(
+        sqliteParser.readColumns(table(dump, 'authors').createStatement),
+      ).toEqual(['id', 'name', 'bio'])
     })
 
     it('unquotes every identifier style SQLite accepts: ", `, and [ ]', () => {
-      expect(sqliteParser.readColumns(table(dump, 'order').createStatement)).toEqual([
-        'id',
-        'note',
-        'status',
-      ])
+      expect(
+        sqliteParser.readColumns(table(dump, 'order').createStatement),
+      ).toEqual(['id', 'note', 'status'])
     })
   })
 
@@ -172,14 +173,20 @@ describe('sqliteParser', () => {
 
   describe('sqlite_sequence', () => {
     it('is excluded from the selectable table list', () => {
-      expect(dump.databases[0].tables.map((t) => t.name)).not.toContain('sqlite_sequence')
+      expect(dump.databases[0].tables.map((t) => t.name)).not.toContain(
+        'sqlite_sequence',
+      )
     })
 
     it('keeps its statements in the postamble so a SQL export still restores', () => {
       expect(dump.postamble).toContain('CREATE TABLE sqlite_sequence')
       expect(dump.postamble).toContain('DELETE FROM sqlite_sequence')
-      expect(dump.postamble).toContain("INSERT INTO sqlite_sequence VALUES('authors',3)")
-      expect(dump.postamble).toContain("INSERT INTO sqlite_sequence VALUES('order',2)")
+      expect(dump.postamble).toContain(
+        "INSERT INTO sqlite_sequence VALUES('authors',3)",
+      )
+      expect(dump.postamble).toContain(
+        "INSERT INTO sqlite_sequence VALUES('order',2)",
+      )
     })
   })
 

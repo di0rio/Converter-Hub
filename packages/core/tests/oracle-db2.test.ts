@@ -42,7 +42,7 @@ describe('parseOracleDump', () => {
         '  END IF;',
         'END;',
         '/',
-        "INSERT INTO SHOP.CUSTOMERS (ID) VALUES (9);",
+        'INSERT INTO SHOP.CUSTOMERS (ID) VALUES (9);',
       ].join('\n')
 
       const statements = splitScript(sql, ORACLE_DIALECT)
@@ -52,7 +52,9 @@ describe('parseOracleDump', () => {
     })
 
     it('does not let a REM line swallow the statement after it', () => {
-      const sql = ['REM a comment', 'CREATE TABLE S.T (ID NUMBER(10));'].join('\n')
+      const sql = ['REM a comment', 'CREATE TABLE S.T (ID NUMBER(10));'].join(
+        '\n',
+      )
       const parsed = oracleParser.parse(sql)
       expect(parsed.databases[0]?.tables.map((t) => t.name)).toEqual(['T'])
     })
@@ -85,7 +87,9 @@ describe('parseOracleDump', () => {
     })
 
     it('unquotes a reserved word used as a column name', () => {
-      expect(toTabular(table(dump, 'SHOP', 'ORDERS')).columns).toContain('Order')
+      expect(toTabular(table(dump, 'SHOP', 'ORDERS')).columns).toContain(
+        'Order',
+      )
     })
 
     it('skips table-level constraint clauses', () => {
@@ -102,7 +106,9 @@ describe('parseOracleDump', () => {
     })
 
     it('decodes NULL as null rather than the text', () => {
-      expect(toTabular(table(dump, 'SHOP', 'CUSTOMERS')).rows[1]?.[2]).toBeNull()
+      expect(
+        toTabular(table(dump, 'SHOP', 'CUSTOMERS')).rows[1]?.[2],
+      ).toBeNull()
     })
 
     it('undoubles a quote inside a string literal', () => {

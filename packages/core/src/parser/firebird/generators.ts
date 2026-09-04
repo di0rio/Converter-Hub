@@ -23,7 +23,10 @@ export function findGeneratorOwners(statements: string[]): Map<string, string> {
     'i',
   )
   const genIdCall = new RegExp(String.raw`GEN_ID\s*\(\s*(${IDENT})\s*,`, 'gi')
-  const nextValueFor = new RegExp(String.raw`NEXT\s+VALUE\s+FOR\s+(${IDENT})`, 'gi')
+  const nextValueFor = new RegExp(
+    String.raw`NEXT\s+VALUE\s+FOR\s+(${IDENT})`,
+    'gi',
+  )
 
   for (const stmt of statements) {
     const clean = stripLeadingComments(stmt)

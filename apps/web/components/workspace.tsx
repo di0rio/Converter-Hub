@@ -48,8 +48,18 @@ interface WorkspaceProps {
 }
 
 const MODE_OPTIONS = [
-  { value: 'full' as const, label: 'Full', icon: <Maximize2 />, showLabel: true },
-  { value: 'windows' as const, label: 'Windows', icon: <AppWindow />, showLabel: true },
+  {
+    value: 'full' as const,
+    label: 'Full',
+    icon: <Maximize2 />,
+    showLabel: true,
+  },
+  {
+    value: 'windows' as const,
+    label: 'Windows',
+    icon: <AppWindow />,
+    showLabel: true,
+  },
 ]
 
 const LAYOUT_OPTIONS = [
@@ -243,9 +253,14 @@ export function Workspace({
       >
         {empty && (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
-            <Table2 className="size-5 text-muted-foreground/50" aria-hidden="true" />
+            <Table2
+              className="size-5 text-muted-foreground/50"
+              aria-hidden="true"
+            />
             <p className="text-sm text-muted-foreground">
-              {dragOver ? 'Drop to preview this table' : 'Drop a table here to preview it'}
+              {dragOver
+                ? 'Drop to preview this table'
+                : 'Drop a table here to preview it'}
             </p>
             {!dragOver && (
               <p className="text-xs text-muted-foreground/70">
