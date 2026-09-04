@@ -271,14 +271,16 @@ describe('source formats', () => {
     ).rejects.toThrow('Error: Unknown source format: nosuchengine')
   })
 
-  it('separates a format it cannot read yet from one it has never heard of', async () => {
+  it('says a product with no local dump can never be read, not "not yet"', async () => {
+    // Snowflake unloads to cloud storage; there is no file to parse, so
+    // promising future support would be a lie.
     await expect(
       extractCommand(join(tmpDir, 'missing.sql'), {
         all: true,
-        format: 'oracle',
+        format: 'snowflake',
         output: join(tmpDir, 'o.sql'),
       }),
-    ).rejects.toThrow('Oracle Database dumps are not supported yet.')
+    ).rejects.toThrow('Snowflake has no local SQL dump this tool can read.')
   })
 
   it('refuses a file that is not a dump, and names what it supports', async () => {

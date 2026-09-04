@@ -7,6 +7,7 @@ import {
   SQLITE_SYNTAX,
   SQLSERVER_SYNTAX,
   STANDARD_SYNTAX,
+  CQL_SYNTAX,
 } from './syntax.js'
 
 /**
@@ -30,6 +31,13 @@ export interface SqlDialect {
   batchSeparator: RegExp | null
   /** `#` opens a line comment. MySQL only. */
   hashComments: boolean
+  /**
+   * A word that turns the rest of its line into a comment: Oracle's `REM` and
+   * `PROMPT`. Unlike `--` these are keywords, so they only count at the start
+   * of a line — and they carry no terminator, so without this the line would
+   * merge into whatever statement follows it.
+   */
+  lineCommentKeyword: RegExp | null
   /** Block comments nest. PostgreSQL only. */
   nestedBlockComments: boolean
   /** Honour `SET TERM x ;`, which swaps the terminator. Firebird only. */
@@ -48,6 +56,15 @@ export interface SqlDialect {
    * Bodies are assumed not to nest, which holds for the triggers this covers.
    */
   compoundBody: RegExp | null
+  /**
+   * A statement head after which only the batch separator ends the statement.
+   *
+   * Oracle's PL/SQL blocks are full of semicolons — every inner statement ends
+   * with one, and so does the `END` — and nothing but the lone `/` line closes
+   * the block. `compoundBody` cannot express that, because there is no single
+   * `END;` to stop at: blocks nest.
+   */
+  deferToBatchSeparator: RegExp | null
   /**
    * Keywords that begin a new statement even with no terminator in front of
    * them, matched against the start of a line at paren depth zero.
@@ -73,10 +90,12 @@ const BASE: Omit<SqlDialect, 'syntax'> = {
   terminator: ';',
   batchSeparator: null,
   hashComments: false,
+  lineCommentKeyword: null,
   nestedBlockComments: false,
   settableTerminator: false,
   dollarQuoting: false,
   compoundBody: null,
+  deferToBatchSeparator: null,
   statementStarters: null,
   stringPrefixes: [],
 }
@@ -128,7 +147,20 @@ export const ORACLE_DIALECT: SqlDialect = {
   ...BASE,
   syntax: STANDARD_SYNTAX,
   batchSeparator: /^\/$/,
+  // SQL*Plus script directives that comment out the rest of their line.
+  lineCommentKeyword: /^(REM|PROMPT)(\s|$)/i,
+  // Inside a PL/SQL block every semicolon belongs to the block; only the `/`
+  // line closes it.
+  deferToBatchSeparator:
+    /^(?:CREATE\s+(?:OR\s+REPLACE\s+)?(?:TRIGGER|PROCEDURE|FUNCTION|PACKAGE|TYPE)\b|DECLARE\b|BEGIN\b)/i,
   stringPrefixes: ['N', 'Q'],
+}
+
+/** CQL: SQL-shaped, with `//` line comments alongside `--`. */
+export const CQL_DIALECT: SqlDialect = {
+  ...BASE,
+  syntax: CQL_SYNTAX,
+  stringPrefixes: [],
 }
 
 export const DB2_DIALECT: SqlDialect = {
@@ -188,9 +220,31 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
   /** Parenthesis nesting, outside quotes and comments. */
   let depth = 0
 
+  /**
+   * The statement text with leading comment lines removed — including the
+   * keyword comments (`REM`, `PROMPT`) that sit in front of a statement and
+   * would otherwise hide the keyword that opens a block.
+   */
+  function statementHead(text: string): string {
+    let rest = stripLeadingComments(text)
+
+    while (dialect.lineCommentKeyword?.test(rest)) {
+      const newline = rest.indexOf('\n')
+      if (newline === -1) return ''
+      rest = stripLeadingComments(rest.slice(newline + 1))
+    }
+
+    return rest
+  }
+
   /** Whether what has been read so far opens a BEGIN ... END body. */
   function opensCompoundBody(text: string): boolean {
-    return dialect.compoundBody?.test(stripLeadingComments(text)) ?? false
+    return dialect.compoundBody?.test(statementHead(text)) ?? false
+  }
+
+  /** Whether only the batch separator can end what has been read so far. */
+  function opensDeferredBlock(text: string): boolean {
+    return dialect.deferToBatchSeparator?.test(statementHead(text)) ?? false
   }
 
   /** Whether the text ends at the END that closes such a body. */
@@ -231,6 +285,12 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
       if (dialect.batchSeparator?.test(trimmed)) {
         flush()
         i = end + 1
+        continue
+      }
+
+      if (dialect.lineCommentKeyword?.test(trimmed)) {
+        current += sql.slice(i, end)
+        i = end
         continue
       }
 
@@ -376,6 +436,9 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
       // Inside a compound body the terminator belongs to the body. Only one
       // sitting directly after END closes the statement itself.
       if (opensCompoundBody(current) && !endsCompoundBody(current)) continue
+
+      // In a block that only the batch separator closes, no terminator does.
+      if (opensDeferredBlock(current)) continue
 
       flush()
       continue

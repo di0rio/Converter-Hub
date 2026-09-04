@@ -1,6 +1,6 @@
 # SQL Database Extractor
 
-A database dump extraction tool. Read a SQL dump from any of 19 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
+A database dump extraction tool. Read a SQL dump from any of 22 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
 
 ## Why
 
@@ -37,16 +37,15 @@ every one of them through detection, parsing and all three exports on each run.
 | SQLite | `INSERT` | database | `sqlite3 .dump` output |
 | DuckDB | `INSERT` | database | `duckdb` shell `.dump` output |
 | Firebird | `INSERT` | schema | `SET TERM` bodies handled |
+| Oracle Database | `INSERT` | schema | `REM`/`PROMPT` lines, PL/SQL blocks closed by `/` |
+| IBM Db2 | `INSERT` | schema | `SET SCHEMA`, identity columns |
+| Cassandra | `INSERT` | keyspace | CQL scripts; collection types kept whole |
 
 **Experimental — readable, not advertised in the app:**
 
 | Format | Gap |
 |--------|-----|
 | CockroachDB | A column family written with an unquoted name (`FAMILY fam_0 (id)`) cannot be told apart from a column named `family`, so it stays in the column list and shows up as an extra empty column. The quoted form `cockroach dump` normally writes is handled. |
-
-**Recognised but not readable yet:** Oracle Database, IBM Db2. A dump from one of these is *identified* — the app says which
-engine it is and that it is not supported yet — rather than being refused as
-unrecognisable or half-parsed.
 
 **Not applicable.** These have no local SQL dump this tool could read, so they
 are recorded with the reason rather than left to look like an oversight:
@@ -66,8 +65,19 @@ Supabase, Neon, AlloyDB, Aurora PostgreSQL and Azure SQL Database are read as
 PostgreSQL or SQL Server rather than listed separately — they parse fine, they
 just are not different engines.
 
-Non-SQL databases (MongoDB, Redis, Cassandra, DynamoDB, Elasticsearch, Neo4j)
-are out of scope by design, not pending. Importing them would be a different
+Cassandra is read because CQL scripts are tabular — a keyspace holds tables,
+tables declare typed columns, rows arrive as `INSERT`s — which is exactly the
+shape this tool's model needs. The rest of the non-SQL stores are not:
+
+| Product | Why not |
+|---------|---------|
+| MongoDB, DynamoDB, Elasticsearch | Documents with no fixed columns. Flattening them to a column set is a different ingestion path, not another parser. |
+| Redis | Key/value, plus a binary RDB. There is no table to select. |
+| Neo4j | A graph. Nodes and relationships do not map onto rows without inventing a shape. |
+
+Supporting those would mean a second reader alongside `FormatParser`, feeding
+the same normalised model from JSON rather than from SQL statements. It is
+possible; it is not what this codebase does today, and it is not claimed. Importing them would be a different
 architecture, not another parser.
 
 ### Export formats
@@ -131,6 +141,12 @@ not one invented here, so it is offered as an ordinary selection.
   statements — the closest thing to a portable local export.
 - **Binary and custom-format dumps are not supported** for any engine. Only
   plain-text SQL is read.
+- **Cassandra reads CQL scripts, not its bulk format.** Cassandra moves data
+  with `COPY TO` / `COPY FROM` against CSV files, which is not a SQL script.
+  Collection values (`map`, `list`, `set`) are kept as written rather than
+  flattened into columns.
+- **Oracle PL/SQL is preserved, not parsed.** Triggers, procedures, packages
+  and types are carried as text and never offered as selectable tables.
 - **Binary column values are kept as written** (`X'...'`, `0x...`) rather than
   decoded, so no byte is invented on the way to a spreadsheet.
 

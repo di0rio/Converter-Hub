@@ -131,6 +131,7 @@ export function SqlExtractor() {
           <SourceFormatSelect
             value={formatOverride}
             onChange={overrideSourceFormat}
+            confidence={confidence}
           />
         )}
 

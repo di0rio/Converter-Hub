@@ -33,6 +33,7 @@ export type DatabaseFormat =
   | 'firebird'
   | 'oracle'
   | 'db2'
+  | 'cassandra'
   // Evaluated, no local dump format
   | 'snowflake'
   | 'bigquery'
@@ -79,6 +80,7 @@ export type DialectFamily =
   | 'firebird'
   | 'oracle'
   | 'db2'
+  | 'cassandra'
   | 'none'
 
 export interface FormatDescriptor {

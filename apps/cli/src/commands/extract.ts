@@ -40,9 +40,17 @@ function resolveFormat(format?: string): DatabaseFormat | undefined {
   }
 
   if (!isReadable(normalised)) {
-    throw new Error(
-      `Error: ${describeFormat(normalised).label} dumps are not supported yet.\nSupported formats: ${FORMAT_LIST}`,
-    )
+    const descriptor = describeFormat(normalised)
+    // "Not yet" is a promise. Only make it for a format that could still
+    // arrive: a product with no local SQL dump never will, and its catalog
+    // note says why.
+    const reason =
+      descriptor.status === 'not_applicable'
+        ? `${descriptor.label} has no local SQL dump this tool can read.` +
+          (descriptor.note ? `\n${descriptor.note}` : '')
+        : `${descriptor.label} dumps are not supported yet.`
+
+    throw new Error(`Error: ${reason}\nSupported formats: ${FORMAT_LIST}`)
   }
 
   return normalised

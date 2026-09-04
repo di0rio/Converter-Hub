@@ -20,6 +20,15 @@ export interface SqlSyntax {
   identifierQuotes: readonly QuoteSpec[]
   /** Whether a backslash escapes the next character inside a string literal. */
   backslashEscapes: boolean
+  /**
+   * Whether `<` and `>` nest, as they do in CQL's collection types
+   * (`map<text, frozen<list<int>>>`). A comma inside such a type belongs to
+   * the type, not to the column list.
+   *
+   * Only for dialects where the pair cannot also be a comparison operator —
+   * everywhere else this stays off, so `CHECK (a < b)` is left alone.
+   */
+  angleBracketTypes?: boolean
 }
 
 /** MySQL and MariaDB: backtick identifiers, backslash escapes in strings. */
@@ -59,6 +68,13 @@ export const SQLITE_SYNTAX: SqlSyntax = {
 export const STANDARD_SYNTAX: SqlSyntax = {
   identifierQuotes: ['"'],
   backslashEscapes: false,
+}
+
+/** CQL: standard quoting, plus angle-bracketed collection types. */
+export const CQL_SYNTAX: SqlSyntax = {
+  identifierQuotes: ['"'],
+  backslashEscapes: false,
+  angleBracketTypes: true,
 }
 
 // ------------------------------------------------------------- quoting
@@ -170,6 +186,11 @@ export function splitTopLevel(body: string, syntax: SqlSyntax): string[] {
 
     if (ch === '(') depth++
     else if (ch === ')') depth--
+    else if (syntax.angleBracketTypes === true) {
+      // A collection type nests the same way parentheses do.
+      if (ch === '<') depth++
+      else if (ch === '>' && depth > 0) depth--
+    }
 
     if (ch === ',' && depth === 0) {
       parts.push(current)

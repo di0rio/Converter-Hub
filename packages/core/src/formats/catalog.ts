@@ -82,6 +82,13 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /\bFROM\s+dual\b/i,
     /\bNOCACHE\b/i,
   ],
+  cassandra: [
+    /\bCREATE\s+KEYSPACE\b/i,
+    /\breplication_factor\b/i,
+    /\b(SimpleStrategy|NetworkTopologyStrategy)\b/i,
+    /\bCOLUMNFAMILY\b/i,
+    /\bfrozen\s*</i,
+  ],
   db2: [
     /\bSYSIBM\b/i,
     /\bGENERATED\s+ALWAYS\s+AS\s+IDENTITY\b/i,
@@ -106,6 +113,7 @@ export const FAMILY_DEFAULT: Record<DialectFamily, DatabaseFormat | null> = {
   firebird: 'firebird',
   oracle: 'oracle',
   db2: 'db2',
+  cassandra: 'cassandra',
   none: null,
 }
 
@@ -359,7 +367,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   oracle: {
     id: 'oracle',
     label: 'Oracle Database',
-    status: 'planned',
+    status: 'supported',
     family: 'oracle',
     ...SCHEMA,
     markers: [],
@@ -368,10 +376,25 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   db2: {
     id: 'db2',
     label: 'IBM Db2',
-    status: 'planned',
+    status: 'supported',
     family: 'db2',
     ...SCHEMA,
     markers: [],
+  },
+
+  cassandra: {
+    id: 'cassandra',
+    label: 'Cassandra',
+    status: 'supported',
+    family: 'cassandra',
+    // A keyspace holds tables the way a database does, and cqlsh calls it that.
+    ...DATABASE,
+    markers: [],
+    note:
+      'Reads CQL scripts (cqlsh DESCRIBE plus INSERT statements). Cassandra ' +
+      'bulk-loads through COPY TO / COPY FROM against CSV files, which is not ' +
+      'a SQL script and is not read here. Collection values (map, list, set) ' +
+      'are kept as written rather than flattened into columns.',
   },
 
   // ------------------------------------------------------ not applicable
