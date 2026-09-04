@@ -85,7 +85,9 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
   elasticsearch: [/^\s*\{[^\n]*"_index"\s*:/m, /"_source"\s*:\s*\{/],
   neo4j: [
     /\b(CREATE|MERGE)\s*\(\s*[A-Za-z_]\w*\s*:\s*[A-Za-z_]\w*\s*\{/,
-    /-\s*\[\s*:[A-Za-z_]\w*[^\]]*\]\s*->/,
+    // One quantifier for the type name, not `\w*[^\]]*`: those overlap, and
+    // the engine would try every division of the text between them.
+    /-\s*\[\s*:[A-Za-z_][^\]]*\]\s*->/,
     /^\s*MATCH\s*\(/im,
   ],
   mongodb: [

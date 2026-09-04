@@ -148,6 +148,30 @@ describe('parseNeo4jDump', () => {
     expect(countRows(table(dump, 'Person'))).toBe(3)
     expect(countRows(table(dump, 'Product'))).toBe(2)
   })
+
+  // Reading a dump is reading untrusted input, so the cost of reading one has
+  // to follow its size. These two shapes each used to cost time proportional
+  // to the square of the input: half a megabyte took just under three minutes,
+  // which is a denial of service reachable from an ordinary file. The
+  // assertion is a wall clock on purpose — the defect is spent time, and no
+  // assertion about the parsed result would have caught it.
+  it('reads an unterminated relationship bracket in time with its size', () => {
+    const text = 'CREATE (n:Person {id: 1});\n-[' + 'a'.repeat(512 * 1024)
+
+    const started = Date.now()
+    neo4jParser.parse(text)
+
+    expect(Date.now() - started).toBeLessThan(2000)
+  })
+
+  it('reads unterminated property braces in time with their size', () => {
+    const text = 'CREATE (n:L {'.repeat(24000)
+
+    const started = Date.now()
+    neo4jParser.parse(text)
+
+    expect(Date.now() - started).toBeLessThan(2000)
+  })
 })
 
 describe('tableFromDocuments', () => {

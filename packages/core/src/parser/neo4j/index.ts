@@ -27,9 +27,18 @@ const DEFAULT_DATABASE = 'neo4j'
 const NODE =
   /\b(?:CREATE|MERGE)\s*\(\s*[A-Za-z_][\w]*\s*:\s*([A-Za-z_][\w]*)\s*(?:{|\))/g
 
-/** A relationship arrow between two nodes, in either direction. */
+/**
+ * A relationship arrow between two nodes, in either direction.
+ *
+ * The type name is matched by `[^\]]*` alone. Spelling it `[\w]*[^\]]*` reads
+ * more precisely but every `\w` is also a `[^\]]`, so the two quantifiers
+ * overlap and the engine has to try every way of dividing the text between
+ * them. On a bracket that never closes that is quadratic: half a megabyte took
+ * about three minutes. One quantifier is unambiguous, so the cost follows the
+ * input.
+ */
 const RELATIONSHIP =
-  /-\s*\[\s*:?[A-Za-z_][\w]*[^\]]*\]\s*->|<-\s*\[\s*:?[A-Za-z_][\w]*[^\]]*\]\s*-/g
+  /-\s*\[\s*:?[A-Za-z_][^\]]*\]\s*->|<-\s*\[\s*:?[A-Za-z_][^\]]*\]\s*-/g
 
 /**
  * Read a Cypher property map into a record.
@@ -115,6 +124,10 @@ export function parseNeo4jDump(text: string): SqlDump {
     let properties: Record<string, unknown> = {}
     if (opensProperties) {
       const body = readBalancedBraces(text, NODE.lastIndex - 1)
+      // An unterminated property map means the rest of the file cannot be
+      // read: every node after this one would open a brace that also never
+      // closes, and each would rescan to the end. Keep what was read.
+      if (body === null) break
       properties = readProperties(body)
     }
 
@@ -155,8 +168,15 @@ export function parseNeo4jDump(text: string): SqlDump {
   }
 }
 
-/** The body of a `{...}` starting at `open`, respecting nesting and quotes. */
-function readBalancedBraces(text: string, open: number): string {
+/**
+ * The body of a `{...}` starting at `open`, respecting nesting and quotes.
+ *
+ * `null` means the brace never closes, which is different from `{}` — an empty
+ * body is a node with no properties, an unterminated one is a truncated file.
+ * The caller needs to tell them apart: scanning to the end of the text once
+ * per node is quadratic, and only stopping avoids it.
+ */
+function readBalancedBraces(text: string, open: number): string | null {
   let depth = 0
   let quote: string | null = null
 
@@ -181,7 +201,7 @@ function readBalancedBraces(text: string, open: number): string {
     }
   }
 
-  return ''
+  return null
 }
 
 export function readColumns(createStatement: string): string[] {
