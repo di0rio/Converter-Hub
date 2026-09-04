@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- SQLite dump support (`sqlite3 .dump`): one database named `main`, PRAGMA and
+  transaction statements kept out of the table list, compound trigger bodies
+  held together
+- Microsoft SQL Server support: `GO` batches, `[bracketed]` identifiers with
+  `]]` escapes, `N'...'` literals, `SET IDENTITY_INSERT` blocks, schemas with
+  the owning database from `USE [x]`
+- Firebird support, including `SET TERM` bodies for triggers and procedures
+- TiDB, YugabyteDB, Greenplum, Amazon Redshift, TimescaleDB and Citus as source
+  formats in their own right: they share their parent's reader but keep their
+  own identity, so a Greenplum dump is never relabelled PostgreSQL
+- CockroachDB as an experimental format, with its one known gap recorded in the
+  catalog rather than hidden
+- A format catalog carrying a support status per engine, so the UI, the CLI and
+  the README all derive their list from one place and cannot drift from what is
+  actually implemented. Products with no local SQL dump (Snowflake, BigQuery,
+  Databricks, Trino, Presto, Hive, Impala) are recorded with the reason
+- A dialect model describing what differs between engines when splitting a
+  script — terminator, batch separator, comment styles, string prefixes,
+  identifier quoting including T-SQL brackets — so a new format supplies a
+  dialect rather than another hand-written splitter
+- A source format override in the web app, for the cases detection is
+  deliberately unwilling to guess at
+- A matrix test driving every readable format through detection, parsing and
+  all three export formats
+
 - PostgreSQL dump support: schemas, `COPY ... FROM stdin` blocks, `--inserts`
   output, dollar quoting, `E'...'` strings and psql meta-commands
 - Source format detection, deliberately conservative: contradictory evidence

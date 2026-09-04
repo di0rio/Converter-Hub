@@ -87,3 +87,41 @@ describe('viewer data', () => {
     expect(empty.rows).toEqual([])
   })
 })
+
+describe('vendor index clauses in CREATE TABLE', () => {
+  /**
+   * SingleStore declares how rows spread across the cluster inside the column
+   * list. Skipping those clauses must not cost a column that happens to be
+   * named `sort` or `shard` — hence the two-word match rather than a keyword.
+   */
+  const SINGLESTORE = [
+    'CREATE DATABASE `s`;',
+    'USE `s`;',
+    'CREATE TABLE `events` (',
+    '  `id` bigint NOT NULL,',
+    '  `kind` varchar(40) NOT NULL,',
+    '  `sort` int DEFAULT NULL,',
+    '  SHARD KEY (`id`),',
+    '  SORT KEY (`id`)',
+    ');',
+    "INSERT INTO `events` VALUES (1,'signup',10),(2,'refund',NULL);",
+  ].join('\n')
+
+  it('keeps SHARD KEY and SORT KEY out of the column list', () => {
+    expect(toTabular(tableFrom(SINGLESTORE)).columns).toEqual([
+      'id',
+      'kind',
+      'sort',
+    ])
+  })
+
+  it('still reads a column genuinely named sort', () => {
+    const rows = toTabular(tableFrom(SINGLESTORE)).rows
+    expect(rows[0]).toEqual(['1', 'signup', '10'])
+    expect(rows[1]).toEqual(['2', 'refund', null])
+  })
+
+  it('counts rows unaffected by the clauses', () => {
+    expect(countRows(tableFrom(SINGLESTORE))).toBe(2)
+  })
+})

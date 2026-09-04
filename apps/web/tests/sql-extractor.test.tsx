@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SqlExtractor } from '@/components/sql-extractor'
 import { useSqlDump } from '@/hooks/use-sql-dump'
-import { DATABASE_FORMATS } from '@sql-extractor/core'
+import {
+  DATABASE_FORMATS,
+  SUPPORTED_FORMATS,
+  formatsWithStatus,
+} from '@sql-extractor/core'
 
 // Mock the hook to control component state deterministically.
 // The hook's real logic is tested separately in use-sql-dump.test.ts.
@@ -40,6 +44,7 @@ function baseHookState(overrides: Record<string, unknown> = {}) {
     exportFormat: 'sql' as const,
     sourceFormat: DATABASE_FORMATS.mysql,
     confidence: 'detected' as const,
+    formatOverride: null,
     database: null,
     status: 'idle' as const,
     result: null,
@@ -47,6 +52,7 @@ function baseHookState(overrides: Record<string, unknown> = {}) {
     allTablesSelected: false,
     someTablesSelected: false,
     loadFile: vi.fn(),
+    overrideSourceFormat: vi.fn(),
     reportFileError: vi.fn(),
     selectDatabase: vi.fn(),
     toggleTable: vi.fn(),
@@ -325,7 +331,28 @@ describe('SqlExtractor: source formats', () => {
 
     render(<SqlExtractor />)
 
-    expect(screen.getByText(/Supported: MySQL · MariaDB · PostgreSQL\./)).toBeInTheDocument()
+    // Derived from the catalog rather than pinned to a list, so growing the
+    // supported set cannot silently make this claim wrong.
+    const supported = SUPPORTED_FORMATS.length
+    expect(
+      screen.getByText(new RegExp(`Supports ${supported} dump formats`)),
+    ).toBeInTheDocument()
+  })
+
+  it('never advertises a format with no parser behind it', () => {
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({ sourceFormat: null, confidence: null }),
+    )
+
+    render(<SqlExtractor />)
+
+    const blurb = screen.getByText(/Supports \d+ dump formats/).textContent ?? ''
+    for (const planned of formatsWithStatus('planned')) {
+      expect(blurb).not.toContain(planned.label)
+    }
+    for (const unusable of formatsWithStatus('not_applicable')) {
+      expect(blurb).not.toContain(unusable.label)
+    }
   })
 
   it('names the engine a loaded dump was recognised as', () => {

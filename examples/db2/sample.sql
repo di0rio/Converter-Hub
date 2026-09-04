@@ -1,0 +1,40 @@
+-- DB2 SQL script
+--
+-- Synthetic fixture. Every name, address and value below is invented for
+-- testing and refers to no real person, company or account.
+--
+-- Generated against SYSIBM catalogue views.
+
+CREATE SCHEMA SHOP;
+SET SCHEMA SHOP;
+
+CREATE TABLE SHOP.ORDERS (
+  ID        INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),
+  CUSTOMER  VARCHAR(120) NOT NULL,
+  TOTAL     DECIMAL(12,2),
+  PLACED_AT TIMESTAMP,
+  "Order"   VARCHAR(80),
+  PRIMARY KEY (ID)
+);
+
+INSERT INTO SHOP.ORDERS (CUSTOMER, TOTAL, PLACED_AT, "Order") VALUES
+  ('Alice Example', 129.50, '2024-01-15-10.30.00.000000', 'Widget crate'),
+  ('Bob Example', NULL, '2024-02-20-14.45.00.000000', NULL),
+  ('Zoë Example', 44.00, '2024-03-01-09.00.00.000000', 'Note; with semicolon');
+
+CREATE INDEX SHOP.IDX_ORDERS_CUSTOMER ON SHOP.ORDERS (CUSTOMER);
+
+CREATE TABLE SHOP.PARTIES (
+  ID     INTEGER NOT NULL,
+  NAME   VARCHAR(120) NOT NULL,
+  EMAIL  VARCHAR(160),
+  PRIMARY KEY (ID)
+);
+
+INSERT INTO SHOP.PARTIES (ID, NAME, EMAIL) VALUES
+  (1, 'Alice Example', 'alice@example.test'),
+  (2, 'Bob Example', NULL);
+
+ALTER TABLE SHOP.ORDERS ADD CONSTRAINT FK_ORDERS_PARTY FOREIGN KEY (ID) REFERENCES SHOP.PARTIES (ID);
+
+COMMIT;

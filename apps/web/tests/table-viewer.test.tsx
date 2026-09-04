@@ -90,7 +90,11 @@ describe('TableViewer', () => {
 
     render(<TableViewer table={big} />)
 
-    expect(screen.getByText(/5,000 rows/)).toBeInTheDocument()
+    // The component formats the count with toLocaleString(), which groups
+    // thousands per the host locale ("5,000" in en-US, "5.000" in pt-BR).
+    // Build the expected text the same way rather than pinning one locale.
+    const rowCount = `${(5000).toLocaleString()} rows`
+    expect(screen.getByText(rowCount, { exact: false })).toBeInTheDocument()
     // Header + a window of rows + two spacer rows, nowhere near 5000.
     expect(screen.getAllByRole('row').length).toBeLessThan(60)
   })

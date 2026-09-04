@@ -19,6 +19,9 @@ const CONSTRAINT_KEYWORDS = [
   'CHECK',
 ]
 
+/** `SHARD KEY (...)`, `SORT KEY (...)` — SingleStore's distribution clauses. */
+const VENDOR_INDEX_CLAUSE = /^(SHARD|SORT|CLUSTERED)\s+KEY\b/i
+
 /**
  * Column names from a CREATE TABLE statement, in declaration order.
  * Constraint and index clauses are skipped.
@@ -39,6 +42,11 @@ export function readColumns(createStatement: string): string[] {
       if (end > 1) columns.push(part.slice(1, end))
       continue
     }
+
+    // Index clauses the MySQL-family forks add. Matched as a pair, never by
+    // first word alone: `sort` and `shard` are perfectly good column names,
+    // and KEY is not a type, so only the two-word form is unambiguous.
+    if (VENDOR_INDEX_CLAUSE.test(part)) continue
 
     const firstWord = part.split(/\s+/)[0]?.toUpperCase() ?? ''
     if (CONSTRAINT_KEYWORDS.includes(firstWord)) continue

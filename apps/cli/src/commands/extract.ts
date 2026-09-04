@@ -3,6 +3,7 @@ import {
   extractDatabase,
   describeFormat,
   isDatabaseFormat,
+  isReadable,
   SUPPORTED_FORMATS,
   UnsupportedFormatError,
 } from '@sql-extractor/core'
@@ -21,7 +22,13 @@ export interface ExtractOptions {
 
 const FORMAT_LIST = SUPPORTED_FORMATS.map((f) => f.id).join(', ')
 
-/** Validate an explicit --format, so a typo fails before the file is read. */
+/**
+ * Validate an explicit --format, so a typo fails before the file is read.
+ *
+ * A name the catalog does not hold at all and one it holds but cannot read are
+ * different mistakes, and saying which is which saves the guesswork: a typo
+ * needs correcting, an unsupported engine needs a different tool.
+ */
 function resolveFormat(format?: string): DatabaseFormat | undefined {
   if (format === undefined) return undefined
 
@@ -30,6 +37,20 @@ function resolveFormat(format?: string): DatabaseFormat | undefined {
     throw new Error(
       `Error: Unknown source format: ${format}\nSupported formats: ${FORMAT_LIST}`,
     )
+  }
+
+  if (!isReadable(normalised)) {
+    const descriptor = describeFormat(normalised)
+    // "Not yet" is a promise. Only make it for a format that could still
+    // arrive: a product with no local SQL dump never will, and its catalog
+    // note says why.
+    const reason =
+      descriptor.status === 'not_applicable'
+        ? `${descriptor.label} has no local SQL dump this tool can read.` +
+          (descriptor.note ? `\n${descriptor.note}` : '')
+        : `${descriptor.label} dumps are not supported yet.`
+
+    throw new Error(`Error: ${reason}\nSupported formats: ${FORMAT_LIST}`)
   }
 
   return normalised

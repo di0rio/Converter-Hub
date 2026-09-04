@@ -5,7 +5,16 @@ import { stripLeadingComments } from '../shared/syntax.js'
 import { readColumns, readDataBlock, countDataRows } from './rows.js'
 
 /** The engines this parser reads. Their dump syntax is the same. */
-export type MysqlFamilyFormat = Extract<DatabaseFormat, 'mysql' | 'mariadb'>
+export type MysqlFamilyFormat = Extract<
+  DatabaseFormat,
+  | 'mysql'
+  | 'mariadb'
+  | 'tidb'
+  | 'percona'
+  | 'aurora-mysql'
+  | 'singlestore'
+  | 'starrocks'
+>
 
 /**
  * Split SQL into statements, respecting string literals, backtick identifiers,

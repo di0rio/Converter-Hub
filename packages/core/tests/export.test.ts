@@ -83,7 +83,7 @@ describe('csv', () => {
     const csv = toCsv(toTabular(shop.tables[0]))
     const lines = csv.split('\r\n')
 
-    expect(lines[0]).toBe('﻿id,name,note')
+    expect(lines[0]).toBe('\ufeffid,name,note')
     expect(lines[1]).toBe('1,Ana,')
     expect(lines[2]).toBe('2,"Bruno, Jr.",say \'hi\'')
     expect(csv).toContain('"a\nb"')
