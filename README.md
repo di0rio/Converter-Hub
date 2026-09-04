@@ -170,13 +170,35 @@ not one invented here, so it is offered as an ordinary selection.
 - **No analytics, telemetry, or external APIs.**
 - **No persistent storage** of SQL dump contents.
 
+The web app ships a Content Security Policy and a set of security headers
+(`apps/web/next.config.ts`) so that the claim above is enforced by the browser
+rather than merely true of the code: `connect-src 'self'` and `form-action
+'self'` leave no route for a dependency to ship a dump anywhere, `object-src`
+and `base-uri` close the usual ways around that, and `frame-ancestors 'none'`
+keeps the page out of other sites.
+
+`script-src` allows inline scripts, deliberately. Next hydrates through an
+inline bootstrap script, and the only way to allow it without the keyword is a
+per-request nonce, which requires every page to render dynamically and gives up
+the static prerender that lets this app be served as plain files. The exchange
+is sound here because the injection it would defend against has nowhere to
+enter: no user-supplied HTML is rendered, nothing is read from the URL, and
+there is no server behind the page. The directives that carry the privacy model
+are unaffected either way.
+
 This project processes untrusted SQL input (your dump files). While every reasonable effort is made to handle input safely, no absolute security guarantees are made. See [SECURITY.md](./SECURITY.md) for details and vulnerability reporting.
 
 ## Limitations
 
 - **Only the engines listed above.** See [Supported Formats](#supported-formats). Anything else is refused or named as unsupported, never half-parsed.
 - **Pragmatic parsers.** Each parser handles the output its engine's dump tool writes; none is a universal SQL parser. Edge cases in highly unusual dump formats may not parse correctly.
-- **Memory-bound.** Entire files are loaded into memory. Very large dumps (multi-gigabyte) may exhaust available memory depending on your environment.
+- **Memory-bound, with a ceiling.** Reading is not streaming: a dump becomes one
+  JavaScript string, and the parser holds the statement list and the parsed
+  model alongside it, so peak memory is a multiple of the file. Files larger
+  than **250 MB** are refused up front, by size, before a byte is read — in the
+  CLI and in the web app both. That turns what used to be an out-of-memory
+  crash partway through into a message saying what happened. The ceiling lives
+  in `packages/core/src/limits/index.ts`.
 
 ## Quick Start
 
@@ -274,7 +296,13 @@ packages/core/src/
     sqlserver/
     sqlite/
     firebird/
+    oracle/
+    db2/
+    cassandra/
+    mongodb/
   types/         The normalised dump model every other layer works on
+  limits/        How large a dump either app will accept, and the wording
+                 shown when one is over it
   extractor/     Rebuilds SQL from the model
   tabular/       Turns the model into columns and rows
   generator/     CSV, XLSX and ZIP
@@ -297,9 +325,25 @@ or the UI.
 | `bun run build` | Build all packages |
 | `bun run typecheck` | Type-check all packages |
 | `bun run test` | Run all tests |
+| `bun run format` | Format the repository with Biome |
+| `bun run format:check` | Report formatting differences without writing |
 | `bun run lint` | Lint the web app |
 | `bun run dev:web` | Start web dev server |
 | `bun run dev:cli` | Start CLI in dev mode |
+
+### Code style
+
+Formatting is Biome's, configured in `biome.json`: two-space indentation, an
+80-column width, single quotes in TypeScript and double quotes in JSX, no
+semicolons, trailing commas. The settings describe the style the codebase
+already had rather than replacing it, so `bun run format` is a no-op on code
+written in the surrounding idiom.
+
+Two exclusions are deliberate. Biome's **linter is off** — `bun run lint` is
+still ESLint with `eslint-config-next`, which understands the framework's rules;
+Biome is here to format, not to judge. And `globals.css` is excluded, because
+Tailwind 4's at-rules (`@theme`, `@custom-variant`, `@apply`) are not CSS that
+Biome's parser accepts.
 
 ### Testing
 
@@ -321,8 +365,9 @@ Before considering any change complete:
 
 1. `bun run typecheck` — passes
 2. `bun run lint` — passes
-3. `bun run test` — passes
-4. `bun run build` — succeeds
+3. `bun run format:check` — reports nothing
+4. `bun run test` — passes
+5. `bun run build` — succeeds
 
 ## Tech Stack
 
@@ -334,6 +379,8 @@ Before considering any change complete:
 | Icons | Lucide React |
 | Build | Bun |
 | Tests | Vitest |
+| Formatting | Biome |
+| Linting | ESLint (`eslint-config-next`), web app only |
 | Source formats | See [Supported Formats](#supported-formats) |
 
 **Explicitly out of scope:** dialect conversion, non-SQL databases, generic SQL abstractions, Redux, MUI, server-side database connections.
