@@ -9,6 +9,7 @@ import {
 import type { DatabaseFormat, ExtractionOptions, SqlDump } from '@sql-extractor/core'
 import { readSqlFile, writeOutputFile } from '../utils/io.js'
 import { resolveDatabase, resolveTables, resolveOutputPath } from './prompts.js'
+import { browseForFile } from './browse.js'
 
 export interface ExtractOptions {
   database?: string
@@ -35,16 +36,19 @@ function resolveFormat(format?: string): DatabaseFormat | undefined {
 }
 
 export async function extractCommand(
-  filePath: string,
+  filePath: string | undefined,
   options: ExtractOptions,
 ): Promise<void> {
   // 1. Resolve an explicit source format, if one was given
   const format = resolveFormat(options.format)
 
-  // 2. Read the SQL file
-  const sql = await readSqlFile(filePath)
+  // 2. Resolve the dump file path, browsing the filesystem if none was given
+  const resolvedPath = filePath ?? (await browseForFile())
 
-  // 3. Parse the dump, detecting the source engine unless told which it is
+  // 3. Read the SQL file
+  const sql = await readSqlFile(resolvedPath)
+
+  // 4. Parse the dump, detecting the source engine unless told which it is
   let dump: SqlDump
   try {
     dump = parseDump(sql, { format })
@@ -60,28 +64,28 @@ export async function extractCommand(
   const descriptor = describeFormat(dump.format)
   const grouping = descriptor.namespace
 
-  // 4. Validate that the dump holds something to extract
+  // 5. Validate that the dump holds something to extract
   if (dump.databases.length === 0) {
     throw new Error(`Error: No ${grouping}s found in ${descriptor.label} dump.`)
   }
 
-  // 5. Resolve database (schema, for formats that group tables that way)
+  // 6. Resolve database (schema, for formats that group tables that way)
   const database = await resolveDatabase(dump, options.database)
 
-  // 6. Resolve tables
+  // 7. Resolve tables
   const tables = await resolveTables(dump, database, options)
 
-  // 7. Resolve output path
+  // 8. Resolve output path
   const outputPath = await resolveOutputPath(options.output)
 
-  // 8. Extract
+  // 9. Extract
   const extractionOptions: ExtractionOptions = { database, tables }
   const result = extractDatabase(dump, extractionOptions)
 
-  // 9. Write output
+  // 10. Write output
   await writeOutputFile(outputPath, result.sql)
 
-  // 10. Summary
+  // 11. Summary
   console.log(
     `Extracted ${result.tableCount} table(s) from ${grouping} "${result.database}" to ${outputPath}`,
   )

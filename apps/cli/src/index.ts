@@ -14,7 +14,7 @@ program
   .version('0.1.0')
 
 program
-  .argument('<file>', 'SQL dump file path')
+  .argument('[file]', 'SQL dump file path (omit to browse and pick one)')
   .option('-d, --database <name>', 'Database name to extract')
   .option('-a, --all', 'Extract all tables')
   .option('-t, --tables <list>', 'Comma-separated table names to extract')
@@ -23,7 +23,7 @@ program
     '-f, --format <name>',
     `Source database format (${FORMATS}); detected from the dump when omitted`,
   )
-  .action(async (file: string, options: ExtractOptions) => {
+  .action(async (file: string | undefined, options: ExtractOptions) => {
     try {
       await extractCommand(file, options)
     } catch (err) {
