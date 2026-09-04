@@ -138,8 +138,13 @@ node apps/cli/dist/index.js dump.sql -f postgresql -d public -a -o output.sql
 ```
 
 ```bash
-# Interactive mode (prompts for the database or schema, then the tables)
+# Interactive mode (prompts for the database or schema, then the tables, then the output path)
 node apps/cli/dist/index.js dump.sql
+```
+
+```bash
+# Fully interactive: omit the file too, and browse the filesystem to pick one
+node apps/cli/dist/index.js
 ```
 
 ### Build All Packages
