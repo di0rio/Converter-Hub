@@ -1,6 +1,7 @@
 import type { SqlSyntax } from './syntax.js'
 import {
   identifierCloserFor,
+  stripLeadingComments,
   MYSQL_SYNTAX,
   POSTGRES_SYNTAX,
   SQLITE_SYNTAX,
@@ -36,6 +37,31 @@ export interface SqlDialect {
   /** `$tag$ ... $tag$` bodies. PostgreSQL only. */
   dollarQuoting: boolean
   /**
+   * A statement head that opens a `BEGIN ... END` body, matched against the
+   * start of a statement.
+   *
+   * Inside such a body every `;` belongs to the body, not to the script: only
+   * a terminator directly after `END` closes the statement. Dialects that keep
+   * bodies apart some other way — Firebird's `SET TERM`, Oracle's `/` — do not
+   * need this and leave it null.
+   *
+   * Bodies are assumed not to nest, which holds for the triggers this covers.
+   */
+  compoundBody: RegExp | null
+  /**
+   * Keywords that begin a new statement even with no terminator in front of
+   * them, matched against the start of a line at paren depth zero.
+   *
+   * T-SQL needs this: SSMS scripts data as bare `INSERT ... VALUES (...)`
+   * lines stacked many-per-batch with no semicolons at all, and without this
+   * they merge into one blob whose values decode as nonsense rows.
+   *
+   * Only keywords that can never continue the previous statement belong here.
+   * `SELECT`, `SET` and `UPDATE` must not: `INSERT INTO t` / `SELECT ...` and
+   * `UPDATE t` / `SET c = 1` both legitimately span lines that way.
+   */
+  statementStarters: RegExp | null
+  /**
    * Letters that may prefix a string literal: `N'x'` (T-SQL national),
    * `E'x'` (PostgreSQL escape), `X'ff'` / `B'01'` (binary and bit literals).
    * A prefix never changes where the literal ends, only how it decodes.
@@ -50,6 +76,8 @@ const BASE: Omit<SqlDialect, 'syntax'> = {
   nestedBlockComments: false,
   settableTerminator: false,
   dollarQuoting: false,
+  compoundBody: null,
+  statementStarters: null,
   stringPrefixes: [],
 }
 
@@ -73,12 +101,17 @@ export const SQLSERVER_DIALECT: SqlDialect = {
   ...BASE,
   syntax: SQLSERVER_SYNTAX,
   batchSeparator: /^GO(\s+\d+)?$/i,
+  statementStarters:
+    /^(INSERT|CREATE|ALTER|DROP|TRUNCATE|USE|EXEC|EXECUTE|PRINT|GRANT|DENY|REVOKE)\b/i,
   stringPrefixes: ['N'],
 }
 
 export const SQLITE_DIALECT: SqlDialect = {
   ...BASE,
   syntax: SQLITE_SYNTAX,
+  // A trigger body holds statements of its own. SQLite has no batch separator
+  // and no terminator swap, so END is the only thing that closes one.
+  compoundBody: /^CREATE\s+(?:TEMP\s+|TEMPORARY\s+)?TRIGGER\b/i,
   stringPrefixes: ['X'],
 }
 
@@ -106,8 +139,28 @@ export const DB2_DIALECT: SqlDialect = {
 
 // ------------------------------------------------------------ splitting
 
-/** `SET TERM <token> <old terminator>` — Firebird's terminator swap. */
-const SET_TERM = /^SET\s+TERM\s+(\S+?)\s*(?:;|\s)$/i
+/** Escape a terminator so it can sit inside a regular expression. */
+function escapeForRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * `SET TERM <new> <current>` — Firebird's terminator swap.
+ *
+ * The line always ends with the terminator in force at the time it is read,
+ * and that is what marks where the new one stops. Assuming it ends with a
+ * semicolon breaks the swap back: `SET TERM ; ^` ends with `^`, so the script
+ * would never return to `;` and everything after it would merge into one
+ * statement.
+ */
+function readTermSwap(line: string, current: string): string | null {
+  const match = new RegExp(
+    '^SET\\s+TERM\\s+(.+?)\\s*' + escapeForRegExp(current) + '\\s*$',
+    'i',
+  ).exec(line)
+
+  return match ? (match[1] as string) : null
+}
 
 function isIdentifierChar(ch: string | undefined): boolean {
   return ch !== undefined && /[A-Za-z0-9_$]/.test(ch)
@@ -132,11 +185,25 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
   let terminator = dialect.terminator
   let current = ''
   let i = 0
+  /** Parenthesis nesting, outside quotes and comments. */
+  let depth = 0
+
+  /** Whether what has been read so far opens a BEGIN ... END body. */
+  function opensCompoundBody(text: string): boolean {
+    return dialect.compoundBody?.test(stripLeadingComments(text)) ?? false
+  }
+
+  /** Whether the text ends at the END that closes such a body. */
+  function endsCompoundBody(text: string): boolean {
+    return new RegExp('\\bEND\\s*' + escapeForRegExp(terminator) + '\\s*$', 'i').test(text)
+  }
 
   function flush(): void {
     const trimmed = current.trim()
     if (trimmed.length > 0) statements.push(trimmed)
     current = ''
+    // An unbalanced statement must not leave later ones stuck inside it.
+    depth = 0
   }
 
   /** True when nothing but whitespace has been written since the last newline. */
@@ -168,13 +235,25 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
       }
 
       if (dialect.settableTerminator) {
-        const swap = SET_TERM.exec(trimmed)
-        if (swap) {
+        const swap = readTermSwap(trimmed, terminator)
+        if (swap !== null) {
           flush()
-          terminator = swap[1] as string
+          terminator = swap
           i = end + 1
           continue
         }
+      }
+
+      // A keyword that cannot continue the statement in hand starts a new one,
+      // even though nothing terminated the last. Only outside parentheses: a
+      // column list may well have a line beginning with one of these words.
+      if (
+        depth === 0 &&
+        current.trim().length > 0 &&
+        !opensCompoundBody(current) &&
+        dialect.statementStarters?.test(trimmed)
+      ) {
+        flush()
       }
     }
 
@@ -293,9 +372,17 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
     if (sql.startsWith(terminator, i)) {
       current += terminator
       i += terminator.length
+
+      // Inside a compound body the terminator belongs to the body. Only one
+      // sitting directly after END closes the statement itself.
+      if (opensCompoundBody(current) && !endsCompoundBody(current)) continue
+
       flush()
       continue
     }
+
+    if (ch === '(') depth++
+    else if (ch === ')' && depth > 0) depth--
 
     current += ch
     i++
