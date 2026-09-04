@@ -2,7 +2,7 @@
 
 ## What This Project Does
 
-A database dump extraction tool. Parse MySQL, MariaDB and PostgreSQL dumps, select databases or schemas and tables, extract specific data, and generate new dumps.
+A database dump extraction tool. Parse a SQL dump from a supported engine, select databases or schemas and tables, extract specific data, and generate new dumps. The supported engines are whatever `packages/core/src/formats/catalog.ts` marks `supported`.
 
 **User workflow:**
 1. Select SQL file
@@ -37,9 +37,11 @@ sql-database-extractor/
 - **UI Components:** COSS UI (Base UI + Tailwind)
 - **Icons:** Lucide React
 - **Build:** Bun
-- **Source formats:** MySQL, MariaDB and PostgreSQL only. Dialect-specific SQL belongs under `packages/core/src/parser/<format>/`; nothing above the `FormatParser` interface may branch on format.
+- **Source formats:** `packages/core/src/formats/catalog.ts` is the single source of truth. Every format carries a `status`, and only `supported` may be advertised in the UI, the CLI or the README — never hardcode a format list anywhere else. A format is promoted to `supported` only once it has a parser, a synthetic fixture and passing tests.
 
-**Explicitly out of scope:** PostgreSQL, SQLite, generic SQL abstractions, Redux, MUI, server-side database connections.
+Dialect-specific SQL belongs under `packages/core/src/parser/<format>/`; nothing above the `FormatParser` interface may branch on format. Lexical differences between engines are described as data in `packages/core/src/parser/shared/dialect.ts`, so a new format supplies a dialect rather than a new splitter.
+
+**Explicitly out of scope:** dialect conversion (a dump exports as the SQL it came from, never translated), non-SQL databases (MongoDB, Redis, Cassandra and the like), generic SQL abstractions, Redux, MUI, and server-side database connections. This tool reads local SQL scripts; it never connects to a database.
 
 ## Principles
 
