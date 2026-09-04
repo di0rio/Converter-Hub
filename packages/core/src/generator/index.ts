@@ -39,7 +39,7 @@ export function toCsv(table: TabularTable): string {
   const lines = [table.columns.map(csvCell).join(',')]
   for (const row of table.rows) lines.push(row.map(csvCell).join(','))
   // Excel only reads UTF-8 CSV correctly when a byte order mark is present.
-  return '﻿' + lines.join('\r\n') + '\r\n'
+  return '\ufeff' + lines.join('\r\n') + '\r\n'
 }
 
 // --------------------------------------------------------------- XLSX

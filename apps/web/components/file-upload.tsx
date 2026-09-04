@@ -17,7 +17,21 @@ interface FileUploadProps {
   confidence: FormatConfidence | null
 }
 
-const SUPPORTED_LABELS = SUPPORTED_FORMATS.map((format) => format.label).join(' · ')
+/**
+ * Naming every supported engine turned into a wall of text as the list grew.
+ * A count plus a few recognisable names says the same thing in one line, and
+ * the full list is one click away in the "Read as" control below.
+ */
+const HEADLINE_FORMATS = ['MySQL', 'PostgreSQL', 'SQL Server', 'SQLite']
+
+const SUPPORTED_SUMMARY = (() => {
+  const labels = SUPPORTED_FORMATS.map((format) => format.label)
+  const headline = HEADLINE_FORMATS.filter((name) =>
+    labels.some((label) => label.includes(name)),
+  )
+
+  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}.`
+})()
 
 /**
  * Say what was actually established. A dump carrying an engine's own markers
@@ -28,7 +42,7 @@ function describeSource(
   sourceFormat: FormatDescriptor | null,
   confidence: FormatConfidence | null,
 ): string {
-  if (!sourceFormat) return `Supported: ${SUPPORTED_LABELS}.`
+  if (!sourceFormat) return SUPPORTED_SUMMARY
 
   return confidence === 'assumed'
     ? `No engine markers found — read as ${sourceFormat.label}.`
