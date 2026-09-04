@@ -99,13 +99,16 @@ function countMatches(sql: string, markers: RegExp[]): number {
 }
 
 /**
- * The member of `family` the dump names, or the family default.
+ * The member of `family` the dump names, and how strongly.
  *
  * Members are ranked by their own markers, which are the ones a sibling does
  * not write. A tie means nothing separated them, so the family default wins
  * rather than an arbitrary pick.
  */
-function memberOf(family: DialectFamily, sql: string): DatabaseFormat | null {
+function memberOf(
+  family: DialectFamily,
+  sql: string,
+): { format: DatabaseFormat | null; hits: number } {
   let best: DatabaseFormat | null = null
   let bestHits = 0
 
@@ -119,7 +122,7 @@ function memberOf(family: DialectFamily, sql: string): DatabaseFormat | null {
     }
   }
 
-  return best ?? FAMILY_DEFAULT[family]
+  return { format: best ?? FAMILY_DEFAULT[family], hits: bestHits }
 }
 
 /**
@@ -138,7 +141,18 @@ function memberOf(family: DialectFamily, sql: string): DatabaseFormat | null {
  */
 export function detectFormat(sql: string): FormatDetection {
   const scores = FAMILIES.filter((family) => family !== 'none')
-    .map((family) => ({ family, hits: countMatches(sql, FAMILY_MARKERS[family]) }))
+    .map((family) => {
+      const member = memberOf(family, sql)
+      // A product's own markers are evidence for its family too. Without this,
+      // a dump that names no family-wide signal — Redshift DDL says DISTKEY and
+      // SORTKEY but never writes a pg_dump banner — scores zero for the family
+      // that can actually read it.
+      return {
+        family,
+        member: member.format,
+        hits: countMatches(sql, FAMILY_MARKERS[family]) + member.hits,
+      }
+    })
     .filter((entry) => entry.hits > 0)
     .sort((a, b) => b.hits - a.hits)
 
@@ -151,8 +165,9 @@ export function detectFormat(sql: string): FormatDetection {
       return { format: null, confidence: null }
     }
 
-    const format = memberOf(leader.family, sql)
-    if (format !== null) return { format, confidence: 'detected' }
+    if (leader.member !== null) {
+      return { format: leader.member, confidence: 'detected' }
+    }
   }
 
   // No engine markers at all. Plain SQL still parses under the MySQL reader,

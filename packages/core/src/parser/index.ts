@@ -3,7 +3,10 @@ import { CATALOG, describeFormat, detectFormat } from '../formats/index.js'
 import type { SqlDump } from '../types/index.js'
 import type { FormatParser } from './shared/format-parser.js'
 import { createMysqlParser } from './mysql/index.js'
-import { postgresParser } from './postgresql/index.js'
+import { createPostgresParser } from './postgresql/index.js'
+import { sqliteParser } from './sqlite/index.js'
+import { sqlserverParser } from './sqlserver/index.js'
+import { firebirdParser } from './firebird/index.js'
 
 /**
  * The formats that actually have a reader.
@@ -15,9 +18,26 @@ import { postgresParser } from './postgresql/index.js'
  * nothing else in the application dispatches on format.
  */
 const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
+  // MySQL family — one reader, one identity each.
   mysql: createMysqlParser('mysql'),
   mariadb: createMysqlParser('mariadb'),
-  postgresql: postgresParser,
+  tidb: createMysqlParser('tidb'),
+
+  // PostgreSQL family. Sharing the reader is not the same as being the same
+  // product: each keeps its own format stamp so a Greenplum dump is reported
+  // as Greenplum rather than silently relabelled PostgreSQL.
+  postgresql: createPostgresParser('postgresql'),
+  cockroachdb: createPostgresParser('cockroachdb'),
+  yugabytedb: createPostgresParser('yugabytedb'),
+  greenplum: createPostgresParser('greenplum'),
+  redshift: createPostgresParser('redshift'),
+  timescaledb: createPostgresParser('timescaledb'),
+  citus: createPostgresParser('citus'),
+
+  // Dialects with readers of their own.
+  sqlite: sqliteParser,
+  sqlserver: sqlserverParser,
+  firebird: firebirdParser,
 }
 
 /** The reader for a format, or null when the format has no parser yet. */

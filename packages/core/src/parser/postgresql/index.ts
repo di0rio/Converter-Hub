@@ -1,4 +1,5 @@
 import type { SqlDump, Database, Table } from '../../types/index.js'
+import type { DatabaseFormat } from '../../formats/index.js'
 import type { FormatParser } from '../shared/format-parser.js'
 import { stripLeadingComments } from '../shared/syntax.js'
 import { splitStatements, qualifiedNameAfter, unquote } from './lexer.js'
@@ -133,7 +134,10 @@ function searchPathSchema(sql: string): string | null {
  * `catalog` when the dump names one. Statement text is stored verbatim; nothing
  * is executed.
  */
-export function parsePostgresDump(sql: string): SqlDump {
+export function parsePostgresDump(
+  sql: string,
+  format: PostgresFamilyFormat = 'postgresql',
+): SqlDump {
   const statements = splitStatements(sql)
   const sequenceOwners = readSequenceOwners(statements)
 
@@ -180,7 +184,7 @@ export function parsePostgresDump(sql: string): SqlDump {
     const created: Table = {
       name,
       database: schema,
-      format: 'postgresql',
+      format,
       createStatement: '',
       preDataStatements: [],
       dataStatements: [],
@@ -345,17 +349,40 @@ export function parsePostgresDump(sql: string): SqlDump {
   }
 
   return {
-    format: 'postgresql',
+    format,
     databases: [...schemas.values()],
     preamble: preamble.trimEnd(),
     postamble: postamble.trimEnd(),
   }
 }
 
-export const postgresParser: FormatParser = {
-  format: 'postgresql',
-  parse: parsePostgresDump,
-  readColumns,
-  readDataBlock,
-  countDataRows,
+/**
+ * The engines whose dumps this parser reads.
+ *
+ * Each is a distinct product that emits pg_dump-shaped output. They share the
+ * reader, but keep their own identity: a Greenplum dump is reported as
+ * Greenplum, not silently relabelled PostgreSQL.
+ */
+export type PostgresFamilyFormat = Extract<
+  DatabaseFormat,
+  | 'postgresql'
+  | 'cockroachdb'
+  | 'yugabytedb'
+  | 'greenplum'
+  | 'redshift'
+  | 'timescaledb'
+  | 'citus'
+>
+
+/** One reader, one identity per product. */
+export function createPostgresParser(format: PostgresFamilyFormat): FormatParser {
+  return {
+    format,
+    parse: (sql) => parsePostgresDump(sql, format),
+    readColumns,
+    readDataBlock,
+    countDataRows,
+  }
 }
+
+export const postgresParser: FormatParser = createPostgresParser('postgresql')

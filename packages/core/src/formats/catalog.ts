@@ -35,7 +35,10 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /\bENGINE\s*=\s*[A-Za-z]+/i,
     /\bAUTO_INCREMENT\b/i,
     /\bDEFAULT CHARSET\s*=/i,
-    /`[^`\n]+`/, // backtick-quoted identifier
+    // A backtick-quoted identifier, but not one inside a comment: dump headers
+    // quite reasonably mention shell commands in backticks, and a PostgreSQL
+    // dump whose banner reads `cockroach dump ...` is not MySQL evidence.
+    /^(?!\s*(?:--|#)).*`[^`\n]+`/m,
   ],
   postgresql: [
     /^--\s*PostgreSQL database dump/im,
@@ -153,10 +156,18 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   tidb: {
     id: 'tidb',
     label: 'TiDB',
-    status: 'planned',
+    status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    markers: [/^--\s*Dumpling\b/im, /\btidb_version\b/i, /\btidb_rowid\b/i],
+    // Dumpling writes no banner of its own, so the giveaway is the TiDB-only
+    // version-gated comment SHOW CREATE TABLE emits: /*T![clustered_index] */.
+    markers: [
+      /\/\*T!\[/,
+      /^--\s*Dumpling\b/im,
+      /\btidb_version\b/i,
+      /\btidb_rowid\b/i,
+      /\bAUTO_RANDOM\b/i,
+    ],
   },
 
   // -------------------------------------------------- PostgreSQL family
@@ -173,7 +184,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   cockroachdb: {
     id: 'cockroachdb',
     label: 'CockroachDB',
-    status: 'planned',
+    status: 'experimental',
     family: 'postgresql',
     ...SCHEMA,
     markers: [
@@ -182,12 +193,17 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
       /^--\s*CockroachDB\b/im,
       /\bFAMILY\s+"?primary"?\s*\(/i,
     ],
+    note:
+      'Reads cockroach dump output. A column family written with an unquoted ' +
+      'name (FAMILY fam_0 (id)) is indistinguishable from a column named ' +
+      'family, so it is left in the column list and shows up as an extra ' +
+      'empty column. The quoted form cockroach dump normally writes is handled.',
   },
 
   yugabytedb: {
     id: 'yugabytedb',
     label: 'YugabyteDB',
-    status: 'planned',
+    status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
     markers: [/^--\s*YugabyteDB\b/im, /\byb_[a-z_]+\b/i, /\bSPLIT\s+INTO\b/i],
@@ -196,7 +212,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   greenplum: {
     id: 'greenplum',
     label: 'Greenplum',
-    status: 'planned',
+    status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
     markers: [/\bDISTRIBUTED\s+(BY|RANDOMLY|REPLICATED)\b/i, /\bgp_[a-z_]+\b/i],
@@ -205,7 +221,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   redshift: {
     id: 'redshift',
     label: 'Amazon Redshift',
-    status: 'planned',
+    status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
     markers: [/\bDISTKEY\s*\(/i, /\bSORTKEY\s*\(/i, /\bDISTSTYLE\b/i, /\bENCODE\s+[a-z]/i],
@@ -214,7 +230,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   timescaledb: {
     id: 'timescaledb',
     label: 'TimescaleDB',
-    status: 'planned',
+    status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
     markers: [/\bcreate_hypertable\s*\(/i, /\btimescaledb\b/i, /\b_timescaledb_/i],
@@ -223,7 +239,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   citus: {
     id: 'citus',
     label: 'Citus',
-    status: 'planned',
+    status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
     markers: [/\bcreate_distributed_table\s*\(/i, /\bcreate_reference_table\s*\(/i, /\bcitus\b/i],
@@ -234,7 +250,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   sqlserver: {
     id: 'sqlserver',
     label: 'Microsoft SQL Server',
-    status: 'planned',
+    status: 'supported',
     family: 'sqlserver',
     ...SCHEMA,
     markers: [], // family default
@@ -257,7 +273,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   sqlite: {
     id: 'sqlite',
     label: 'SQLite',
-    status: 'planned',
+    status: 'supported',
     family: 'sqlite',
     // SQLite has exactly one database and calls it `main`. That is SQLite's own
     // word, so selecting it is honest rather than an invented grouping.
@@ -279,7 +295,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
   firebird: {
     id: 'firebird',
     label: 'Firebird',
-    status: 'planned',
+    status: 'supported',
     family: 'firebird',
     ...SCHEMA,
     markers: [],
