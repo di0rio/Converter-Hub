@@ -32,18 +32,30 @@ entre MySQL e PostgreSQL.
 
 ## 1. Detecção de formato — `packages/core/src/formats/index.ts`
 
-`detectFormat(sql)` procura marcadores que **só** uma ferramenta de dump emite:
+`detectFormat(sql)` resolve em dois passos, a partir do catálogo em
+`formats/catalog.ts` — que é a fonte única de quais engines existem e de qual é
+o status de cada um:
 
-- MySQL/MariaDB: comentários versionados `/*!40101`, `LOCK TABLES`,
-  `AUTO_INCREMENT`, `ENGINE=`, identificadores com crase.
-- MariaDB (além dos de MySQL): `/*M!100101`, cabeçalho `-- MariaDB dump`.
-- PostgreSQL: `\connect`, `FROM stdin;`, terminador `\.`, `SET search_path`,
-  `OWNER TO`, `pg_catalog.`.
+1. **Família**, por marcadores que a família inteira emite. MySQL: comentários
+   versionados `/*!40101`, `LOCK TABLES`, `AUTO_INCREMENT`, identificador com
+   crase fora de comentário. PostgreSQL: `\connect`, `FROM stdin;`, terminador
+   `\.`, `SET search_path`. E assim para SQL Server, SQLite, Firebird, Oracle,
+   Db2, Cassandra e MongoDB.
+2. **Membro dentro da família**, por marcadores que só aquele produto escreve —
+   `/*M!100101` para MariaDB, `DISTRIBUTED BY` para Greenplum, `DISTKEY` para
+   Redshift, `/*T![` para TiDB. Sem nenhum, vale o padrão da família.
+
+É esse desenho que deixa produtos quase idênticos distinguíveis sem duplicar
+parser: Greenplum compartilha o leitor do PostgreSQL, mas é reportado como
+Greenplum.
 
 Regras de decisão:
 
-- Marcadores dos dois lados ao mesmo tempo: só decide se um lado estiver à
-  frente por 2 ou mais acertos; senão retorna `{ format: null }`.
+- Marcadores de duas famílias ao mesmo tempo: só decide se uma estiver à frente
+  por 2 ou mais acertos; senão retorna `{ format: null }`.
+- Os marcadores próprios de um produto também contam para a família dele. Sem
+  isso, DDL de Redshift — que diz `DISTKEY` mas nunca escreve cabeçalho de
+  `pg_dump` — pontuaria zero para a família que sabe lê-lo.
 - SQL genérico (só `CREATE TABLE` / `INSERT INTO`, sem marcador de engine):
   retorna `mysql` com `confidence: 'assumed'` — o leitor MySQL é um superconjunto
   do SQL portátil.
@@ -60,15 +72,38 @@ um engine quando na verdade apenas chutou.
 `parser/index.ts` mantém um registro:
 
 ```ts
-const PARSERS: Record<DatabaseFormat, FormatParser> = {
+const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
   mysql: createMysqlParser('mysql'),
   mariadb: createMysqlParser('mariadb'),
-  postgresql: postgresParser,
+  greenplum: createPostgresParser('greenplum'),
+  sqlserver: createSqlServerParser('sqlserver'),
+  // ... uma entrada por formato legível
 }
 ```
 
+É `Partial` de propósito: o catálogo nomeia formatos que o projeto **reconhece
+mas não lê**, e um sem parser aqui é exatamente isso. Assim um dump de um engine
+sem leitor é *identificado* — a mensagem diz qual engine é e que não é suportado
+— em vez de recusado como irreconhecível.
+
+Vários formatos apontam para o mesmo leitor construído com a identidade deles
+(`createPostgresParser('greenplum')`), porque compartilhar leitor não é ser o
+mesmo produto.
+
 Esse é o **único** ponto do projeto que despacha por formato. Adicionar um engine
-= uma entrada aqui + um módulo de parser.
+= uma entrada aqui + um módulo de parser (ou, quando o dialeto já existe, só a
+entrada).
+
+### O modelo de dialeto — `parser/shared/dialect.ts`
+
+O que difere entre engines na hora de quebrar um script é descrito como **dado**,
+não como código: terminador, separador de lote (`GO`, `/`), estilos de
+comentário (inclusive `REM` do Oracle), prefixos de string (`N'…'`, `E'…'`),
+aspas de identificador (crase, `"…"`, `[…]`), corpos `BEGIN … END`, e blocos que
+só o separador de lote fecha.
+
+`splitScript(sql, dialect)` consome esse descritor. É por isso que a maioria dos
+formatos novos não precisa de splitter próprio — fornece um dialeto.
 
 ### O contrato `FormatParser` — `parser/shared/format-parser.ts`
 

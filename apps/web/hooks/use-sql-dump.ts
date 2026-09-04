@@ -9,7 +9,6 @@ import {
   UnsupportedFormatError,
 } from '@sql-extractor/core'
 import type {
-  DatabaseFormat,
   SqlDump,
   ExportFormat,
   ExportResult,
@@ -23,10 +22,6 @@ export type ConversionStatus = 'idle' | 'converting' | 'done'
 export function useSqlDump() {
   const [dump, setDump] = useState<SqlDump | null>(null)
   const [fileName, setFileName] = useState<string>('')
-  /** The loaded file's text, kept so the source format can be changed. */
-  const [sourceText, setSourceText] = useState<string | null>(null)
-  /** An engine the user picked, overriding detection. */
-  const [formatOverride, setFormatOverride] = useState<DatabaseFormat | null>(null)
   const [selectedDatabase, setSelectedDatabase] = useState<string>('')
   const [selectedTables, setSelectedTables] = useState<string[]>([])
   const [exportFormat, setExportFormat] = useState<ExportFormat>('sql')
@@ -69,38 +64,32 @@ export function useSqlDump() {
     clearResult()
   }, [clearResult])
 
-  /**
-   * Read the held text as `forced`, or as whatever detection names.
-   *
-   * Kept separate from `loadFile` so changing the source format re-reads the
-   * file already in hand instead of asking the user to pick it again.
-   */
-  const read = useCallback(
-    (content: string, name: string, forced: DatabaseFormat | null): boolean => {
+  const loadFile = useCallback(
+    (content: string, name: string): boolean => {
       setSelectedDatabase('')
       clearSelection()
       setConfidence(null)
 
       if (content.trim().length === 0) {
         setDump(null)
+        setFileName('')
         setError('That file is empty. Choose a database dump.')
         return false
       }
 
       // Detect once and hand the answer to the parser, so the UI can say
-      // whether the engine was recognised or only assumed. An explicit choice
-      // skips detection entirely.
+      // whether the engine was recognised or only assumed.
       const detection = detectFormat(content)
-      const format = forced ?? detection.format
 
       // The core refuses anything it cannot place, and names an engine it
       // recognises but cannot read. Both messages are safe to show as-is: they
       // carry no SQL, no paths and nothing about the parser.
       let parsed: SqlDump
       try {
-        parsed = parseDump(content, { format: format ?? undefined })
+        parsed = parseDump(content, { format: detection.format ?? undefined })
       } catch (err) {
         setDump(null)
+        setFileName('')
         setError(
           err instanceof UnsupportedFormatError
             ? err.message
@@ -111,14 +100,14 @@ export function useSqlDump() {
 
       if (parsed.databases.length === 0) {
         setDump(null)
+        setFileName('')
         setError('No databases or tables were found in this dump.')
         return false
       }
 
       setDump(parsed)
       setFileName(name)
-      // An explicit choice is not a detection, and must not be reported as one.
-      setConfidence(forced === null ? detection.confidence : null)
+      setConfidence(detection.confidence)
       setError(null)
 
       // A dump with exactly one database has nothing to choose between.
@@ -129,26 +118,6 @@ export function useSqlDump() {
       return true
     },
     [clearSelection],
-  )
-
-  const loadFile = useCallback(
-    (content: string, name: string): boolean => {
-      // Hold the text so the format can be changed without re-picking the file.
-      setSourceText(content)
-      setFileName(name)
-      setFormatOverride(null)
-      return read(content, name, null)
-    },
-    [read],
-  )
-
-  /** Re-read the loaded file as a named engine, or `null` to detect again. */
-  const overrideSourceFormat = useCallback(
-    (format: DatabaseFormat | null) => {
-      setFormatOverride(format)
-      if (sourceText !== null) read(sourceText, fileName, format)
-    },
-    [read, sourceText, fileName],
   )
 
   const reportFileError = useCallback((message: string) => {
@@ -229,8 +198,6 @@ export function useSqlDump() {
   const reset = useCallback(() => {
     setDump(null)
     setFileName('')
-    setSourceText(null)
-    setFormatOverride(null)
     setConfidence(null)
     setSelectedDatabase('')
     setExportFormat('sql')
@@ -253,9 +220,7 @@ export function useSqlDump() {
     error,
     allTablesSelected,
     someTablesSelected,
-    formatOverride,
     loadFile,
-    overrideSourceFormat,
     reportFileError,
     selectDatabase,
     toggleTable,

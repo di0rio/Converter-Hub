@@ -5,7 +5,6 @@ import { countRows } from '@sql-extractor/core'
 import { useSqlDump } from '@/hooks/use-sql-dump'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { FileUpload } from '@/components/file-upload'
-import { SourceFormatSelect } from '@/components/source-format-select'
 import { DatabaseSelect } from '@/components/database-select'
 import { TableSelect } from '@/components/table-select'
 import { Workspace } from '@/components/workspace'
@@ -23,7 +22,6 @@ export function SqlExtractor() {
     exportFormat,
     sourceFormat,
     confidence,
-    formatOverride,
     database,
     status,
     result,
@@ -31,7 +29,6 @@ export function SqlExtractor() {
     allTablesSelected,
     someTablesSelected,
     loadFile,
-    overrideSourceFormat,
     reportFileError,
     selectDatabase,
     toggleTable,
@@ -126,14 +123,6 @@ export function SqlExtractor() {
           confidence={confidence}
         />
 
-        {/* Only worth showing once there is a file to re-read. */}
-        {fileName !== '' && (
-          <SourceFormatSelect
-            value={formatOverride}
-            onChange={overrideSourceFormat}
-            confidence={confidence}
-          />
-        )}
 
         {showDatabases && (
           <DatabaseSelect

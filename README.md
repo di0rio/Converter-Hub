@@ -118,10 +118,10 @@ Detection stays deliberately conservative:
 - A file with nothing recognisable in it is refused as *Unsupported database
   format*.
 
-Detection can be overruled: the web app has a **Read as** control listing every
-supported format, and the CLI takes `--format`. The core's
-`parseDump(sql, { format })` does the same. An explicit choice is reported as a
-choice, never as a detection.
+Detection can be overruled from the CLI with `--format`, and from the core with
+`parseDump(sql, { format })`. The web app has no such control: it reports what
+it read the file as and nothing more. A file whose markers contradict each other
+is refused there rather than forced — use the CLI for that case.
 
 ### Databases and schemas
 
