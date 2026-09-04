@@ -11,6 +11,8 @@ import { oracleParser } from './oracle/index.js'
 import { db2Parser } from './db2/index.js'
 import { cassandraParser } from './cassandra/index.js'
 import { mongodbParser } from './mongodb/index.js'
+import { elasticsearchParser } from './elasticsearch/index.js'
+import { neo4jParser } from './neo4j/index.js'
 
 /**
  * The formats that actually have a reader.
@@ -53,6 +55,8 @@ const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
   db2: db2Parser,
   cassandra: cassandraParser,
   mongodb: mongodbParser,
+  elasticsearch: elasticsearchParser,
+  neo4j: neo4jParser,
 }
 
 /** The reader for a format, or null when the format has no parser yet. */

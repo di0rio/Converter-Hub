@@ -1,6 +1,6 @@
 # SQL Database Extractor
 
-A database dump extraction tool. Read a SQL dump from any of 23 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
+A database dump extraction tool. Read a SQL dump from any of 24 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
 
 ## Why
 
@@ -41,11 +41,13 @@ every one of them through detection, parsing and all three exports on each run.
 | IBM Db2 | `INSERT` | schema | `SET SCHEMA`, identity columns |
 | Cassandra | `INSERT` | keyspace | CQL scripts; collection types kept whole |
 | MongoDB | `insertMany` | database | mongosh seed scripts; columns are the union of document keys |
+| Elasticsearch | JSONL | index | `elasticdump` output; each line names its index |
 
 **Experimental — readable, not advertised in the app:**
 
 | Format | Gap |
 |--------|-----|
+| Neo4j | Only nodes are extracted. Nodes sharing a label become a table and their properties its columns, but **relationships are not represented** — a table has nowhere to put an edge. The export counts the relationships it skipped and says so in the SQL it writes. |
 | CockroachDB | A column family written with an unquoted name (`FAMILY fam_0 (id)`) cannot be told apart from a column named `family`, so it stays in the column list and shows up as an extra empty column. The quoted form `cockroach dump` normally writes is handled. |
 
 **Not applicable.** These have no local SQL dump this tool could read, so they
@@ -66,7 +68,7 @@ Supabase, Neon, AlloyDB, Aurora PostgreSQL and Azure SQL Database are read as
 PostgreSQL or SQL Server rather than listed separately — they parse fine, they
 just are not different engines.
 
-Cassandra and MongoDB are read because what they export is still tabular
+Cassandra, MongoDB, Elasticsearch and Neo4j are read because what they export is still tabular
 enough for this model. A CQL keyspace holds tables with typed columns. A
 mongosh seed script names its database and its collections, and a collection's
 columns are the union of the keys its documents use — a document missing one
@@ -80,7 +82,6 @@ What is *not* read, and why:
 | `mongoexport` output | Carries neither a database nor a collection name. It could only be given invented ones, and picking a database and tables — the whole point of this tool — would collapse to one anonymous table. |
 | DynamoDB | Same: a `scan` export is `{"Items": [...]}` with no table name in the file. |
 | Redis | Key/value, plus a binary RDB. There is no table to select. |
-| Neo4j | A graph. Nodes and relationships do not map onto rows without inventing a shape. |
 
 The rule across all of them is the same one used for hosted deployments: a
 source is read when the file says what it holds, and refused when the only way
@@ -131,6 +132,18 @@ group by database. The PostgreSQL family and SQL Server group by schema, and
 when a dump names the owning database that name is kept alongside the schema.
 SQLite has exactly one database and calls it `main` — that is SQLite's own name,
 not one invented here, so it is offered as an ordinary selection.
+
+### When the source does not fit
+
+A format the catalog marks *lossy* cannot represent everything its source
+holds. The app shows a warning naming what is lost **before** anything is
+exported, and the warning text is the catalog's own note, so it cannot drift
+from this document. Today that is Neo4j (relationships) and CockroachDB (an
+extra empty column from an unquoted column family).
+
+A format with a caveat worth reading but nothing actually lost — Cassandra's
+CSV bulk path, MongoDB's `mongoexport` — does **not** warn. Warning about
+those would teach people to dismiss the warning that matters.
 
 ### Known limitations
 

@@ -35,6 +35,8 @@ export type DatabaseFormat =
   | 'db2'
   | 'cassandra'
   | 'mongodb'
+  | 'elasticsearch'
+  | 'neo4j'
   // Evaluated, no local dump format
   | 'snowflake'
   | 'bigquery'
@@ -87,6 +89,8 @@ export type DialectFamily =
   | 'db2'
   | 'cassandra'
   | 'mongodb'
+  | 'elasticsearch'
+  | 'neo4j'
   | 'none'
 
 export interface FormatDescriptor {
@@ -110,4 +114,14 @@ export interface FormatDescriptor {
    * format, or why a `not_applicable` one is not readable. Required for both.
    */
   note?: string
+  /**
+   * True when reading this format cannot represent part of what the source
+   * holds — a graph's relationships have nowhere to go in a table.
+   *
+   * The app warns before anyone exports, and `note` is the text it shows. This
+   * is narrower than `note` on purpose: plenty of formats have something worth
+   * documenting without anything being lost, and warning about those would
+   * teach people to ignore the warning that matters.
+   */
+  lossy?: boolean
 }

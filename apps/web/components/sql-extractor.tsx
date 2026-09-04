@@ -5,6 +5,7 @@ import { countRows } from '@sql-extractor/core'
 import { useSqlDump } from '@/hooks/use-sql-dump'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { FileUpload } from '@/components/file-upload'
+import { FormatCaveat } from '@/components/format-caveat'
 import { DatabaseSelect } from '@/components/database-select'
 import { TableSelect } from '@/components/table-select'
 import { Workspace } from '@/components/workspace'
@@ -123,6 +124,8 @@ export function SqlExtractor() {
           sourceFormat={sourceFormat}
           confidence={confidence}
         />
+
+        <FormatCaveat sourceFormat={sourceFormat} />
 
         {showDatabases && (
           <DatabaseSelect

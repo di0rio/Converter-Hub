@@ -82,6 +82,12 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /\bFROM\s+dual\b/i,
     /\bNOCACHE\b/i,
   ],
+  elasticsearch: [/^\s*\{[^\n]*"_index"\s*:/m, /"_source"\s*:\s*\{/],
+  neo4j: [
+    /\b(CREATE|MERGE)\s*\(\s*[A-Za-z_]\w*\s*:\s*[A-Za-z_]\w*\s*\{/,
+    /-\s*\[\s*:[A-Za-z_]\w*[^\]]*\]\s*->/,
+    /^\s*MATCH\s*\(/im,
+  ],
   mongodb: [
     /\bdb\s*\.\s*[A-Za-z_][\w$]*\s*\.\s*(insertMany|insertOne)\s*\(/,
     /\bdb\s*\.\s*getCollection\s*\(/,
@@ -120,6 +126,8 @@ export const FAMILY_DEFAULT: Record<DialectFamily, DatabaseFormat | null> = {
   db2: 'db2',
   cassandra: 'cassandra',
   mongodb: 'mongodb',
+  elasticsearch: 'elasticsearch',
+  neo4j: 'neo4j',
   none: null,
 }
 
@@ -257,6 +265,8 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
       'name (FAMILY fam_0 (id)) is indistinguishable from a column named ' +
       'family, so it is left in the column list and shows up as an extra ' +
       'empty column. The quoted form cockroach dump normally writes is handled.',
+    // Not a loss, but the output carries a column the source never had.
+    lossy: true,
   },
 
   yugabytedb: {
@@ -433,6 +443,35 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
       'collection name, so it could only be given invented ones. Columns are ' +
       'the union of the keys the documents use; nested objects and arrays are ' +
       'kept as their JSON text rather than flattened into more columns.',
+  },
+
+  elasticsearch: {
+    id: 'elasticsearch',
+    label: 'Elasticsearch',
+    status: 'supported',
+    family: 'elasticsearch',
+    ...DATABASE,
+    markers: [],
+    note:
+      'Reads elasticdump output: one JSON object per line, each naming the ' +
+      'index it came from. Every index becomes a table and _source supplies ' +
+      'the row. Columns are the union of the keys the documents use; nested ' +
+      'objects and arrays are kept as their JSON text.',
+  },
+
+  neo4j: {
+    id: 'neo4j',
+    label: 'Neo4j',
+    status: 'experimental',
+    family: 'neo4j',
+    ...DATABASE,
+    markers: [],
+    lossy: true,
+    note:
+      'Only nodes are extracted. Nodes sharing a label become a table and ' +
+      'their properties become its columns, but relationships are not ' +
+      'represented — a table has nowhere to put an edge. The export counts ' +
+      'the relationships it skipped and says so in the SQL it writes.',
   },
 
   // ------------------------------------------------------ not applicable

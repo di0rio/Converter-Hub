@@ -7,6 +7,7 @@ import {
   readInsertBlock,
   countInsertRows,
 } from '../shared/script-parser.js'
+import { readJsonObjects, tableFromDocuments } from '../shared/documents.js'
 
 /**
  * Read a mongosh seed script — `use <db>` plus `db.<collection>.insertMany([…])`.
@@ -35,42 +36,6 @@ const USE_DB = /^\s*use\s+([A-Za-z_][\w$-]*)\s*;?\s*$/im
 
 const DEFAULT_DATABASE = 'default'
 
-/** A JS value rendered as the SQL literal the generated INSERT will carry. */
-function toSqlLiteral(value: unknown): string {
-  if (value === null || value === undefined) return 'NULL'
-  if (typeof value === 'number' || typeof value === 'boolean')
-    return String(value)
-  // An object or array has no column of its own; keep its JSON as the value.
-  const text = typeof value === 'string' ? value : JSON.stringify(value)
-  return "'" + text.replace(/'/g, "''") + "'"
-}
-
-function quoteIdentifier(name: string): string {
-  return '"' + name.replace(/"/g, '""') + '"'
-}
-
-/**
- * Every document in one insert call.
- *
- * `JSON.parse` is the whole parser: a script written by hand with unquoted
- * keys or `ObjectId(...)` calls is JavaScript, not JSON, and is skipped rather
- * than half-read. Export tools write Extended JSON, which parses.
- */
-function readDocuments(argument: string): Record<string, unknown>[] {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(argument.trim())
-  } catch {
-    return []
-  }
-
-  const list = Array.isArray(parsed) ? parsed : [parsed]
-  return list.filter(
-    (item): item is Record<string, unknown> =>
-      typeof item === 'object' && item !== null && !Array.isArray(item),
-  )
-}
-
 export function parseMongoDump(text: string): SqlDump {
   const databaseName = USE_DB.exec(text)?.[1] ?? DEFAULT_DATABASE
 
@@ -85,7 +50,7 @@ export function parseMongoDump(text: string): SqlDump {
     const open = INSERT_CALL.lastIndex - 1
     const argument = readBalanced(text, open, ANSI_DIALECT.syntax)
 
-    const documents = readDocuments(argument)
+    const documents = readJsonObjects(argument)
     if (documents.length === 0) continue
 
     const existing = collections.get(collection)
@@ -95,59 +60,7 @@ export function parseMongoDump(text: string): SqlDump {
 
   const tables: Table[] = []
   for (const [name, documents] of collections) {
-    // Union of keys, first-seen order: a later document may carry fields the
-    // first one never had, and dropping them would lose data silently.
-    const columns: string[] = []
-    for (const document of documents) {
-      for (const key of Object.keys(document)) {
-        if (!columns.includes(key)) columns.push(key)
-      }
-    }
-
-    // Every column is declared text. A collection has no schema to read a
-    // type from, and text is the one type that loses nothing: numbers still
-    // insert, and a nested value is already carried as its JSON text.
-    const createStatement =
-      'CREATE TABLE ' +
-      quoteIdentifier(name) +
-      ' (\n' +
-      columns.map((c) => '  ' + quoteIdentifier(c) + ' text').join(',\n') +
-      '\n);'
-
-    // Own properties only. A document may carry a field named after something
-    // on Object.prototype — toString, constructor — and a plain lookup on a
-    // document that lacks it would return the inherited function as the value.
-    const values = documents
-      .map(
-        (document) =>
-          '  (' +
-          columns
-            .map((c) =>
-              toSqlLiteral(Object.hasOwn(document, c) ? document[c] : null),
-            )
-            .join(', ') +
-          ')',
-      )
-      .join(',\n')
-
-    const insert =
-      'INSERT INTO ' +
-      quoteIdentifier(name) +
-      ' (' +
-      columns.map(quoteIdentifier).join(', ') +
-      ') VALUES\n' +
-      values +
-      ';'
-
-    tables.push({
-      name,
-      database: databaseName,
-      format: 'mongodb',
-      createStatement,
-      preDataStatements: [],
-      dataStatements: documents.length > 0 ? [insert] : [],
-      postDataStatements: [],
-    })
+    tables.push(tableFromDocuments(name, databaseName, 'mongodb', documents))
   }
 
   const database: Database = {
