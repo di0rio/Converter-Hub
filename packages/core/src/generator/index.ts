@@ -29,7 +29,10 @@ function safeFileName(name: string): string {
 /** RFC 4180: quote when the value contains a delimiter, quote or newline. */
 function csvCell(value: string | null): string {
   if (value === null) return ''
-  return /["\,\r\n]/.test(value) ? '"' + value.replace(/"/g, '""') + '"' : value
+  // Dump content is untrusted: a cell starting with = + - @ or tab is read as a
+  // formula by Excel/Sheets on open. Prefix with ' so it stays literal text.
+  const safe = /^[=+\-@\t\r]/.test(value) ? "'" + value : value
+  return /["\,\r\n]/.test(safe) ? '"' + safe.replace(/"/g, '""') + '"' : safe
 }
 
 export function toCsv(table: TabularTable): string {

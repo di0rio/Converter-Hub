@@ -88,6 +88,29 @@ describe('csv', () => {
     expect(lines[2]).toBe('2,"Bruno, Jr.",say \'hi\'')
     expect(csv).toContain('"a\nb"')
   })
+
+  it('neutralises leading = + - @ so Excel/Sheets cannot read them as formulas', () => {
+    // Dump content is untrusted — a table value can carry a formula payload.
+    const table = {
+      name: 'notes',
+      columns: ['id', 'note'],
+      rows: [
+        ['1', '=cmd|/c calc'],
+        ['2', '+1+1'],
+        ['3', '-1+1'],
+        ['4', '@SUM(1,1)'],
+        ['5', 'plain text'],
+      ],
+    }
+
+    const lines = toCsv(table).split('\r\n')
+
+    expect(lines[1]).toBe("1,'=cmd|/c calc")
+    expect(lines[2]).toBe("2,'+1+1")
+    expect(lines[3]).toBe("3,'-1+1")
+    expect(lines[4]).toBe('4,"\'@SUM(1,1)"')
+    expect(lines[5]).toBe('5,plain text')
+  })
 })
 
 describe('xlsx', () => {
