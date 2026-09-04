@@ -163,6 +163,12 @@ export const CQL_DIALECT: SqlDialect = {
   stringPrefixes: [],
 }
 
+/** Plain ANSI SQL: standard quoting, semicolons, nothing else. */
+export const ANSI_DIALECT: SqlDialect = {
+  ...BASE,
+  syntax: STANDARD_SYNTAX,
+}
+
 export const DB2_DIALECT: SqlDialect = {
   ...BASE,
   syntax: STANDARD_SYNTAX,

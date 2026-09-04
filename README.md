@@ -1,6 +1,6 @@
 # SQL Database Extractor
 
-A database dump extraction tool. Read a SQL dump from any of 22 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
+A database dump extraction tool. Read a SQL dump from any of 23 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
 
 ## Why
 
@@ -40,6 +40,7 @@ every one of them through detection, parsing and all three exports on each run.
 | Oracle Database | `INSERT` | schema | `REM`/`PROMPT` lines, PL/SQL blocks closed by `/` |
 | IBM Db2 | `INSERT` | schema | `SET SCHEMA`, identity columns |
 | Cassandra | `INSERT` | keyspace | CQL scripts; collection types kept whole |
+| MongoDB | `insertMany` | database | mongosh seed scripts; columns are the union of document keys |
 
 **Experimental — readable, not advertised in the app:**
 
@@ -65,19 +66,25 @@ Supabase, Neon, AlloyDB, Aurora PostgreSQL and Azure SQL Database are read as
 PostgreSQL or SQL Server rather than listed separately — they parse fine, they
 just are not different engines.
 
-Cassandra is read because CQL scripts are tabular — a keyspace holds tables,
-tables declare typed columns, rows arrive as `INSERT`s — which is exactly the
-shape this tool's model needs. The rest of the non-SQL stores are not:
+Cassandra and MongoDB are read because what they export is still tabular
+enough for this model. A CQL keyspace holds tables with typed columns. A
+mongosh seed script names its database and its collections, and a collection's
+columns are the union of the keys its documents use — a document missing one
+gets null for it, and a nested object or array is carried as its JSON text
+rather than flattened into more columns.
+
+What is *not* read, and why:
 
 | Product | Why not |
 |---------|---------|
-| MongoDB, DynamoDB, Elasticsearch | Documents with no fixed columns. Flattening them to a column set is a different ingestion path, not another parser. |
+| `mongoexport` output | Carries neither a database nor a collection name. It could only be given invented ones, and picking a database and tables — the whole point of this tool — would collapse to one anonymous table. |
+| DynamoDB | Same: a `scan` export is `{"Items": [...]}` with no table name in the file. |
 | Redis | Key/value, plus a binary RDB. There is no table to select. |
 | Neo4j | A graph. Nodes and relationships do not map onto rows without inventing a shape. |
 
-Supporting those would mean a second reader alongside `FormatParser`, feeding
-the same normalised model from JSON rather than from SQL statements. It is
-possible; it is not what this codebase does today, and it is not claimed. Importing them would be a different
+The rule across all of them is the same one used for hosted deployments: a
+source is read when the file says what it holds, and refused when the only way
+to name it would be to make the name up. Importing them would be a different
 architecture, not another parser.
 
 ### Export formats
@@ -141,6 +148,12 @@ not one invented here, so it is offered as an ordinary selection.
   statements — the closest thing to a portable local export.
 - **Binary and custom-format dumps are not supported** for any engine. Only
   plain-text SQL is read.
+- **MongoDB's SQL export is generated, not preserved.** Every other source
+  exports the statements its own dump wrote, byte for byte. A document store
+  has no source SQL to preserve, so the SQL export is plain ANSI `CREATE TABLE`
+  and `INSERT` built from the documents, with every column declared `text`.
+  This is the one source where the SQL output is written by this tool rather
+  than carried through from the input.
 - **Cassandra reads CQL scripts, not its bulk format.** Cassandra moves data
   with `COPY TO` / `COPY FROM` against CSV files, which is not a SQL script.
   Collection values (`map`, `list`, `set`) are kept as written rather than

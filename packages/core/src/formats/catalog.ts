@@ -82,6 +82,11 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /\bFROM\s+dual\b/i,
     /\bNOCACHE\b/i,
   ],
+  mongodb: [
+    /\bdb\s*\.\s*[A-Za-z_][\w$]*\s*\.\s*(insertMany|insertOne)\s*\(/,
+    /\bdb\s*\.\s*getCollection\s*\(/,
+    /\bObjectId\s*\(/,
+  ],
   cassandra: [
     /\bCREATE\s+KEYSPACE\b/i,
     /\breplication_factor\b/i,
@@ -114,6 +119,7 @@ export const FAMILY_DEFAULT: Record<DialectFamily, DatabaseFormat | null> = {
   oracle: 'oracle',
   db2: 'db2',
   cassandra: 'cassandra',
+  mongodb: 'mongodb',
   none: null,
 }
 
@@ -395,6 +401,21 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
       'bulk-loads through COPY TO / COPY FROM against CSV files, which is not ' +
       'a SQL script and is not read here. Collection values (map, list, set) ' +
       'are kept as written rather than flattened into columns.',
+  },
+
+  mongodb: {
+    id: 'mongodb',
+    label: 'MongoDB',
+    status: 'supported',
+    family: 'mongodb',
+    ...DATABASE,
+    markers: [],
+    note:
+      'Reads mongosh seed scripts (use <db> plus db.<collection>.insertMany). ' +
+      'mongoexport output is not read: it carries neither a database nor a ' +
+      'collection name, so it could only be given invented ones. Columns are ' +
+      'the union of the keys the documents use; nested objects and arrays are ' +
+      'kept as their JSON text rather than flattened into more columns.',
   },
 
   // ------------------------------------------------------ not applicable

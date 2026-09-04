@@ -10,6 +10,7 @@ import { firebirdParser } from './firebird/index.js'
 import { oracleParser } from './oracle/index.js'
 import { db2Parser } from './db2/index.js'
 import { cassandraParser } from './cassandra/index.js'
+import { mongodbParser } from './mongodb/index.js'
 
 /**
  * The formats that actually have a reader.
@@ -51,6 +52,7 @@ const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
   oracle: oracleParser,
   db2: db2Parser,
   cassandra: cassandraParser,
+  mongodb: mongodbParser,
 }
 
 /** The reader for a format, or null when the format has no parser yet. */

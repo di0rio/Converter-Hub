@@ -34,6 +34,7 @@ export type DatabaseFormat =
   | 'oracle'
   | 'db2'
   | 'cassandra'
+  | 'mongodb'
   // Evaluated, no local dump format
   | 'snowflake'
   | 'bigquery'
@@ -81,6 +82,7 @@ export type DialectFamily =
   | 'oracle'
   | 'db2'
   | 'cassandra'
+  | 'mongodb'
   | 'none'
 
 export interface FormatDescriptor {
