@@ -100,4 +100,20 @@ describe('parseMongoDump', () => {
   it('yields no database at all when nothing parses', () => {
     expect(mongodbParser.parse('use x;').databases).toEqual([])
   })
+
+  it('treats a field named after an Object.prototype member as data', () => {
+    // A document may legitimately carry a field called toString, constructor
+    // or valueOf. Read through the prototype chain, a document missing that
+    // field returns the inherited function instead of nothing.
+    const parsed = mongodbParser.parse(
+      'use x;\ndb.a.insertMany([' +
+        '{ "sku": "A1", "toString": "custom", "constructor": "c" },' +
+        '{ "sku": "A2" }' +
+        ']);',
+    )
+
+    const rows = toTabular(parsed.databases[0]!.tables[0]!).rows
+    expect(rows[0]).toEqual(['A1', 'custom', 'c'])
+    expect(rows[1]).toEqual(['A2', null, null])
+  })
 })

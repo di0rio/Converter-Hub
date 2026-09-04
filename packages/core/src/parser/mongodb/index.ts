@@ -27,7 +27,8 @@ import {
  */
 
 /** `db.<collection>.insertMany(` or `.insertOne(` — the call that carries rows. */
-const INSERT_CALL = /\bdb\s*\.\s*(?:getCollection\s*\(\s*["']([^"']+)["']\s*\)|([A-Za-z_][\w$]*))\s*\.\s*(insertMany|insertOne|save)\s*\(/g
+const INSERT_CALL =
+  /\bdb\s*\.\s*(?:getCollection\s*\(\s*["']([^"']+)["']\s*\)|([A-Za-z_][\w$]*))\s*\.\s*(insertMany|insertOne|save)\s*\(/g
 
 /** `use <db>` on its own line, as mongosh writes it. */
 const USE_DB = /^\s*use\s+([A-Za-z_][\w$-]*)\s*;?\s*$/im
@@ -37,7 +38,8 @@ const DEFAULT_DATABASE = 'default'
 /** A JS value rendered as the SQL literal the generated INSERT will carry. */
 function toSqlLiteral(value: unknown): string {
   if (value === null || value === undefined) return 'NULL'
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value)
   // An object or array has no column of its own; keep its JSON as the value.
   const text = typeof value === 'string' ? value : JSON.stringify(value)
   return "'" + text.replace(/'/g, "''") + "'"
@@ -112,10 +114,19 @@ export function parseMongoDump(text: string): SqlDump {
       columns.map((c) => '  ' + quoteIdentifier(c) + ' text').join(',\n') +
       '\n);'
 
+    // Own properties only. A document may carry a field named after something
+    // on Object.prototype — toString, constructor — and a plain lookup on a
+    // document that lacks it would return the inherited function as the value.
     const values = documents
       .map(
         (document) =>
-          '  (' + columns.map((c) => toSqlLiteral(document[c])).join(', ') + ')',
+          '  (' +
+          columns
+            .map((c) =>
+              toSqlLiteral(Object.hasOwn(document, c) ? document[c] : null),
+            )
+            .join(', ') +
+          ')',
       )
       .join(',\n')
 
