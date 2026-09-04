@@ -1,62 +1,62 @@
-/**
- * The database engines whose dumps this project can actually read.
- *
- * A format only belongs here once a parser exists for it and that parser is
- * covered by tests — this list is what the UI advertises.
- */
-export type DatabaseFormat = 'mysql' | 'mariadb' | 'postgresql'
+import type {
+  DatabaseFormat,
+  DialectFamily,
+  FormatDescriptor,
+  SupportStatus,
+} from './types.js'
+import { CATALOG, FAMILY_DEFAULT, FAMILY_MARKERS } from './catalog.js'
+
+export type {
+  DatabaseFormat,
+  DialectFamily,
+  FormatDescriptor,
+  NamespaceKind,
+  SupportStatus,
+} from './types.js'
+export { CATALOG, FAMILY_MARKERS, FAMILY_DEFAULT } from './catalog.js'
+
+/** Every format the project knows about, including the ones it cannot read. */
+export const DATABASE_FORMATS = CATALOG
+
+const ALL_FORMATS: FormatDescriptor[] = Object.values(CATALOG)
 
 /**
- * What a format calls the grouping a user picks from.
+ * The formats a user may be told about.
  *
- * MySQL and MariaDB group tables by database. PostgreSQL groups them by schema
- * inside a database, so calling a PostgreSQL grouping a "database" would be
- * wrong in the UI even though the parsed shape is the same.
+ * Only `supported` qualifies: a parser exists, a synthetic fixture exercises
+ * it, and its tests pass. This list is what the UI and the CLI advertise, so
+ * a format cannot be promoted here without the work behind it.
  */
-export type NamespaceKind = 'database' | 'schema'
+export const SUPPORTED_FORMATS: FormatDescriptor[] = ALL_FORMATS.filter(
+  (format) => format.status === 'supported',
+)
 
-export interface FormatDescriptor {
-  id: DatabaseFormat
-  /** Name to show a user. */
-  label: string
-  namespace: NamespaceKind
-  /** Capitalised singular of `namespace`, for headings. */
-  namespaceLabel: string
+/** Formats readable with known gaps. Documented, never advertised. */
+export const EXPERIMENTAL_FORMATS: FormatDescriptor[] = ALL_FORMATS.filter(
+  (format) => format.status === 'experimental',
+)
+
+/** Everything the catalog holds, for the compatibility matrix and the docs. */
+export function allFormats(): FormatDescriptor[] {
+  return ALL_FORMATS
 }
 
-export const DATABASE_FORMATS: Record<DatabaseFormat, FormatDescriptor> = {
-  mysql: {
-    id: 'mysql',
-    label: 'MySQL',
-    namespace: 'database',
-    namespaceLabel: 'Database',
-  },
-  mariadb: {
-    id: 'mariadb',
-    label: 'MariaDB',
-    namespace: 'database',
-    namespaceLabel: 'Database',
-  },
-  postgresql: {
-    id: 'postgresql',
-    label: 'PostgreSQL',
-    namespace: 'schema',
-    namespaceLabel: 'Schema',
-  },
+export function formatsWithStatus(status: SupportStatus): FormatDescriptor[] {
+  return ALL_FORMATS.filter((format) => format.status === status)
 }
-
-export const SUPPORTED_FORMATS: FormatDescriptor[] = [
-  DATABASE_FORMATS.mysql,
-  DATABASE_FORMATS.mariadb,
-  DATABASE_FORMATS.postgresql,
-]
 
 export function describeFormat(format: DatabaseFormat): FormatDescriptor {
-  return DATABASE_FORMATS[format]
+  return CATALOG[format]
 }
 
 export function isDatabaseFormat(value: string): value is DatabaseFormat {
-  return Object.prototype.hasOwnProperty.call(DATABASE_FORMATS, value)
+  return Object.prototype.hasOwnProperty.call(CATALOG, value)
+}
+
+/** Whether this project can actually read the format, gaps included. */
+export function isReadable(format: DatabaseFormat): boolean {
+  const status = CATALOG[format].status
+  return status === 'supported' || status === 'experimental'
 }
 
 // ----------------------------------------------------------- detection
@@ -76,41 +76,19 @@ export type FormatDetection =
   /** The text is not a SQL dump this project can read. */
   | { format: null; confidence: null }
 
-/**
- * Markers that only one engine's dump tool emits. Nothing merely idiomatic
- * belongs in these lists.
- */
-const MYSQL_MARKERS: RegExp[] = [
-  /\/\*!\d{5}/, // /*!40101 SET ... */ version-gated comments
-  /^--\s*MySQL dump/im,
-  /\bLOCK TABLES\b/i,
-  /\bUNLOCK TABLES\b/i,
-  /\bENGINE\s*=\s*[A-Za-z]+/i,
-  /\bAUTO_INCREMENT\b/i,
-  /\bDEFAULT CHARSET\s*=/i,
-  /`[^`\n]+`/, // backtick-quoted identifier
-]
-
-/** MariaDB dumps are MySQL dumps plus these. */
-const MARIADB_MARKERS: RegExp[] = [
-  /^--\s*MariaDB dump/im,
-  /\/\*M!\d{5}/,
-  /^--.*\bMariaDB\b/im,
-]
-
-const POSTGRES_MARKERS: RegExp[] = [
-  /^--\s*PostgreSQL database dump/im,
-  /^\\connect\b/im,
-  /\bFROM stdin;/i,
-  /^\\\.$/m, // COPY data terminator
-  /\bSET search_path\b/i,
-  /\bstandard_conforming_strings\b/i,
-  /\bOWNER TO\b/i,
-  /\bpg_catalog\./i,
-]
-
 /** Enough SQL to be worth parsing at all. */
 const GENERIC_SQL = /\b(CREATE\s+TABLE|INSERT\s+INTO)\b/i
+
+/**
+ * How far ahead one family must be before its markers outweigh another's.
+ *
+ * A stray backtick inside a PostgreSQL value, or the word GO inside a comment,
+ * should not flip the answer — but neither should a genuine majority be
+ * discarded. Two clear markers is the margin.
+ */
+const DECISIVE_LEAD = 2
+
+const FAMILIES = Object.keys(FAMILY_MARKERS) as DialectFamily[]
 
 function countMatches(sql: string, markers: RegExp[]): number {
   let hits = 0
@@ -120,42 +98,61 @@ function countMatches(sql: string, markers: RegExp[]): number {
   return hits
 }
 
-/** MariaDB dumps are MySQL dumps, so only its own markers separate the two. */
-function mysqlFamily(sql: string): DatabaseFormat {
-  return countMatches(sql, MARIADB_MARKERS) > 0 ? 'mariadb' : 'mysql'
+/**
+ * The member of `family` the dump names, or the family default.
+ *
+ * Members are ranked by their own markers, which are the ones a sibling does
+ * not write. A tie means nothing separated them, so the family default wins
+ * rather than an arbitrary pick.
+ */
+function memberOf(family: DialectFamily, sql: string): DatabaseFormat | null {
+  let best: DatabaseFormat | null = null
+  let bestHits = 0
+
+  for (const descriptor of ALL_FORMATS) {
+    if (descriptor.family !== family || descriptor.markers.length === 0) continue
+
+    const hits = countMatches(sql, descriptor.markers)
+    if (hits > bestHits) {
+      best = descriptor.id
+      bestHits = hits
+    }
+  }
+
+  return best ?? FAMILY_DEFAULT[family]
 }
 
 /**
  * Identify the engine that produced a dump.
  *
- * Deliberately conservative: a format is only named when markers unique to it
- * are present and no other format's markers contradict them. Generic SQL that
- * no dump tool would have written — a hand-authored CREATE TABLE plus INSERTs
- * — is reported as `assumed`, never as a detection.
+ * Deliberately conservative: a family is only named when its markers clearly
+ * outweigh every other family's, so contradictory evidence yields no answer
+ * instead of a guess. Generic SQL that no dump tool would have written — a
+ * hand-authored CREATE TABLE plus INSERTs — is reported as `assumed`, never as
+ * a detection.
+ *
+ * A format that is merely `planned` can still be named here. That is the point:
+ * saying "this looks like a SQL Server dump, which is not supported yet" is
+ * more useful than refusing to place the file at all. Callers decide what to do
+ * with a format that has no parser.
  */
 export function detectFormat(sql: string): FormatDetection {
-  const mysqlHits = countMatches(sql, MYSQL_MARKERS)
-  const postgresHits = countMatches(sql, POSTGRES_MARKERS)
+  const scores = FAMILIES.filter((family) => family !== 'none')
+    .map((family) => ({ family, hits: countMatches(sql, FAMILY_MARKERS[family]) }))
+    .filter((entry) => entry.hits > 0)
+    .sort((a, b) => b.hits - a.hits)
 
-  // Markers from two engines at once. A stray backtick inside a PostgreSQL
-  // value should not flip the answer, so name a format only when one side is
-  // clearly ahead.
-  if (mysqlHits > 0 && postgresHits > 0) {
-    if (postgresHits - mysqlHits >= 2) {
-      return { format: 'postgresql', confidence: 'detected' }
+  if (scores.length > 0) {
+    const leader = scores[0]
+    const runnerUp = scores[1]
+
+    // Markers from more than one family. Name one only when it is clearly ahead.
+    if (runnerUp !== undefined && leader.hits - runnerUp.hits < DECISIVE_LEAD) {
+      return { format: null, confidence: null }
     }
-    if (mysqlHits - postgresHits >= 2) {
-      return { format: mysqlFamily(sql), confidence: 'detected' }
-    }
-    return { format: null, confidence: null }
-  }
 
-  if (postgresHits > 0) {
-    return { format: 'postgresql', confidence: 'detected' }
-  }
-
-  if (mysqlHits > 0) {
-    return { format: mysqlFamily(sql), confidence: 'detected' }
+    const format = memberOf(leader.family, sql)
+    if (format !== null) return { format, confidence: 'detected' }
   }
 
   // No engine markers at all. Plain SQL still parses under the MySQL reader,

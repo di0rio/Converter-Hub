@@ -265,10 +265,20 @@ describe('source formats', () => {
     await expect(
       extractCommand(join(tmpDir, 'missing.sql'), {
         all: true,
+        format: 'nosuchengine',
+        output: join(tmpDir, 'o.sql'),
+      }),
+    ).rejects.toThrow('Error: Unknown source format: nosuchengine')
+  })
+
+  it('separates a format it cannot read yet from one it has never heard of', async () => {
+    await expect(
+      extractCommand(join(tmpDir, 'missing.sql'), {
+        all: true,
         format: 'oracle',
         output: join(tmpDir, 'o.sql'),
       }),
-    ).rejects.toThrow('Error: Unknown source format: oracle')
+    ).rejects.toThrow('Oracle Database dumps are not supported yet.')
   })
 
   it('refuses a file that is not a dump, and names what it supports', async () => {
