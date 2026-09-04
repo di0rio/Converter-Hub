@@ -76,7 +76,9 @@ describe('SqlExtractor', () => {
       screen.getByRole('heading', { name: /SQL Database Extractor/i }),
     ).toBeInTheDocument()
     expect(screen.getByText(/Select a database dump/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Choose SQL file/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Choose SQL file/i }),
+    ).toBeInTheDocument()
   })
 
   it('exposes an accessible file upload input', () => {
@@ -84,17 +86,25 @@ describe('SqlExtractor', () => {
 
     const { container } = render(<SqlExtractor />)
 
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
     expect(input.accept).toBe('.sql,text/plain')
     // The section is labelled "Select a database dump" and the input is associated with the
     // visible label via htmlFor.
-    expect(screen.getByRole('region', { name: /Select a database dump/i })).toBeInTheDocument()
     expect(
-      screen.getAllByLabelText(/Select a database dump/i).some((el) => el.getAttribute('type') === 'file'),
+      screen.getByRole('region', { name: /Select a database dump/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen
+        .getAllByLabelText(/Select a database dump/i)
+        .some((el) => el.getAttribute('type') === 'file'),
     ).toBe(true)
-    expect(screen.getByText(/processed entirely in your browser/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/processed entirely in your browser/i),
+    ).toBeInTheDocument()
   })
 
   it('displays the selected file name once a file is loaded', () => {
@@ -104,12 +114,16 @@ describe('SqlExtractor', () => {
 
     render(<SqlExtractor />)
 
-    expect(screen.getByRole('button', { name: /store\.sql/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /store\.sql/i }),
+    ).toBeInTheDocument()
   })
 
   it('shows an error alert when an error is present', () => {
     mockedUseSqlDump.mockReturnValue(
-      baseHookState({ error: 'Unable to parse SQL dump. Please check the file format.' }),
+      baseHookState({
+        error: 'Unable to parse SQL dump. Please check the file format.',
+      }),
     )
 
     render(<SqlExtractor />)
@@ -219,14 +233,18 @@ describe('SqlExtractor', () => {
 
     render(<SqlExtractor />)
 
-    expect(screen.getByRole('radiogroup', { name: /Export format/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('radiogroup', { name: /Export format/i }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /SQL/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /CSV/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Excel/i })).toBeInTheDocument()
 
     expect(screen.getByLabelText(/Convert and download/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Convert/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Start over/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Start over/i }),
+    ).toBeInTheDocument()
     expect(screen.getByText(/1 table ready to convert/i)).toBeInTheDocument()
   })
 
@@ -250,9 +268,13 @@ describe('SqlExtractor', () => {
 
     render(<SqlExtractor />)
 
-    expect(screen.getByRole('button', { name: /Download ZIP/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Download ZIP/i }),
+    ).toBeInTheDocument()
     expect(screen.getByText('shop_db-export.zip')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Convert$/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /^Convert$/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('selects an export format through the format buttons', () => {
@@ -277,7 +299,9 @@ describe('SqlExtractor', () => {
     mockedUseSqlDump.mockReturnValue(baseHookState({ loadFile }))
 
     const { container } = render(<SqlExtractor />)
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement
 
     const file = new File([SAMPLE_SQL], 'dump.sql', { type: 'text/plain' })
     fireEvent.change(input, { target: { files: [file] } })
@@ -286,6 +310,34 @@ describe('SqlExtractor', () => {
     await waitFor(() => {
       expect(loadFile).toHaveBeenCalledWith(SAMPLE_SQL, 'dump.sql')
     })
+  })
+
+  it('refuses a file past the size ceiling without reading it', async () => {
+    const loadFile = vi.fn(() => true)
+    const reportFileError = vi.fn()
+    mockedUseSqlDump.mockReturnValue(
+      baseHookState({ loadFile, reportFileError }),
+    )
+
+    const { container } = render(<SqlExtractor />)
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement
+
+    const file = new File([SAMPLE_SQL], 'huge.sql', { type: 'text/plain' })
+    // Stand in for a file too large to allocate in a test.
+    Object.defineProperty(file, 'size', { value: 300 * 1024 * 1024 })
+    const text = vi.spyOn(file, 'text')
+
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(reportFileError).toHaveBeenCalledWith(
+        expect.stringContaining('The largest dump this tool reads is 250 MB'),
+      )
+    })
+    expect(text).not.toHaveBeenCalled()
+    expect(loadFile).not.toHaveBeenCalled()
   })
 
   it('renders a start-over button that resets state', () => {
@@ -344,7 +396,8 @@ describe('SqlExtractor: source formats', () => {
 
     render(<SqlExtractor />)
 
-    const blurb = screen.getByText(/Supports \d+ dump formats/).textContent ?? ''
+    const blurb =
+      screen.getByText(/Supports \d+ dump formats/).textContent ?? ''
     for (const planned of formatsWithStatus('planned')) {
       expect(blurb).not.toContain(planned.label)
     }

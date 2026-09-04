@@ -2,7 +2,11 @@
 
 import { useRef } from 'react'
 import { Upload } from 'lucide-react'
-import { SUPPORTED_FORMATS } from '@sql-extractor/core'
+import {
+  SUPPORTED_FORMATS,
+  isOversizedDump,
+  oversizedDumpMessage,
+} from '@sql-extractor/core'
 import type { FormatConfidence, FormatDescriptor } from '@sql-extractor/core'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -62,13 +66,23 @@ export function FileUpload({
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Reject on the size the browser already knows, before reading. Past the
+    // ceiling the tab runs out of memory partway through instead of saying so.
+    if (isOversizedDump(file.size)) {
+      onError(oversizedDumpMessage(file.size))
+      if (inputRef.current) inputRef.current.value = ''
+      return
+    }
+
     file
       .text()
       .then((content) => {
         onFile(content, file.name)
       })
       .catch(() => {
-        onError('That file could not be read. It may have been moved or renamed.')
+        onError(
+          'That file could not be read. It may have been moved or renamed.',
+        )
       })
 
     // Reset input so the same file can be re-selected
@@ -103,9 +117,7 @@ export function FileUpload({
         className="w-full justify-start"
       >
         <Upload className="size-4" />
-        <span className="truncate">
-          {fileName ?? 'Choose SQL file'}
-        </span>
+        <span className="truncate">{fileName ?? 'Choose SQL file'}</span>
       </Button>
 
       <p id="file-input-desc" className="mt-2 text-xs text-muted-foreground">

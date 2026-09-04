@@ -6,6 +6,12 @@ export {
   UnsupportedFormatError,
 } from './parser/index.js'
 export { extractDatabase } from './extractor/index.js'
+export {
+  MAX_DUMP_BYTES,
+  formatBytes,
+  isOversizedDump,
+  oversizedDumpMessage,
+} from './limits/index.js'
 export { toTabular, extractColumns, countRows } from './tabular/index.js'
 export { generateExport, toCsv, toXlsx, createZip } from './generator/index.js'
 export {
@@ -23,7 +29,11 @@ export {
 
 export type { ParseOptions } from './parser/index.js'
 export type { TabularTable } from './tabular/index.js'
-export type { ExportFormat, ExportFile, ExportResult } from './generator/index.js'
+export type {
+  ExportFormat,
+  ExportFile,
+  ExportResult,
+} from './generator/index.js'
 
 export type {
   DatabaseFormat,
