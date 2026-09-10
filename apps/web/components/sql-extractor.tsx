@@ -1,17 +1,81 @@
 'use client'
 
 import { useCallback, useMemo } from 'react'
-import { countRows } from '@sql-extractor/core'
+import {
+  AlertCircle,
+  FileCode,
+  FileSpreadsheet,
+  Table,
+  Wand2,
+} from 'lucide-react'
+import {
+  SUPPORTED_FORMATS,
+  countRows,
+  isOversizedDump,
+  oversizedDumpMessage,
+} from '@sql-extractor/core'
+import type {
+  ExportFormat,
+  FormatConfidence,
+  FormatDescriptor,
+} from '@sql-extractor/core'
 import { useSqlDump } from '@/hooks/use-sql-dump'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
-import { FileUpload } from '@/components/file-upload'
+import { findTool } from '@/lib/tools'
+import { FileDropzone } from '@/components/file-dropzone'
+import { ToolHeader } from '@/components/tool-header'
 import { FormatCaveat } from '@/components/format-caveat'
 import { DatabaseSelect } from '@/components/database-select'
 import { TableSelect } from '@/components/table-select'
 import { Workspace } from '@/components/workspace'
-import { FormatSelect } from '@/components/format-select'
+import { FormatOptions } from '@/components/format-options'
 import { DownloadStep } from '@/components/download-step'
-import { AlertCircle } from 'lucide-react'
+
+const tool = findTool('sql')
+
+const ACCEPTED_EXTENSIONS = ['.sql', '.txt']
+
+const FORMATS = [
+  { id: 'sql' as const, label: 'SQL', hint: 'One .sql dump', Icon: FileCode },
+  { id: 'csv' as const, label: 'CSV', hint: 'One file per table', Icon: Table },
+  {
+    id: 'xlsx' as const,
+    label: 'Excel',
+    hint: 'One sheet per table',
+    Icon: FileSpreadsheet,
+  },
+]
+
+/**
+ * Naming every supported engine turned into a wall of text as the list grew.
+ * A count plus a few recognisable names says the same thing in one line.
+ */
+const HEADLINE_FORMATS = ['MySQL', 'PostgreSQL', 'SQL Server', 'SQLite']
+
+const SUPPORTED_SUMMARY = (() => {
+  const labels = SUPPORTED_FORMATS.map((format) => format.label)
+  const headline = HEADLINE_FORMATS.filter((name) =>
+    labels.some((label) => label.includes(name)),
+  )
+
+  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}.`
+})()
+
+/**
+ * Say what was actually established. A dump carrying an engine's own markers
+ * is named; plain SQL that carries none is read as MySQL, and says so rather
+ * than claiming a detection.
+ */
+function describeSource(
+  sourceFormat: FormatDescriptor | null,
+  confidence: FormatConfidence | null,
+): string {
+  if (!sourceFormat) return SUPPORTED_SUMMARY
+
+  return confidence === 'assumed'
+    ? `No engine markers found — read as ${sourceFormat.label}.`
+    : `Read as a ${sourceFormat.label} dump.`
+}
 
 export function SqlExtractor() {
   const {
@@ -85,26 +149,34 @@ export function SqlExtractor() {
     reset()
   }, [closeAllWindows, reset])
 
-  const handleLoadFile = useCallback(
-    (content: string, name: string) => {
+  const handleFile = useCallback(
+    (file: File) => {
+      // Reject on the size the browser already knows, before reading. Past the
+      // ceiling the tab runs out of memory partway through instead of saying so.
+      if (isOversizedDump(file.size)) {
+        reportFileError(oversizedDumpMessage(file.size))
+        return
+      }
+
       closeAllWindows()
-      return loadFile(content, name)
+
+      file
+        .text()
+        .then((content) => loadFile(content, file.name))
+        .catch(() => {
+          reportFileError(
+            'That file could not be read. It may have been moved or renamed.',
+          )
+        })
     },
-    [closeAllWindows, loadFile],
+    [closeAllWindows, loadFile, reportFileError],
   )
 
   const previewedTables = windows.map((w) => w.tableName)
 
   const selectionPanel = (
     <div className="w-full max-w-lg space-y-8">
-      <header>
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          SQL Database Extractor
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Extract tables from a database dump, locally in your browser.
-        </p>
-      </header>
+      <ToolHeader tool={tool} />
 
       {error && (
         <div
@@ -117,12 +189,25 @@ export function SqlExtractor() {
       )}
 
       <div className="space-y-8">
-        <FileUpload
-          onFile={handleLoadFile}
-          onError={reportFileError}
+        <FileDropzone
+          id="sql-file-input"
+          label="Select a database dump"
+          accept={ACCEPTED_EXTENSIONS}
+          acceptHint={ACCEPTED_EXTENSIONS.join(' · ')}
           fileName={fileName || null}
-          sourceFormat={sourceFormat}
-          confidence={confidence}
+          // Inside the zone, what was established about the file that is
+          // there; underneath, what the tool can read and where it runs. Once
+          // a dump is loaded the summary has done its job and steps aside.
+          detail={
+            sourceFormat ? describeSource(sourceFormat, confidence) : null
+          }
+          description={
+            sourceFormat
+              ? 'Processed entirely in your browser.'
+              : `${SUPPORTED_SUMMARY} Processed entirely in your browser.`
+          }
+          onFile={handleFile}
+          onError={reportFileError}
         />
 
         <FormatCaveat sourceFormat={sourceFormat} />
@@ -159,12 +244,33 @@ export function SqlExtractor() {
 
         {step === 'export' && (
           <>
-            <FormatSelect value={exportFormat} onChange={selectFormat} />
+            <FormatOptions<ExportFormat>
+              id="step-format"
+              label="Export format"
+              options={FORMATS}
+              value={exportFormat}
+              onChange={selectFormat}
+            />
+
             <DownloadStep
-              status={status}
+              id="step-download"
+              label="Convert and download"
+              pending={`${selectedTables.length} table${selectedTables.length === 1 ? '' : 's'} ready to convert.`}
+              actionLabel="Convert"
+              actionIcon={Wand2}
+              busyLabel="Converting..."
+              busy={status === 'converting'}
               result={result}
-              tableCount={selectedTables.length}
-              onConvert={convert}
+              facts={
+                result
+                  ? [
+                      { label: 'Archive', value: result.filename },
+                      { label: 'Tables', value: String(result.tableCount) },
+                      { label: 'Files', value: String(result.files.length) },
+                    ]
+                  : []
+              }
+              onRun={convert}
               onReset={handleReset}
               onError={reportFileError}
             />
@@ -177,8 +283,8 @@ export function SqlExtractor() {
   return (
     // Two panes on desktop, stacked on narrow screens. The selection column is
     // a fixed track so opening a preview can never resize or reflow it.
-    <div className="flex h-full w-full flex-col gap-6 lg:flex-row lg:gap-8">
-      <div className="no-scrollbar flex shrink-0 justify-center overflow-y-auto lg:w-[34rem] lg:justify-start lg:pr-2">
+    <div className="flex w-full flex-col gap-6 lg:h-full lg:flex-row lg:gap-8">
+      <div className="no-scrollbar flex shrink-0 justify-center lg:w-[34rem] lg:justify-start lg:overflow-y-auto lg:pr-2">
         {selectionPanel}
       </div>
 

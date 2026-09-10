@@ -73,12 +73,16 @@ describe('SqlExtractor', () => {
     render(<SqlExtractor />)
 
     expect(
-      screen.getByRole('heading', { name: /SQL Database Extractor/i }),
+      screen.getByRole('heading', { name: /Extract from a SQL dump/i }),
     ).toBeInTheDocument()
     expect(screen.getByText(/Select a database dump/i)).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Choose SQL file/i }),
+      screen.getByRole('button', { name: /Drop a file here/i }),
     ).toBeInTheDocument()
+    // The tool sits inside the hub, and says so with a way back to it.
+    expect(
+      screen.getByRole('link', { name: /Converter Hub/i }),
+    ).toHaveAttribute('href', '/')
   })
 
   it('exposes an accessible file upload input', () => {
@@ -91,7 +95,7 @@ describe('SqlExtractor', () => {
     ) as HTMLInputElement
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
-    expect(input.accept).toBe('.sql,text/plain')
+    expect(input.accept).toBe('.sql,.txt')
     // The section is labelled "Select a database dump" and the input is associated with the
     // visible label via htmlFor.
     expect(
