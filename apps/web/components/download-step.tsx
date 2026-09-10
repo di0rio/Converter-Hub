@@ -1,25 +1,62 @@
 'use client'
 
-import { Download, Loader2, RotateCcw } from 'lucide-react'
+import { Download, RotateCcw } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import type { ExportResult } from '@sql-extractor/core'
-import type { ConversionStatus } from '@/hooks/use-sql-dump'
+import { Spinner } from '@/components/ui/spinner'
+import { downloadZip } from '@/lib/download'
+
+/** One line of the "what you are about to get" summary. */
+export interface ResultFact {
+  label: string
+  value: string
+}
 
 interface DownloadStepProps {
-  status: ConversionStatus
-  result: ExportResult | null
-  tableCount: number
-  onConvert: () => void
+  /** Unique per page: ties the section to its own heading. */
+  id: string
+  label: string
+  /** What to say before the archive exists, e.g. "3 tables ready to convert." */
+  pending: string
+  /** The button that starts the work, and what it says while working. */
+  actionLabel: string
+  actionIcon: LucideIcon
+  busyLabel: string
+  busy: boolean
+  /**
+   * Real counted progress, when the work reports any. A tool that cannot say
+   * how far along it is passes nothing and gets a plain spinner instead of an
+   * invented number.
+   */
+  progress?: { done: number; total: number } | null
+  /** The finished archive, once there is one. */
+  result: { filename: string; bytes: Uint8Array } | null
+  facts: ResultFact[]
+  onRun: () => void
   onReset: () => void
   onError: (message: string) => void
 }
 
+/**
+ * The last step of every tool: run the conversion, then take the ZIP.
+ *
+ * Both tools end the same way, so this is one component rather than two that
+ * drift apart — the wording and the summary lines are what differ, and they
+ * are passed in.
+ */
 export function DownloadStep({
-  status,
+  id,
+  label,
+  pending,
+  actionLabel,
+  actionIcon: ActionIcon,
+  busyLabel,
+  busy,
+  progress,
   result,
-  tableCount,
-  onConvert,
+  facts,
+  onRun,
   onReset,
   onError,
 }: DownloadStepProps) {
@@ -27,72 +64,58 @@ export function DownloadStep({
     if (!result) return
 
     try {
-      // Copy into a fresh buffer: the Blob constructor needs a plain
-      // ArrayBuffer, and this keeps the archive bytes off any shared view.
-      const buffer = new ArrayBuffer(result.bytes.byteLength)
-      new Uint8Array(buffer).set(result.bytes)
-
-      const url = URL.createObjectURL(
-        new Blob([buffer], { type: 'application/zip' }),
-      )
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = result.filename
-      anchor.click()
-      URL.revokeObjectURL(url)
+      downloadZip(result.bytes, result.filename)
     } catch {
       onError('The download could not be started. Check your browser settings.')
     }
   }
 
+  const counting = busy && progress != null && progress.total > 1
+
   return (
-    <section aria-labelledby="step-download">
-      <Label
-        id="step-download"
-        className="mb-3 block text-base font-semibold sm:text-sm"
-      >
-        Convert and download
+    <section aria-labelledby={id}>
+      <Label id={id} className="mb-3 block text-base font-semibold sm:text-sm">
+        {label}
       </Label>
 
       {result ? (
-        <div className="rounded-lg border border-input bg-accent/30 px-4 py-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Archive</span>
-            <span className="font-medium">{result.filename}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Tables</span>
-            <span className="font-medium">{result.tableCount}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Files</span>
-            <span className="font-medium">{result.files.length}</span>
-          </div>
-        </div>
+        <dl className="rounded-lg border border-input bg-accent/30 px-4 py-3 text-sm">
+          {facts.map((fact) => (
+            <div key={fact.label} className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">{fact.label}</dt>
+              <dd className="truncate font-medium tabular-nums">
+                {fact.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          {tableCount} table{tableCount === 1 ? '' : 's'} ready to convert.
+        <p
+          className="text-sm text-muted-foreground"
+          // The count changes as the work runs, and a reader who is not
+          // watching the button should still hear it.
+          aria-live="polite"
+        >
+          {counting
+            ? `Processing ${progress.done} of ${progress.total}...`
+            : pending}
         </p>
       )}
 
       <div className="mt-4 flex gap-3">
         {result ? (
-          <Button onClick={handleDownload} className="flex-1">
+          <Button className="flex-1" onClick={handleDownload}>
             <Download className="size-4" />
             Download ZIP
           </Button>
         ) : (
-          <Button
-            onClick={onConvert}
-            disabled={status === 'converting'}
-            className="flex-1"
-          >
-            {status === 'converting' ? (
-              <Loader2 className="size-4 animate-spin" />
+          <Button className="flex-1" disabled={busy} onClick={onRun}>
+            {busy ? (
+              <Spinner className="size-4" />
             ) : (
-              <Download className="size-4" />
+              <ActionIcon className="size-4" />
             )}
-            {status === 'converting' ? 'Converting...' : 'Convert'}
+            {busy ? busyLabel : actionLabel}
           </Button>
         )}
 

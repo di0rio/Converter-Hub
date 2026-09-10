@@ -163,13 +163,16 @@ export function TableSelect({
                 {rowLabel}
               </span>
 
-              {/* The non-drag path to a preview. Kept visible on focus so it is
-                  reachable by keyboard, not only on hover. */}
+              {/* The non-drag path to a preview. Always visible below the
+                  desktop breakpoint, because a touch screen has no hover to
+                  reveal it with and tapping the row toggles the checkbox
+                  instead. Kept visible on focus so it is reachable by
+                  keyboard, not only by pointer. */}
               <button
                 type="button"
                 onClick={() => onPreview(table.name)}
                 aria-label={`Preview ${table.name}`}
-                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground opacity-0 transition-[opacity,color,background-color] duration-200 group-hover:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-[opacity,color,background-color] duration-200 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:opacity-0 lg:group-hover:opacity-100"
               >
                 Preview
               </button>
