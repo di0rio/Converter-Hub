@@ -9,13 +9,23 @@ import { HUB_NAME, HUB_TAGLINE, TOOLS } from '@/lib/tools'
  * target is easier to hit on a phone, and it leaves one tab stop per tool
  * instead of one stop that does nothing plus one that navigates.
  */
-function ToolCard({ tool }: { tool: (typeof TOOLS)[number] }) {
+function ToolCard({
+  tool,
+  index,
+}: {
+  tool: (typeof TOOLS)[number]
+  index: number
+}) {
   const { Icon } = tool
 
   return (
     <Link
       href={tool.href}
-      className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-5 transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-input hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      // The lift is small on purpose: enough to say the card is the target,
+      // not so much that the grid moves while the eye scans it. The press
+      // scale is the same feedback every button in the product gives.
+      style={{ animationDelay: `${index * 60}ms` }}
+      className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-5 transition-[background-color,border-color,box-shadow,translate,scale] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-input hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-safe:animate-step-in motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-sm motion-safe:active:scale-[0.99] motion-safe:active:translate-y-0"
     >
       <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[0.625rem] bg-foreground text-background">
         <Icon className="size-5" aria-hidden="true" />
@@ -75,8 +85,8 @@ export function Hub(): React.ReactElement {
         </h2>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {TOOLS.map((tool) => (
-            <ToolCard key={tool.id} tool={tool} />
+          {TOOLS.map((tool, index) => (
+            <ToolCard key={tool.id} tool={tool} index={index} />
           ))}
         </div>
       </section>
