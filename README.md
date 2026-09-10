@@ -23,6 +23,11 @@ does not exist yet.
 | SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log | SQL, CSV, XLSX, JSON, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
+| Encoding | `/encoding` | Text, Base64, Hex, URL encoding, HTML entities | Text, Base64, Hex, URL encoding, HTML entities | Encodes pasted text, or decodes it back |
+| Case | `/case` | Text | camelCase, PascalCase, snake_case, kebab-case, SCREAMING_SNAKE_CASE, dot.case, Title Case | Renames identifiers, one per line |
+| Timestamps | `/timestamp` | Unix seconds, Unix milliseconds, ISO 8601 | Unix seconds, Unix milliseconds, ISO 8601 UTC | Shows one moment in every form |
+| Colors | `/color` | HEX, RGB, HSL | HEX, RGB, HSL | Shows one color in every notation |
+| JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript | Writes types that describe a JSON sample |
 
 They are independent tools that share a design system, a virtualised data grid,
 a ZIP writer, a CSV writer and a file dropzone. Adding another means an entry in
@@ -56,6 +61,18 @@ through the browser's `DOMParser`, which runs no script and loads no image, and
 a small serializer for headings, paragraphs, links, images, lists, tables,
 code, emphasis and strong text. Scripts, styles and the head are left out, and
 any other element keeps its text. Arbitrary HTML does not convert perfectly.
+
+The five text tools — Encoding, Case, Timestamps, Colors and JSON to
+TypeScript — take pasted text rather than a file, convert it as you type, and
+offer the result to copy or download. The conversions are plain functions in
+`packages/core/src/utilities`, sharing one page layout in the web app. Base64
+and hex go through UTF-8, so any text survives the round trip, and decoding
+refuses bytes that are not UTF-8 text. A whole number below 1e11 is read as
+Unix seconds and anything larger as milliseconds; an ISO 8601 date without an
+offset is read as UTC and the result says so — nothing uses the machine's
+timezone. A color out of range is refused, never clamped. JSON to TypeScript
+merges the values it sees into one type per position, marks a field some
+objects lack as optional, and writes `unknown` where the sample says nothing.
 
 The SQL tool takes two kinds of input through one picker. A *dump* is a script —
 the text `mysqldump` or `sqlite3 .dump` produces — and is parsed as text. A

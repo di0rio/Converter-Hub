@@ -13,6 +13,11 @@ works entirely in their browser.
 | SQL | `/sql` | SQL dumps, SQLite databases with their `-wal` | SQL, CSV, XLSX, JSON, Markdown |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown |
+| Encoding | `/encoding` | Text, Base64, Hex, URL encoding, HTML entities | the same |
+| Case | `/case` | Text | 7 identifier cases |
+| Timestamps | `/timestamp` | Unix seconds or milliseconds, ISO 8601 | all three, in UTC |
+| Colors | `/color` | HEX, RGB, HSL | all three |
+| JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript |
 
 The SQL tool's supported dump engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`. That catalog is
@@ -30,6 +35,13 @@ file. The direction follows the input. `apps/web/lib/markdown.ts` holds both
 directions; it renders nothing in the app, escapes raw HTML in Markdown, and
 keeps only `http`, `https`, `mailto` and relative addresses. Never add a
 preview that injects the converted HTML into the page.
+
+**Text tools workflow:** paste text → pick a mode, where there is one → read,
+copy or download the result, converted as you type. The five tools are one
+component, `apps/web/components/text-tool.tsx`, driven by a table of specs; the
+conversions are pure functions in `packages/core/src/utilities`. A new text
+tool is a spec entry, a registry entry and a route. Errors shown are only
+`DataFormatError` messages or a generic one.
 
 Structured data flows `parser → value → writer`. Parsers and the table gate
 (`recordsToTable`) are in `packages/core/src/csv` and `packages/core/src/records`;

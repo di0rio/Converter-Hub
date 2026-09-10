@@ -14,6 +14,11 @@ describe('tool registry', () => {
       'sql',
       'data',
       'markdown',
+      'encoding',
+      'case',
+      'timestamp',
+      'color',
+      'json-to-typescript',
     ])
   })
 
