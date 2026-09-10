@@ -10,7 +10,7 @@ works entirely in their browser.
 | Tool | Route | Reads | Writes |
 |------|-------|-------|--------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
-| SQL | `/sql` | SQL dumps | SQL, CSV, XLSX |
+| SQL | `/sql` | SQL dumps, SQLite database files | SQL, CSV, XLSX |
 
 The SQL tool's supported engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`.
@@ -20,6 +20,12 @@ CSV, the delimiter) → split → download.
 
 **SQL workflow:** select dump → select database → select tables → format →
 convert → download.
+
+A binary SQLite database (`.db`, `.sqlite`, `.sqlite3`) is recognised by its
+file header, not its extension, and rendered into `sqlite3 .dump` text by
+`apps/web/lib/sqlite-file.ts` before it reaches the parser. Everything after
+that point sees an ordinary dump. sql.js's WASM binary is served from
+`public/`, copied there at build time by `scripts/copy-sql-wasm.mjs`.
 
 Never list a tool in the registry before its route exists. The hub advertises
 only what is implemented.
