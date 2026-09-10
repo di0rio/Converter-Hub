@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { parseDump } from '@sql-extractor/core'
+import { TableViewer } from '@/components/table-viewer'
 import { PreviewWindow } from '@/components/preview-window'
 import type { PreviewWindow as PreviewWindowState } from '@/hooks/use-preview-windows'
 
@@ -14,7 +15,7 @@ const table = parseDump(DUMP).databases[0].tables[0]
 
 const state: PreviewWindowState = {
   id: 'w1',
-  tableName: 'users',
+  name: 'users',
   x: 30,
   y: 40,
   width: 400,
@@ -38,13 +39,15 @@ function setup(
   const view = render(
     <PreviewWindow
       window={state}
-      table={table}
+      name={table.name}
       rowCount={2}
       active
       bounds={{ width: 800, height: 600 }}
       {...handlers}
       {...overrides}
-    />,
+    >
+      <TableViewer table={table} hideHeader bare />
+    </PreviewWindow>,
   )
   return { ...view, ...handlers }
 }

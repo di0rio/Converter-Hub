@@ -77,7 +77,7 @@ describe('SqlExtractor', () => {
     ).toBeInTheDocument()
     expect(screen.getByText(/Select a database dump/i)).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Drop a file here/i }),
+      screen.getByRole('button', { name: /Choose SQL file/i }),
     ).toBeInTheDocument()
     // The tool sits inside the hub, and says so with a way back to it.
     expect(

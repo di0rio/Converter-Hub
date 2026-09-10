@@ -6,6 +6,7 @@ import {
   FileCode,
   FileSpreadsheet,
   Table,
+  Table2,
   Wand2,
 } from 'lucide-react'
 import {
@@ -22,12 +23,13 @@ import type {
 import { useSqlDump } from '@/hooks/use-sql-dump'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { findTool } from '@/lib/tools'
-import { FileDropzone } from '@/components/file-dropzone'
+import { FileSelect } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
 import { FormatCaveat } from '@/components/format-caveat'
 import { DatabaseSelect } from '@/components/database-select'
 import { TableSelect } from '@/components/table-select'
 import { Workspace } from '@/components/workspace'
+import { TableViewer } from '@/components/table-viewer'
 import { FormatOptions } from '@/components/format-options'
 import { DownloadStep } from '@/components/download-step'
 
@@ -172,7 +174,22 @@ export function SqlExtractor() {
     [closeAllWindows, loadFile, reportFileError],
   )
 
-  const previewedTables = windows.map((w) => w.tableName)
+  const previewedTables = windows.map((w) => w.name)
+
+  const tableNames = useMemo(
+    () => database?.tables.map((t) => t.name) ?? [],
+    [database],
+  )
+
+  // The workspace holds names; turning one back into a table is this tool's
+  // job, not the workspace's.
+  const renderTablePreview = useCallback(
+    (name: string) => {
+      const table = database?.tables.find((t) => t.name === name)
+      return table ? <TableViewer table={table} hideHeader bare /> : null
+    },
+    [database],
+  )
 
   const selectionPanel = (
     <div className="w-full max-w-lg space-y-8">
@@ -181,7 +198,7 @@ export function SqlExtractor() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive-foreground"
+          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive-foreground motion-safe:animate-step-in"
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <span>{error}</span>
@@ -189,23 +206,13 @@ export function SqlExtractor() {
       )}
 
       <div className="space-y-8">
-        <FileDropzone
+        <FileSelect
           id="sql-file-input"
           label="Select a database dump"
+          buttonLabel="Choose SQL file"
           accept={ACCEPTED_EXTENSIONS}
-          acceptHint={ACCEPTED_EXTENSIONS.join(' · ')}
           fileName={fileName || null}
-          // Inside the zone, what was established about the file that is
-          // there; underneath, what the tool can read and where it runs. Once
-          // a dump is loaded the summary has done its job and steps aside.
-          detail={
-            sourceFormat ? describeSource(sourceFormat, confidence) : null
-          }
-          description={
-            sourceFormat
-              ? 'Processed entirely in your browser.'
-              : `${SUPPORTED_SUMMARY} Processed entirely in your browser.`
-          }
+          description={`${describeSource(sourceFormat, confidence)} Processed entirely in your browser.`}
           onFile={handleFile}
           onError={reportFileError}
         />
@@ -213,26 +220,30 @@ export function SqlExtractor() {
         <FormatCaveat sourceFormat={sourceFormat} />
 
         {showDatabases && (
-          <DatabaseSelect
-            databases={dump.databases}
-            value={selectedDatabase}
-            onChange={handleSelectDatabase}
-            sourceFormat={sourceFormat}
-          />
+          <div className="motion-safe:animate-step-in">
+            <DatabaseSelect
+              databases={dump.databases}
+              value={selectedDatabase}
+              onChange={handleSelectDatabase}
+              sourceFormat={sourceFormat}
+            />
+          </div>
         )}
 
         {database && databaseHasTables && (
-          <TableSelect
-            database={database}
-            selectedTables={selectedTables}
-            allSelected={allTablesSelected}
-            someSelected={someTablesSelected}
-            rowCounts={rowCounts}
-            previewedTables={previewedTables}
-            onToggle={toggleTable}
-            onToggleAll={toggleAllTables}
-            onPreview={openWindow}
-          />
+          <div className="motion-safe:animate-step-in">
+            <TableSelect
+              database={database}
+              selectedTables={selectedTables}
+              allSelected={allTablesSelected}
+              someSelected={someTablesSelected}
+              rowCounts={rowCounts}
+              previewedTables={previewedTables}
+              onToggle={toggleTable}
+              onToggleAll={toggleAllTables}
+              onPreview={openWindow}
+            />
+          </div>
         )}
 
         {database && !databaseHasTables && sourceFormat && (
@@ -243,7 +254,7 @@ export function SqlExtractor() {
         )}
 
         {step === 'export' && (
-          <>
+          <div className="space-y-8 motion-safe:animate-step-in">
             <FormatOptions<ExportFormat>
               id="step-format"
               label="Export format"
@@ -274,7 +285,7 @@ export function SqlExtractor() {
               onReset={handleReset}
               onError={reportFileError}
             />
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -283,14 +294,18 @@ export function SqlExtractor() {
   return (
     // Two panes on desktop, stacked on narrow screens. The selection column is
     // a fixed track so opening a preview can never resize or reflow it.
-    <div className="flex w-full flex-col gap-6 lg:h-full lg:flex-row lg:gap-8">
+    <div className="flex w-full flex-col gap-6 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-8">
       <div className="no-scrollbar flex shrink-0 justify-center lg:w-[34rem] lg:justify-start lg:overflow-y-auto lg:pr-2">
         {selectionPanel}
       </div>
 
-      <div className="min-h-[24rem] min-w-0 flex-1 lg:h-full lg:min-h-0">
+      <div className="flex min-h-[24rem] min-w-0 flex-1 lg:min-h-0">
         <Workspace
-          database={database}
+          names={tableNames}
+          ready={database != null}
+          noun="table"
+          emptyIcon={Table2}
+          renderPreview={renderTablePreview}
           windows={windows}
           rowCounts={rowCounts}
           mode={mode}

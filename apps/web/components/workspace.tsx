@@ -7,9 +7,9 @@ import {
   Maximize2,
   PanelsTopLeft,
   Square,
-  Table2,
 } from 'lucide-react'
-import type { Database } from '@sql-extractor/core'
+import type { LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { PreviewWindow } from '@/components/preview-window'
 import { FullPreview } from '@/components/full-preview'
 import { SegmentedControl } from '@/components/segmented-control'
@@ -22,16 +22,30 @@ import {
   type Rect,
 } from '@/hooks/use-preview-windows'
 
-/** The drag payload a table row writes, so a stray text drop is ignored. */
-export const TABLE_DRAG_TYPE = 'application/x-sql-table'
+/**
+ * The drag payload a row writes, so a stray text drop is ignored.
+ *
+ * One type for both tools: a workspace only ever sees drops from the list
+ * beside it, and the names it accepts are checked against `names` anyway.
+ */
+export const PREVIEW_DRAG_TYPE = 'application/x-converter-preview'
 
 interface WorkspaceProps {
-  database: Database | null
+  /** Names that may be open. A window whose name is gone stops rendering. */
+  names: string[]
+  /** Whether there is anything loaded yet; hides the controls when not. */
+  ready: boolean
+  /** Draws one open item. This is all the workspace knows about content. */
+  renderPreview: (name: string) => ReactNode
+  /** What one open thing is called: "table", "sheet". */
+  noun: string
+  /** Drawn in the empty state, above the invitation to drop. */
+  emptyIcon: LucideIcon
   windows: PreviewWindowState[]
   rowCounts: Map<string, number>
   mode: PreviewMode
   layout: FullLayout
-  onOpen: (tableName: string, at?: { x: number; y: number }) => void
+  onOpen: (name: string, at?: { x: number; y: number }) => void
   onClose: (id: string) => void
   onCloseAll: () => void
   onFocus: (id: string) => void
@@ -41,7 +55,7 @@ interface WorkspaceProps {
   onLayoutChange: (layout: FullLayout) => void
   onChange: (
     id: string,
-    patch: Partial<Omit<PreviewWindowState, 'id' | 'tableName'>>,
+    patch: Partial<Omit<PreviewWindowState, 'id' | 'name'>>,
   ) => void
   /** Report the measured workspace size, which clamps every window. */
   onMeasure: (bounds: { width: number; height: number }) => void
@@ -69,14 +83,21 @@ const LAYOUT_OPTIONS = [
 ]
 
 /**
- * The visualisation half of the app: the surface that accepts dropped tables
- * and decides how the open ones share the space.
+ * The visualisation half of every tool: the surface that accepts dropped
+ * items and decides how the open ones share the space.
+ *
+ * It knows nothing about what it is showing — a dump table and a spreadsheet
+ * sheet both arrive as a name and a node to draw.
  *
  * It owns its own size (measured, not assumed) because every window position is
  * workspace-relative and has to be re-contained when the area changes.
  */
 export function Workspace({
-  database,
+  names,
+  ready,
+  renderPreview,
+  noun,
+  emptyIcon: EmptyIcon,
   windows,
   rowCounts,
   mode,
@@ -124,7 +145,7 @@ export function Workspace({
   const clearSnap = useCallback(() => setSnap(null), [])
 
   const accepts = (event: React.DragEvent) =>
-    event.dataTransfer.types.includes(TABLE_DRAG_TYPE)
+    event.dataTransfer.types.includes(PREVIEW_DRAG_TYPE)
 
   const onDragEnter = (event: React.DragEvent) => {
     if (!accepts(event)) return
@@ -151,8 +172,8 @@ export function Workspace({
     dragDepth.current = 0
     setDragOver(false)
 
-    const tableName = event.dataTransfer.getData(TABLE_DRAG_TYPE)
-    if (!tableName) return
+    const name = event.dataTransfer.getData(PREVIEW_DRAG_TYPE)
+    if (!name) return
 
     const target = event.currentTarget
     // Re-measure before placing. The observer reports asynchronously, so a drop
@@ -163,7 +184,7 @@ export function Workspace({
     // A full-width preview ignores the drop point, so only the windowed mode
     // pays for reading it.
     if (mode !== 'windows') {
-      onOpen(tableName)
+      onOpen(name)
       return
     }
 
@@ -176,21 +197,22 @@ export function Workspace({
 
     // Drop where the pointer landed, biased so the window opens under the
     // cursor rather than hanging off it.
-    onOpen(tableName, {
+    onOpen(name, {
       x: event.clientX - originX - WINDOW_DEFAULT_WIDTH / 2,
       y: event.clientY - originY - 16,
     })
   }
 
-  const tables = new Map(database?.tables.map((t) => [t.name, t]) ?? [])
-  // A window whose table vanished (database switched) must not render.
-  const open = windows.filter((w) => tables.has(w.tableName))
+  const available = new Set(names)
+  // A window whose item vanished (database or workbook switched) must not
+  // render.
+  const open = windows.filter((w) => available.has(w.name))
   const activeId = frontWindow(open)?.id ?? null
   const empty = open.length === 0
 
   return (
-    <div className="flex h-full w-full flex-col gap-2">
-      {database && (
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-2">
+      {ready && (
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <SegmentedControl
             label="Preview mode"
@@ -253,14 +275,14 @@ export function Workspace({
       >
         {empty && (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
-            <Table2
+            <EmptyIcon
               className="size-5 text-muted-foreground/50"
               aria-hidden="true"
             />
             <p className="text-sm text-muted-foreground">
               {dragOver
-                ? 'Drop to preview this table'
-                : 'Drop a table here to preview it'}
+                ? `Drop to preview this ${noun}`
+                : `Drop a ${noun} here to preview it`}
             </p>
             {!dragOver && (
               <p className="text-xs text-muted-foreground/70">
@@ -274,8 +296,9 @@ export function Workspace({
           <FullPreview
             layout={layout}
             windows={open}
-            tables={tables}
             rowCounts={rowCounts}
+            renderPreview={renderPreview}
+            noun={noun}
             activeId={activeId}
             onFocus={onFocus}
             onClose={onClose}
@@ -310,8 +333,8 @@ export function Workspace({
               <PreviewWindow
                 key={w.id}
                 window={w}
-                table={tables.get(w.tableName)!}
-                rowCount={rowCounts.get(w.tableName) ?? 0}
+                name={w.name}
+                rowCount={rowCounts.get(w.name) ?? 0}
                 active={w.id === activeId}
                 bounds={bounds}
                 onFocus={() => onFocus(w.id)}
@@ -323,7 +346,9 @@ export function Workspace({
                 onMaximize={() => onMaximize(w.id)}
                 onChange={(patch) => onChange(w.id, patch)}
                 onSnapPreview={setSnap}
-              />
+              >
+                {renderPreview(w.name)}
+              </PreviewWindow>
             ))}
           </>
         )}

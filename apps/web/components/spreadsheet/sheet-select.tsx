@@ -1,9 +1,12 @@
 'use client'
 
+import { useRef } from 'react'
 import { Sheet } from 'lucide-react'
 import type { SheetInfo } from '@/lib/spreadsheet'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { PREVIEW_DRAG_TYPE } from '@/components/workspace'
+import { createDragGhost } from '@/lib/drag-ghost'
 
 interface SheetSelectProps {
   sheets: SheetInfo[]
@@ -11,8 +14,8 @@ interface SheetSelectProps {
   selected: string[]
   allSelected: boolean
   someSelected: boolean
-  /** The sheet currently shown in the preview pane, if any. */
-  previewed: string | null
+  /** Sheets that currently have a preview open. */
+  previewed: string[]
   onToggle: (name: string) => void
   onToggleAll: () => void
   onPreview: (name: string) => void
@@ -30,6 +33,14 @@ export function SheetSelect({
   onPreview,
 }: SheetSelectProps) {
   const totalRows = sheets.reduce((sum, sheet) => sum + sheet.rows, 0)
+
+  // The live drag ghost, removed on dragend rather than on the next frame: a
+  // rAF can run before the browser has taken its snapshot.
+  const ghostRef = useRef<HTMLElement | null>(null)
+  const removeGhost = () => {
+    ghostRef.current?.remove()
+    ghostRef.current = null
+  }
 
   return (
     <section aria-labelledby="step-sheets">
@@ -57,8 +68,12 @@ export function SheetSelect({
 
         <div className="my-1 h-px bg-border" />
 
+        <span className="px-1 text-xs text-muted-foreground">
+          Drag a sheet into the workspace, or press Preview.
+        </span>
+
         {sheets.map((sheet) => {
-          const isPreviewed = previewed === sheet.name
+          const isPreviewed = previewed.includes(sheet.name)
           const rowLabel = sheet.empty
             ? 'empty'
             : `${sheet.rows.toLocaleString()} row${sheet.rows === 1 ? '' : 's'}`
@@ -66,8 +81,23 @@ export function SheetSelect({
           return (
             <div
               key={sheet.name}
+              draggable={!sheet.empty}
+              onDragStart={(event) => {
+                // A private type, so only the workspace reacts and a drop onto
+                // an unrelated text target does nothing.
+                event.dataTransfer.setData(PREVIEW_DRAG_TYPE, sheet.name)
+                event.dataTransfer.effectAllowed = 'copy'
+
+                removeGhost()
+                const ghost = createDragGhost(sheet.name, rowLabel)
+                document.body.appendChild(ghost)
+                ghostRef.current = ghost
+                event.dataTransfer.setDragImage(ghost, 16, 16)
+              }}
+              onDragEnd={removeGhost}
               className={
                 'group flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ' +
+                (sheet.empty ? '' : 'cursor-grab active:cursor-grabbing ') +
                 (isPreviewed
                   ? 'border-input bg-accent/40'
                   : 'border-transparent hover:bg-accent/50')

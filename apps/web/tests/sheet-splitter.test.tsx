@@ -88,10 +88,16 @@ describe('SheetSplitter', () => {
       screen.getByRole('heading', { name: /Split a spreadsheet/i }),
     ).toBeInTheDocument()
     expect(screen.getByText(/Select a spreadsheet/i)).toBeInTheDocument()
-    expect(screen.getByText(/\.xlsx · \.xlsm · \.xls/)).toBeInTheDocument()
-    expect(screen.getByText(/Nothing is uploaded/i)).toBeInTheDocument()
-    // The preview pane is not blank while it waits.
-    expect(screen.getByText(/No sheet open/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Reads \.xlsx, \.xlsm, \.xls workbooks/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Processed entirely in your browser/i),
+    ).toBeInTheDocument()
+    // The workspace is not blank while it waits.
+    expect(
+      screen.getByText(/Drop a sheet here to preview it/i),
+    ).toBeInTheDocument()
   })
 
   it('sits inside the hub, with a way back to it', () => {
@@ -108,7 +114,7 @@ describe('SheetSplitter', () => {
     const input = fileInput(container)
     expect(input.accept).toBe('.xlsx,.xlsm,.xls')
     expect(
-      screen.getByRole('button', { name: /Drop a file here/i }),
+      screen.getByRole('button', { name: /Choose spreadsheet/i }),
     ).toBeInTheDocument()
   })
 
@@ -129,7 +135,7 @@ describe('SheetSplitter', () => {
 
     await loadFile(container, makeFile(SAMPLE))
 
-    expect(screen.getByText('2 sheets found')).toBeInTheDocument()
+    expect(screen.getByText(/2 sheets found/)).toBeInTheDocument()
 
     // Scoped to the list: a sheet name also appears in the preview header.
     const sheets = within(
@@ -143,10 +149,15 @@ describe('SheetSplitter', () => {
     expect(sheets.getByText('1 row')).toBeInTheDocument()
   })
 
-  it('previews the first sheet with content, without being asked', async () => {
+  it('opens a sheet in the workspace on request, in the shared grid', async () => {
     const { container } = render(<SheetSplitter />)
 
     await loadFile(container, makeFile(SAMPLE))
+
+    // The workspace starts empty, exactly as the SQL tool's does.
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Clients' }))
 
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
     expect(
@@ -249,6 +260,8 @@ describe('SheetSplitter', () => {
     await waitFor(() =>
       expect(screen.queryByText('Clients')).not.toBeInTheDocument(),
     )
-    expect(screen.getByText(/No sheet open/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Drop a sheet here to preview it/i),
+    ).toBeInTheDocument()
   })
 })

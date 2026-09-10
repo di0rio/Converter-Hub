@@ -2,24 +2,23 @@
 
 import { useRef, useState } from 'react'
 import { FileCheck2, Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 
-interface FileDropzoneProps {
+interface FileSelectProps {
   /** Unique per page: ties the label, the input and its description together. */
   id: string
   /** The step's heading, e.g. "Select a database dump". */
   label: string
+  /** What the button says before a file is chosen. */
+  buttonLabel: string
   /** Extensions this tool reads, lowercase and dotted: ['.xlsx', '.csv']. */
   accept: string[]
-  /** Shown under the prompt before a file is chosen, e.g. ".xlsx · .xls". */
-  acceptHint: string
   /** The chosen file's name, once there is one. */
   fileName: string | null
-  /** What was learned about the file — sheet count, detected engine. */
-  detail: string | null
   reading?: boolean
-  /** The line under the zone. Both tools use it to say nothing is uploaded. */
+  /** The line under the control. Both tools use it to say nothing is uploaded. */
   description: string
   onFile: (file: File) => void
   onError: (message: string) => void
@@ -32,23 +31,25 @@ function listExtensions(accept: string[]): string {
 }
 
 /**
- * The entry point of every tool: a drop zone that is also a file picker.
+ * The entry point of every tool.
  *
- * It is a real `<button>`, so the keyboard and a screen reader get the same
- * path as the mouse — drag-and-drop is the shortcut, never the only way in.
+ * One quiet row, not a large dashed target: this step is passed through once
+ * and then sits at the top of a column of steps for the rest of the session, so
+ * it should not outweigh the choices that follow it. It still accepts a drop —
+ * the affordance costs nothing here — and it is a real button, so the keyboard
+ * and a screen reader get the same path as the mouse.
  */
-export function FileDropzone({
+export function FileSelect({
   id,
   label,
+  buttonLabel,
   accept,
-  acceptHint,
   fileName,
-  detail,
   reading = false,
   description,
   onFile,
   onError,
-}: FileDropzoneProps) {
+}: FileSelectProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   // Counts nested dragenter/dragleave pairs; a plain boolean flickers off when
   // the pointer crosses a child element.
@@ -93,8 +94,8 @@ export function FileDropzone({
         aria-describedby={`${id}-desc`}
       />
 
-      <button
-        type="button"
+      <Button
+        variant="outline"
         onClick={() => inputRef.current?.click()}
         onDragEnter={(event) => {
           event.preventDefault()
@@ -118,40 +119,21 @@ export function FileDropzone({
           handle(event.dataTransfer.files?.[0])
         }}
         className={
-          'flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl ' +
-          'border-2 border-dashed px-6 py-8 text-center transition-colors duration-200 ' +
-          'ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-2 focus-visible:ring-ring ' +
-          'focus-visible:outline-none ' +
-          (dragOver
-            ? 'border-ring bg-accent/40'
-            : fileName
-              ? 'border-input bg-accent/20'
-              : 'border-border bg-muted/20 hover:bg-accent/30')
+          'w-full justify-start ' +
+          (dragOver ? 'border-ring bg-accent/50 ring-2 ring-ring/40' : '')
         }
       >
         {reading ? (
-          <Spinner className="size-5 text-muted-foreground" />
+          <Spinner className="size-4" />
         ) : fileName ? (
-          <FileCheck2
-            className="size-5 text-muted-foreground"
-            aria-hidden="true"
-          />
+          <FileCheck2 className="size-4" aria-hidden="true" />
         ) : (
-          <Upload className="size-5 text-muted-foreground" aria-hidden="true" />
+          <Upload className="size-4" aria-hidden="true" />
         )}
-
-        <span className="max-w-full truncate text-sm font-medium">
-          {reading
-            ? 'Reading the file...'
-            : (fileName ?? 'Drop a file here, or click to choose one')}
+        <span className="truncate">
+          {reading ? 'Reading...' : (fileName ?? buttonLabel)}
         </span>
-
-        {!reading && (
-          <span className="text-xs text-muted-foreground">
-            {detail ?? acceptHint}
-          </span>
-        )}
-      </button>
+      </Button>
 
       <p id={`${id}-desc`} className="mt-2 text-xs text-muted-foreground">
         {description}

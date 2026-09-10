@@ -1,17 +1,25 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { AlertCircle, FileSpreadsheet, Scissors, Table } from 'lucide-react'
+import { useCallback, useMemo } from 'react'
+import {
+  AlertCircle,
+  FileSpreadsheet,
+  Scissors,
+  Sheet,
+  Table,
+} from 'lucide-react'
 import { formatBytes } from '@sql-extractor/core'
 import { useWorkbook } from '@/hooks/use-workbook'
+import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { ACCEPTED_EXTENSIONS, type ExportFormat } from '@/lib/spreadsheet'
 import { findTool } from '@/lib/tools'
-import { FileDropzone } from '@/components/file-dropzone'
+import { FileSelect } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
 import { FormatOptions } from '@/components/format-options'
 import { DownloadStep } from '@/components/download-step'
+import { Workspace } from '@/components/workspace'
 import { SheetSelect } from '@/components/spreadsheet/sheet-select'
-import { SheetPreview } from '@/components/spreadsheet/sheet-preview'
+import { SheetViewer } from '@/components/spreadsheet/sheet-viewer'
 
 const tool = findTool('spreadsheet')
 
@@ -24,6 +32,8 @@ const FORMATS = [
   },
   { id: 'csv' as const, label: 'CSV', hint: 'One .csv per sheet', Icon: Table },
 ]
+
+const ACCEPTED_SUMMARY = `Reads ${ACCEPTED_EXTENSIONS.join(', ')} workbooks.`
 
 export function SheetSplitter() {
   const {
@@ -48,32 +58,61 @@ export function SheetSplitter() {
     reset,
   } = useWorkbook()
 
-  const [opened, setOpened] = useState<string | null>(null)
-
-  // Derived, not stored: the pane opens on the first sheet with content unless
-  // one was picked, and a pick from a previous file is dropped rather than
-  // pointing at a sheet the new workbook does not have.
-  const previewed =
-    opened && exportable.some((sheet) => sheet.name === opened)
-      ? opened
-      : (exportable[0]?.name ?? null)
-
-  const handleReset = useCallback(() => {
-    setOpened(null)
-    reset()
-  }, [reset])
-
-  const handleFile = useCallback(
-    (file: File) => {
-      setOpened(null)
-      void loadFile(file)
-    },
-    [loadFile],
-  )
+  const {
+    windows,
+    mode,
+    layout,
+    openWindow,
+    closeWindow,
+    closeAllWindows,
+    focusWindow,
+    updateWindow,
+    toggleMinimize,
+    toggleMaximize,
+    setMode,
+    setLayout,
+    setBounds,
+  } = usePreviewWindows()
 
   const hasSheets = loadStatus === 'ready' && sheets.length > 0
-  const previewedRows =
-    sheets.find((sheet) => sheet.name === previewed)?.rows ?? 0
+
+  // Only sheets with content can be opened: an empty one has nothing to show.
+  const openable = useMemo(
+    () => exportable.map((sheet) => sheet.name),
+    [exportable],
+  )
+
+  const rowCounts = useMemo(
+    () => new Map(sheets.map((sheet) => [sheet.name, sheet.rows])),
+    [sheets],
+  )
+
+  const workbook = loaded?.workbook ?? null
+
+  // The workspace holds names; turning one back into a sheet is this tool's
+  // job, not the workspace's.
+  const renderSheetPreview = useCallback(
+    (name: string) =>
+      workbook ? <SheetViewer workbook={workbook} name={name} /> : null,
+    [workbook],
+  )
+
+  // Previews belong to the workbook they were opened from; loading another
+  // closes them rather than leaving windows pointing at sheets that are gone.
+  const handleFile = useCallback(
+    (file: File) => {
+      closeAllWindows()
+      void loadFile(file)
+    },
+    [closeAllWindows, loadFile],
+  )
+
+  const handleReset = useCallback(() => {
+    closeAllWindows()
+    reset()
+  }, [closeAllWindows, reset])
+
+  const previewedSheets = windows.map((w) => w.name)
 
   const selectionPanel = (
     <div className="w-full max-w-lg space-y-8">
@@ -82,7 +121,7 @@ export function SheetSplitter() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive-foreground"
+          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive-foreground motion-safe:animate-step-in"
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <span>{error}</span>
@@ -90,39 +129,40 @@ export function SheetSplitter() {
       )}
 
       <div className="space-y-8">
-        <FileDropzone
+        <FileSelect
           id="workbook-input"
           label="Select a spreadsheet"
+          buttonLabel="Choose spreadsheet"
           accept={ACCEPTED_EXTENSIONS}
-          acceptHint={ACCEPTED_EXTENSIONS.join(' · ')}
           fileName={loaded?.fileName ?? null}
-          detail={
-            loaded
-              ? `${sheets.length} sheet${sheets.length === 1 ? '' : 's'} found`
-              : null
-          }
           reading={loadStatus === 'reading'}
-          description="The file is read in your browser. Nothing is uploaded."
+          description={
+            loaded
+              ? `${sheets.length} sheet${sheets.length === 1 ? '' : 's'} found. Processed entirely in your browser.`
+              : `${ACCEPTED_SUMMARY} Processed entirely in your browser.`
+          }
           onFile={handleFile}
           onError={reportError}
         />
 
         {hasSheets && (
-          <SheetSelect
-            sheets={sheets}
-            exportableCount={exportable.length}
-            selected={selected}
-            allSelected={allSelected}
-            someSelected={someSelected}
-            previewed={previewed}
-            onToggle={toggleSheet}
-            onToggleAll={toggleAll}
-            onPreview={setOpened}
-          />
+          <div className="motion-safe:animate-step-in">
+            <SheetSelect
+              sheets={sheets}
+              exportableCount={exportable.length}
+              selected={selected}
+              allSelected={allSelected}
+              someSelected={someSelected}
+              previewed={previewedSheets}
+              onToggle={toggleSheet}
+              onToggleAll={toggleAll}
+              onPreview={openWindow}
+            />
+          </div>
         )}
 
         {hasSheets && exportable.length > 0 && (
-          <>
+          <div className="space-y-8 motion-safe:animate-step-in">
             <FormatOptions<ExportFormat>
               id="step-format"
               label="Output format"
@@ -157,7 +197,7 @@ export function SheetSplitter() {
               onReset={handleReset}
               onError={reportError}
             />
-          </>
+          </div>
         )}
 
         {hasSheets && exportable.length === 0 && (
@@ -171,18 +211,34 @@ export function SheetSplitter() {
 
   return (
     // Two panes on desktop, stacked on narrow screens. The selection column is
-    // a fixed track so the preview can never resize or reflow it — the same
-    // shape the SQL tool uses.
-    <div className="flex w-full flex-col gap-6 lg:h-full lg:flex-row lg:gap-8">
+    // a fixed track so opening a preview can never resize or reflow it — the
+    // same shape the SQL tool uses.
+    <div className="flex w-full flex-col gap-6 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-8">
       <div className="no-scrollbar flex shrink-0 justify-center lg:w-[34rem] lg:justify-start lg:overflow-y-auto lg:pr-2">
         {selectionPanel}
       </div>
 
-      <div className="min-h-[24rem] min-w-0 flex-1 lg:h-full lg:min-h-0">
-        <SheetPreview
-          workbook={loaded?.workbook ?? null}
-          sheetName={previewed}
-          totalRows={previewedRows}
+      <div className="flex min-h-[24rem] min-w-0 flex-1 lg:min-h-0">
+        <Workspace
+          names={openable}
+          ready={hasSheets}
+          noun="sheet"
+          emptyIcon={Sheet}
+          renderPreview={renderSheetPreview}
+          windows={windows}
+          rowCounts={rowCounts}
+          mode={mode}
+          layout={layout}
+          onOpen={openWindow}
+          onClose={closeWindow}
+          onCloseAll={closeAllWindows}
+          onFocus={focusWindow}
+          onMinimize={toggleMinimize}
+          onMaximize={toggleMaximize}
+          onModeChange={setMode}
+          onLayoutChange={setLayout}
+          onChange={updateWindow}
+          onMeasure={setBounds}
         />
       </div>
     </div>

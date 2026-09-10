@@ -29,7 +29,7 @@ export interface Rect {
  */
 export interface PreviewWindow extends Rect {
   id: string
-  tableName: string
+  name: string
   /**
    * Paint order: the highest `z` is the front-most, active window.
    *
@@ -145,13 +145,13 @@ export function usePreviewWindows() {
    * off the ones already open so a second table never lands exactly on the first.
    */
   const openWindow = useCallback(
-    (tableName: string, at?: { x: number; y: number }) => {
+    (name: string, at?: { x: number; y: number }) => {
       setWindows((prev) => {
         topZ.current += 1
         const single =
           modeRef.current === 'full' && layoutRef.current === 'single'
 
-        const existing = prev.find((w) => w.tableName === tableName)
+        const existing = prev.find((w) => w.name === name)
         // Already open: raise and un-collapse it instead of stacking a duplicate.
         if (existing) {
           const raised = prev.map((w) =>
@@ -165,8 +165,8 @@ export function usePreviewWindows() {
         const step = (prev.length % CASCADE_LIMIT) * CASCADE_STEP
         const opened = containWindow(
           {
-            id: `${tableName}-${Date.now()}-${topZ.current}`,
-            tableName,
+            id: `${name}-${Date.now()}-${topZ.current}`,
+            name,
             x: at ? at.x : step,
             y: at ? at.y : step,
             width: WINDOW_DEFAULT_WIDTH,
@@ -203,7 +203,7 @@ export function usePreviewWindows() {
 
   /** Apply a moved or resized geometry, clamped to the workspace. */
   const updateWindow = useCallback(
-    (id: string, patch: Partial<Omit<PreviewWindow, 'id' | 'tableName'>>) => {
+    (id: string, patch: Partial<Omit<PreviewWindow, 'id' | 'name'>>) => {
       setWindows((prev) =>
         prev.map((w) => {
           if (w.id !== id) return w

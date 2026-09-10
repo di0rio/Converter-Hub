@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Maximize2, Minimize2, Minus, X } from 'lucide-react'
-import type { Table } from '@sql-extractor/core'
-import { TableViewer } from '@/components/table-viewer'
+import type { ReactNode } from 'react'
 import { snapTarget, sameRect } from '@/lib/window-snap'
 import type {
   Rect,
@@ -13,7 +12,9 @@ import type {
 
 interface PreviewWindowProps {
   window: PreviewWindowState
-  table: Table
+  name: string
+  /** Draws the item. The window does not know what it is holding. */
+  children: ReactNode
   rowCount: number
   /** True for the front-most window. */
   active: boolean
@@ -23,9 +24,7 @@ interface PreviewWindowProps {
   onClose: () => void
   onMinimize: () => void
   onMaximize: () => void
-  onChange: (
-    patch: Partial<Omit<PreviewWindowState, 'id' | 'tableName'>>,
-  ) => void
+  onChange: (patch: Partial<Omit<PreviewWindowState, 'id' | 'name'>>) => void
   /** Report the region a release would snap to, so the workspace can draw it. */
   onSnapPreview: (rect: Rect | null) => void
 }
@@ -36,7 +35,7 @@ const HEADER_HEIGHT = 33
  * Collapsed windows paint above every expanded one.
  *
  * A collapsed window is only a handle, and a handle that a maximised window can
- * bury is a table with no way back to it.
+ * bury is an item with no way back to it.
  */
 const COLLAPSED_LAYER = 100_000
 /** How long a maximise, restore or snap takes to settle. */
@@ -47,7 +46,7 @@ type Gesture =
   | { kind: 'resize'; x0: number; y0: number; w: number; h: number }
 
 /**
- * One floating table preview inside the workspace.
+ * One floating preview inside the workspace.
  *
  * Positioned absolutely against the workspace, never the viewport, so it cannot
  * drift over the selection panel or off the page. Gestures use native Pointer
@@ -55,7 +54,8 @@ type Gesture =
  */
 export function PreviewWindow({
   window: win,
-  table,
+  name,
+  children,
   rowCount,
   active,
   bounds,
@@ -227,13 +227,12 @@ export function PreviewWindow({
 
   const maximized = win.restore !== null
   const height = win.minimized ? HEADER_HEIGHT : win.height
-  const viewportHeight = Math.max(0, win.height - HEADER_HEIGHT)
 
   return (
     <div
       ref={root}
       role="dialog"
-      aria-label={`${table.name} preview`}
+      aria-label={`${name} preview`}
       data-active={active ? '' : undefined}
       onPointerDown={onFocus}
       style={{
@@ -262,7 +261,7 @@ export function PreviewWindow({
         // A real gesture surface, not a control: the buttons inside it stay the
         // keyboard path, and the header itself is reachable for arrow-key moves.
         tabIndex={0}
-        aria-label={`Move ${table.name} window`}
+        aria-label={`Move ${name} window`}
         onPointerDown={startMove}
         onPointerMove={onPointerMove}
         onPointerUp={endGesture}
@@ -284,7 +283,7 @@ export function PreviewWindow({
             (active ? 'text-foreground' : 'text-muted-foreground')
           }
         >
-          {table.name}
+          {name}
         </span>
         <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
           {rowCount.toLocaleString()} row{rowCount === 1 ? '' : 's'}
@@ -294,8 +293,8 @@ export function PreviewWindow({
           <WindowButton
             label={
               win.minimized
-                ? `Expand ${table.name} preview`
-                : `Collapse ${table.name} preview`
+                ? `Expand ${name} preview`
+                : `Collapse ${name} preview`
             }
             onClick={onMinimize}
           >
@@ -303,9 +302,7 @@ export function PreviewWindow({
           </WindowButton>
           <WindowButton
             label={
-              maximized
-                ? `Restore ${table.name} preview`
-                : `Maximize ${table.name} preview`
+              maximized ? `Restore ${name} preview` : `Maximize ${name} preview`
             }
             onClick={maximize}
           >
@@ -316,7 +313,7 @@ export function PreviewWindow({
             )}
           </WindowButton>
           <WindowButton
-            label={`Close ${table.name} preview`}
+            label={`Close ${name} preview`}
             onClick={onClose}
             className="hover:bg-destructive/10 hover:text-destructive"
           >
@@ -327,18 +324,11 @@ export function PreviewWindow({
 
       {!win.minimized && (
         <>
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <TableViewer
-              table={table}
-              hideHeader
-              height={viewportHeight}
-              bare
-            />
-          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
 
           <div
             role="separator"
-            aria-label={`Resize ${table.name} preview`}
+            aria-label={`Resize ${name} preview`}
             onPointerDown={startResize}
             onPointerMove={onPointerMove}
             onPointerUp={endGesture}
