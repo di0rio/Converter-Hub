@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **XML in the Data tool.** Read with `DOMParser` into a fixed, documented shape
+  (`@attributes`, repeated elements as lists, `#text`), never resolving external
+  entities. `recordsToTable` now steps through single-property wrappers to reach
+  a list, so `<people><person>…` converts to a table.
 - **A Data tool at `/data`.** One structured file in, one file out: CSV, TSV,
   JSON, JSON Lines and YAML in; CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL
   and XLSX out. A table output refuses a nested document instead of flattening

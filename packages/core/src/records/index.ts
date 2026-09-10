@@ -61,17 +61,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/** Named wrappers deeper than this are not a table, and a cycle ends here. */
+const MAX_WRAPPERS = 32
+
 /**
- * The records a value holds: the value itself when it is a list, or the one
- * list inside an object that holds exactly one property — the common
- * `{ "items": [...] }` wrapper. Anything else is not a collection.
+ * The records a value holds: the value itself when it is a list, or the list
+ * reached by stepping through objects that each hold exactly one property —
+ * `{ "items": [...] }`, or XML's `<people><person>…`. An object with more than
+ * one property on the way is not a collection: which list would it mean?
  */
 function collection(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value
-  if (isRecord(value)) {
-    const fields = Object.values(value)
-    if (fields.length === 1 && Array.isArray(fields[0])) return fields[0]
+  let current = value
+  for (let depth = 0; depth < MAX_WRAPPERS && isRecord(current); depth++) {
+    const fields = Object.values(current)
+    if (fields.length !== 1) break
+    current = fields[0]
   }
+  if (Array.isArray(current)) return current
   throw new DataFormatError(NOT_A_TABLE)
 }
 

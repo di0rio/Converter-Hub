@@ -32,6 +32,7 @@ export const FILE_FORMATS = {
     extensions: ['.yaml', '.yml'],
     type: 'application/yaml',
   },
+  xml: { label: 'XML', extensions: ['.xml'], type: 'application/xml' },
   markdown: { label: 'Markdown', extensions: ['.md'], type: 'text/markdown' },
   sql: { label: 'SQL', extensions: ['.sql'], type: 'application/sql' },
   xlsx: {
@@ -44,7 +45,14 @@ export const FILE_FORMATS = {
 export type FormatId = keyof typeof FILE_FORMATS
 
 /** What the data tool reads, and what it writes. The card derives from these. */
-export const DATA_INPUTS = ['csv', 'tsv', 'json', 'jsonl', 'yaml'] as const
+export const DATA_INPUTS = [
+  'csv',
+  'tsv',
+  'json',
+  'jsonl',
+  'yaml',
+  'xml',
+] as const
 export const DATA_OUTPUTS = [
   'csv',
   'tsv',

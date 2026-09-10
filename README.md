@@ -21,7 +21,7 @@ does not exist yet.
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
 | SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log | SQL, CSV, XLSX, JSON, Markdown | Extracts the tables you pick out of a dump or a database file |
-| Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
+| Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 
 They are independent tools that share a design system, a virtualised data grid,
 a ZIP writer, a CSV writer and a file dropzone. Adding another means an entry in
@@ -36,6 +36,14 @@ delimiter is detected from its header line, and its values stay text. YAML is
 read with the `yaml` library, whose default alias limit refuses a document that
 expands into a huge graph from a few bytes, and it is loaded only when a YAML
 file is read or written.
+
+XML is read with the browser's own `DOMParser`, which runs nothing and never
+fetches an external entity or DTD, into one fixed shape: the root element as
+`{ "root": … }`, attributes as `"@name"`, a repeated element as a list in
+document order, a text-only element as its text, and text beside attributes or
+children under `"#text"`. A list wrapped in single-property layers —
+`<people><person>…` — reaches the table outputs as that list. A malformed file
+is refused without quoting the parser's message, which would quote the file.
 
 The SQL tool takes two kinds of input through one picker. A *dump* is a script —
 the text `mysqldump` or `sqlite3 .dump` produces — and is parsed as text. A
