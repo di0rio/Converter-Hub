@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { parseDump } from '@sql-extractor/core'
-import { Workspace, TABLE_DRAG_TYPE } from '@/components/workspace'
+import { Table2 } from 'lucide-react'
+import { Workspace, PREVIEW_DRAG_TYPE } from '@/components/workspace'
+import { TableViewer } from '@/components/table-viewer'
 import type { PreviewWindow } from '@/hooks/use-preview-windows'
 
 // Synthetic fixture — no real data.
@@ -22,7 +24,7 @@ const rowCounts = new Map([
 
 const openWindow = (patch: Partial<PreviewWindow> = {}): PreviewWindow => ({
   id: 'w1',
-  tableName: 'users',
+  name: 'users',
   x: 10,
   y: 20,
   width: 400,
@@ -48,7 +50,17 @@ function setup(props: Partial<React.ComponentProps<typeof Workspace>> = {}) {
   }
   const view = render(
     <Workspace
-      database={database}
+      names={database.tables.map((t) => t.name)}
+      ready
+      noun="table"
+      emptyIcon={Table2}
+      renderPreview={(name) => (
+        <TableViewer
+          table={database.tables.find((t) => t.name === name)!}
+          hideHeader
+          bare
+        />
+      )}
       windows={[]}
       rowCounts={rowCounts}
       mode="windows"
@@ -61,10 +73,10 @@ function setup(props: Partial<React.ComponentProps<typeof Workspace>> = {}) {
 }
 
 /** A drag payload carrying a table name, as the table list writes it. */
-function tableTransfer(tableName: string) {
+function tableTransfer(name: string) {
   return {
-    types: [TABLE_DRAG_TYPE],
-    getData: (type: string) => (type === TABLE_DRAG_TYPE ? tableName : ''),
+    types: [PREVIEW_DRAG_TYPE],
+    getData: (type: string) => (type === PREVIEW_DRAG_TYPE ? name : ''),
     dropEffect: 'none',
   }
 }
@@ -158,8 +170,8 @@ describe('Workspace', () => {
   it('stacks windows by z-index and leaves the DOM order alone', () => {
     setup({
       windows: [
-        openWindow({ id: 'a', tableName: 'users', z: 5 }),
-        openWindow({ id: 'b', tableName: 'orders', z: 2 }),
+        openWindow({ id: 'a', name: 'users', z: 5 }),
+        openWindow({ id: 'b', name: 'orders', z: 2 }),
       ],
     })
 
@@ -176,7 +188,7 @@ describe('Workspace', () => {
   })
 
   it('skips a window whose table is no longer in the database', () => {
-    setup({ windows: [openWindow({ tableName: 'gone' })] })
+    setup({ windows: [openWindow({ name: 'gone' })] })
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByText(/drop a table here/i)).toBeInTheDocument()
@@ -196,8 +208,8 @@ describe('Workspace', () => {
     const { onFocus } = setup({
       mode: 'full',
       windows: [
-        openWindow({ id: 'a', tableName: 'users', z: 2 }),
-        openWindow({ id: 'b', tableName: 'orders', z: 1 }),
+        openWindow({ id: 'a', name: 'users', z: 2 }),
+        openWindow({ id: 'b', name: 'orders', z: 1 }),
       ],
     })
 
@@ -214,8 +226,8 @@ describe('Workspace', () => {
       mode: 'full',
       layout: 'split',
       windows: [
-        openWindow({ id: 'a', tableName: 'users' }),
-        openWindow({ id: 'b', tableName: 'orders' }),
+        openWindow({ id: 'a', name: 'users' }),
+        openWindow({ id: 'b', name: 'orders' }),
       ],
     })
 
@@ -249,7 +261,17 @@ describe('Workspace', () => {
 
     rerender(
       <Workspace
-        database={database}
+        names={database.tables.map((t) => t.name)}
+        ready
+        noun="table"
+        emptyIcon={Table2}
+        renderPreview={(name) => (
+          <TableViewer
+            table={database.tables.find((t) => t.name === name)!}
+            hideHeader
+            bare
+          />
+        )}
         windows={[openWindow()]}
         rowCounts={rowCounts}
         mode="windows"
@@ -272,7 +294,7 @@ describe('Workspace', () => {
   })
 
   it('keeps the toolbar out of the way until a database is loaded', () => {
-    setup({ database: null })
+    setup({ ready: false })
     expect(
       screen.queryByRole('radiogroup', { name: 'Preview mode' }),
     ).not.toBeInTheDocument()

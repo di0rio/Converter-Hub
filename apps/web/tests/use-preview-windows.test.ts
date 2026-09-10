@@ -15,7 +15,7 @@ const BOUNDS = { width: 800, height: 600 }
 
 const win = (patch: Partial<PreviewWindow> = {}): PreviewWindow => ({
   id: 'w1',
-  tableName: 'users',
+  name: 'users',
   x: 0,
   y: 0,
   width: WINDOW_DEFAULT_WIDTH,
@@ -75,7 +75,7 @@ describe('usePreviewWindows', () => {
     act(() => result.current.openWindow('users'))
 
     expect(result.current.windows).toHaveLength(1)
-    expect(result.current.windows[0].tableName).toBe('users')
+    expect(result.current.windows[0].name).toBe('users')
   })
 
   it('cascades each new window instead of stacking them exactly', () => {
@@ -97,7 +97,7 @@ describe('usePreviewWindows', () => {
     act(() => result.current.openWindow('users'))
 
     expect(result.current.windows).toHaveLength(2)
-    expect(frontWindow(result.current.windows)!.tableName).toBe('users')
+    expect(frontWindow(result.current.windows)!.name).toBe('users')
   })
 
   it('keeps insertion order in the array so no DOM node ever moves', () => {
@@ -107,7 +107,7 @@ describe('usePreviewWindows', () => {
     act(() => result.current.openWindow('orders'))
     act(() => result.current.focusWindow(result.current.windows[0].id))
 
-    expect(result.current.windows.map((w) => w.tableName)).toEqual([
+    expect(result.current.windows.map((w) => w.name)).toEqual([
       'users',
       'orders',
     ])
@@ -139,7 +139,7 @@ describe('usePreviewWindows', () => {
     const users = result.current.windows[0]
     act(() => result.current.focusWindow(users.id))
 
-    expect(frontWindow(result.current.windows)!.tableName).toBe('users')
+    expect(frontWindow(result.current.windows)!.name).toBe('users')
   })
 
   it('keeps the order when focusing the front-most window', () => {
@@ -159,7 +159,7 @@ describe('usePreviewWindows', () => {
 
     act(() => result.current.closeWindow(result.current.windows[0].id))
 
-    expect(result.current.windows.map((w) => w.tableName)).toEqual(['orders'])
+    expect(result.current.windows.map((w) => w.name)).toEqual(['orders'])
   })
 
   it('closes every window at once', () => {
@@ -293,7 +293,7 @@ describe('usePreviewWindows', () => {
     act(() => result.current.openWindow('users'))
     act(() => result.current.openWindow('orders'))
 
-    expect(result.current.windows.map((w) => w.tableName)).toEqual(['orders'])
+    expect(result.current.windows.map((w) => w.name)).toEqual(['orders'])
   })
 
   it('keeps only the front-most table when the single layout is adopted', () => {
@@ -304,7 +304,7 @@ describe('usePreviewWindows', () => {
 
     act(() => result.current.setLayout('single'))
 
-    expect(result.current.windows.map((w) => w.tableName)).toEqual(['users'])
+    expect(result.current.windows.map((w) => w.name)).toEqual(['users'])
   })
 
   it('expands collapsed windows when the windowed mode is entered', () => {

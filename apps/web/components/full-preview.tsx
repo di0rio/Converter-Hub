@@ -1,8 +1,7 @@
 'use client'
 
 import { X } from 'lucide-react'
-import type { Table } from '@sql-extractor/core'
-import { TableViewer } from '@/components/table-viewer'
+import type { ReactNode } from 'react'
 import type {
   FullLayout,
   PreviewWindow as PreviewWindowState,
@@ -12,8 +11,11 @@ interface FullPreviewProps {
   layout: FullLayout
   /** Open tables in insertion order, so nothing reshuffles under the pointer. */
   windows: PreviewWindowState[]
-  tables: Map<string, Table>
   rowCounts: Map<string, number>
+  /** Draws one open item. The workspace does not know what it is looking at. */
+  renderPreview: (name: string) => ReactNode
+  /** What one open thing is called, for labels: "table", "sheet". */
+  noun: string
   /** The front-most window: the one a tabbed or single layout shows. */
   activeId: string | null
   onFocus: (id: string) => void
@@ -33,8 +35,9 @@ const rowLabel = (rows: number) =>
 export function FullPreview({
   layout,
   windows,
-  tables,
   rowCounts,
+  renderPreview,
+  noun,
   activeId,
   onFocus,
   onClose,
@@ -54,7 +57,7 @@ export function FullPreview({
         {windows.map((w) => (
           <section
             key={w.id}
-            aria-label={`${w.tableName} preview`}
+            aria-label={`${w.name} preview`}
             onPointerDown={() => onFocus(w.id)}
             className={
               'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border bg-card ' +
@@ -66,12 +69,12 @@ export function FullPreview({
             }
           >
             <PanelHeader
-              name={w.tableName}
-              rows={rowCounts.get(w.tableName) ?? 0}
+              name={w.name}
+              rows={rowCounts.get(w.name) ?? 0}
               onClose={() => onClose(w.id)}
             />
             <div className="min-h-0 flex-1 overflow-hidden">
-              <TableViewer table={tables.get(w.tableName)!} hideHeader bare />
+              {renderPreview(w.name)}
             </div>
           </section>
         ))}
@@ -87,7 +90,7 @@ export function FullPreview({
       {layout === 'tabs' ? (
         <div
           role="tablist"
-          aria-label="Open table previews"
+          aria-label={`Open ${noun} previews`}
           className="no-scrollbar flex shrink-0 items-end gap-1 overflow-x-auto border-b border-border bg-muted/25 px-2 pt-2"
         >
           {windows.map((w) => {
@@ -128,16 +131,16 @@ export function FullPreview({
                   }}
                   className="flex min-w-0 items-center gap-2 text-xs font-medium outline-none"
                 >
-                  <span className="max-w-[12rem] truncate">{w.tableName}</span>
+                  <span className="max-w-[12rem] truncate">{w.name}</span>
                   <span className="text-[11px] font-normal text-muted-foreground tabular-nums">
-                    {(rowCounts.get(w.tableName) ?? 0).toLocaleString()}
+                    {(rowCounts.get(w.name) ?? 0).toLocaleString()}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onClose(w.id)}
-                  aria-label={`Close ${w.tableName} preview`}
-                  title={`Close ${w.tableName} preview`}
+                  aria-label={`Close ${w.name} preview`}
+                  title={`Close ${w.name} preview`}
                   className={
                     '-mr-1.5 rounded p-0.5 text-muted-foreground ' +
                     'transition-[opacity,background-color,color,transform] duration-150 ' +
@@ -157,21 +160,21 @@ export function FullPreview({
         </div>
       ) : (
         <PanelHeader
-          name={active.tableName}
-          rows={rowCounts.get(active.tableName) ?? 0}
+          name={active.name}
+          rows={rowCounts.get(active.name) ?? 0}
           onClose={() => onClose(active.id)}
         />
       )}
 
       <div
         role="tabpanel"
-        aria-label={`${active.tableName} preview`}
+        aria-label={`${active.name} preview`}
         // Keyed on the table so switching tabs remounts the viewer: the scroll
         // position belongs to the table, not to the panel it happens to be in.
         key={active.id}
         className="min-h-0 flex-1 overflow-hidden bg-card motion-safe:animate-preview-in"
       >
-        <TableViewer table={tables.get(active.tableName)!} hideHeader bare />
+        {renderPreview(active.name)}
       </div>
     </div>
   )
