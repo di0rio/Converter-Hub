@@ -50,6 +50,12 @@ const FORMATS = [
     Icon: FileJson,
   },
   {
+    id: 'jsonl' as const,
+    label: 'JSON Lines',
+    hint: 'One file per table',
+    Icon: FileJson,
+  },
+  {
     id: 'md' as const,
     label: 'Markdown',
     hint: 'One file per table',

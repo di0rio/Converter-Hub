@@ -99,9 +99,24 @@ describe('buildSqliteExport', () => {
     expect(Object.keys(entries(result.bytes))).toEqual(['shop.xlsx'])
   })
 
-  it.each(['json', 'md'] as const)('writes one %s per table', (format) => {
-    const result = buildSqliteExport('shop', [table()], format)
-    expect(Object.keys(entries(result.bytes))).toEqual([`crew.${format}`])
+  it.each(['json', 'jsonl', 'md'] as const)(
+    'writes one %s per table',
+    (format) => {
+      const result = buildSqliteExport('shop', [table()], format)
+      expect(Object.keys(entries(result.bytes))).toEqual([`crew.${format}`])
+    },
+  )
+
+  it('writes JSON Lines as one record per row', () => {
+    const result = buildSqliteExport('shop', [table()], 'jsonl')
+    const text = strFromU8(entries(result.bytes)['crew.jsonl'] as Uint8Array)
+    const records = text
+      .trimEnd()
+      .split('\n')
+      .map((line) => JSON.parse(line))
+
+    expect(records).toHaveLength(2)
+    expect(records[0].name).toBe('Ada')
   })
 
   // The protection exists because a spreadsheet opens CSV cells as formulas.

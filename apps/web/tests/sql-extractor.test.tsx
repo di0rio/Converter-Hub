@@ -247,7 +247,12 @@ describe('SqlExtractor', () => {
     expect(screen.getByRole('radio', { name: /SQL/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /CSV/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Excel/i })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: /JSON/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('radio', { name: /^JSON(?! Lines)/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('radio', { name: /JSON Lines/i }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Markdown/i })).toBeInTheDocument()
 
     expect(screen.getByLabelText(/Convert and download/i)).toBeInTheDocument()

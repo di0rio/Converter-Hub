@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **JSON Lines from the SQL tool.** Dumps and SQLite databases export one
+  `.jsonl` per table, one record per row, through the core's `toJsonl` and
+  `tableToRecords`.
 - **Five text tools: `/encoding`, `/case`, `/timestamp`, `/color` and
   `/json-to-typescript`.** Paste text, pick a mode, and the result updates as
   you type, ready to copy or download. Base64, hex, URL encoding and HTML

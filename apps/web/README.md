@@ -46,7 +46,8 @@ Open [http://localhost:3000](http://localhost:3000) and pick a tool.
 SheetJS in the tab.
 
 **SQL:** choose a dump or a SQLite database (with its `-wal` and `-shm`) → pick
-a database, for a dump → pick tables → choose SQL, CSV, XLSX, JSON or Markdown →
+a database, for a dump → pick tables → choose SQL, CSV, XLSX, JSON, JSON Lines
+or Markdown →
 convert → download a ZIP. `components/sql-tool.tsx` reads the first bytes of
 the pick: a SQLite header or a `-wal`/`-shm` companion goes to the SQLite reader
 (a real SQLite build in WebAssembly, read-only), anything else to the dump

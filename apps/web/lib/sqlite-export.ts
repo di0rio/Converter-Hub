@@ -5,6 +5,8 @@ import {
   toXlsx,
   sqliteToSql,
   sqliteToTabular,
+  tableToRecords,
+  toJsonl,
   uniqueName,
 } from '@sql-extractor/core'
 import type {
@@ -28,7 +30,13 @@ import { toJson, toMarkdown } from '@/lib/sheet-writers'
  * carries the original DDL instead of a flattened guess.
  */
 
-export type SqliteExportFormat = 'sql' | 'csv' | 'xlsx' | 'json' | 'md'
+export type SqliteExportFormat =
+  | 'sql'
+  | 'csv'
+  | 'xlsx'
+  | 'json'
+  | 'jsonl'
+  | 'md'
 
 export interface SqliteExportOptions {
   delimiter?: CsvDelimiter
@@ -86,7 +94,9 @@ export function buildSqliteExport(
           ? toCsv(tabular, { delimiter })
           : format === 'json'
             ? toJson(tabular)
-            : toMarkdown(tabular)
+            : format === 'jsonl'
+              ? toJsonl(tableToRecords(tabular))
+              : toMarkdown(tabular)
       files.push({
         name: `${uniqueName(toFileName(table.name, 'table'), taken)}.${format}`,
         content: encoder.encode(content),

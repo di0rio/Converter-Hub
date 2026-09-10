@@ -20,7 +20,7 @@ does not exist yet.
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
-| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log | SQL, CSV, XLSX, JSON, Markdown | Extracts the tables you pick out of a dump or a database file |
+| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
 | Encoding | `/encoding` | Text, Base64, Hex, URL encoding, HTML entities | Text, Base64, Hex, URL encoding, HTML entities | Encodes pasted text, or decodes it back |
@@ -162,7 +162,8 @@ collide once cleaned, or differ only by case, get separate files.
 - **SQLite's own tables** (`sqlite_*`, such as `sqlite_sequence`) are not
   listed. The SQL export therefore does not carry `AUTOINCREMENT` counters; a
   replayed table continues from its highest row id instead.
-- **The CLI** writes CSV, XLSX and SQL. JSON and Markdown are browser-only.
+- **The CLI** writes CSV, XLSX and SQL. JSON, JSON Lines and Markdown are
+  browser-only.
 - **Encrypted databases** (SQLCipher and similar) cannot be opened, and are
   reported as unreadable. No attempt is made to bypass encryption.
 - **Corrupt databases** are refused, not partially exported.
