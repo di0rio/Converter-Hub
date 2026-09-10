@@ -9,6 +9,8 @@ import {
   UnsupportedFormatError,
   createZip,
   toFileName,
+  tableToRecords,
+  toJsonl,
   toTabular,
   uniqueName,
 } from '@sql-extractor/core'
@@ -25,14 +27,16 @@ import { toJson, toMarkdown } from '@/lib/sheet-writers'
 export type Step = 'file' | 'database' | 'tables' | 'export'
 export type ConversionStatus = 'idle' | 'converting' | 'done'
 
-/** The core writes SQL, CSV and XLSX; JSON and Markdown are the web writers. */
-export type DumpExportFormat = ExportFormat | 'json' | 'md'
+/** The core writes SQL, CSV and XLSX; JSON, JSON Lines and Markdown are the web writers. */
+export type DumpExportFormat = ExportFormat | TextExportFormat
 
-/** One JSON or Markdown file per selected table, packed into a ZIP. */
+type TextExportFormat = 'json' | 'jsonl' | 'md'
+
+/** One JSON, JSON Lines or Markdown file per selected table, packed into a ZIP. */
 function textExport(
   database: Database,
   tables: readonly string[],
-  format: 'json' | 'md',
+  format: TextExportFormat,
 ): ExportResult {
   const encoder = new TextEncoder()
   // Table names become entry names, and two can collide once cleaned.
@@ -44,7 +48,11 @@ function textExport(
       return {
         name: `${uniqueName(toFileName(table.name, 'table'), taken)}.${format}`,
         content: encoder.encode(
-          format === 'json' ? toJson(tabular) : toMarkdown(tabular),
+          format === 'json'
+            ? toJson(tabular)
+            : format === 'jsonl'
+              ? toJsonl(tableToRecords(tabular))
+              : toMarkdown(tabular),
         ),
       }
     })
@@ -215,7 +223,9 @@ export function useSqlDump() {
     setTimeout(() => {
       try {
         const generated =
-          exportFormat === 'json' || exportFormat === 'md'
+          exportFormat === 'json' ||
+          exportFormat === 'jsonl' ||
+          exportFormat === 'md'
             ? textExport(database, selectedTables, exportFormat)
             : generateExport(
                 dump,

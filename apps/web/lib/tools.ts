@@ -70,7 +70,7 @@ export const TOOLS: ConverterTool[] = [
     href: '/sql',
     Icon: Database,
     source: ['SQL dumps', 'SQLite databases'],
-    output: ['SQL', 'CSV', 'XLSX', 'JSON', 'Markdown'],
+    output: ['SQL', 'CSV', 'XLSX', 'JSON', 'JSON Lines', 'Markdown'],
     heading: 'Extract from a database',
   },
   {

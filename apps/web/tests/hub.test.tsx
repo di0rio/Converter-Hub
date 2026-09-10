@@ -36,7 +36,7 @@ describe('Hub', () => {
     // Anchored: the spreadsheet card names SQL among its outputs too.
     const sql = screen.getByRole('link', { name: /^SQL/ })
     expect(sql).toHaveTextContent('SQL dumps, SQLite databases')
-    expect(sql).toHaveTextContent('SQL, CSV, XLSX, JSON, Markdown')
+    expect(sql).toHaveTextContent('SQL, CSV, XLSX, JSON, JSON Lines, Markdown')
 
     const spreadsheet = screen.getByRole('link', { name: /^Spreadsheets/ })
     expect(spreadsheet).toHaveTextContent('XLSX, CSV, JSON, Markdown, SQL')

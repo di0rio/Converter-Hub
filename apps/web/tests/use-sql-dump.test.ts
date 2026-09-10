@@ -392,6 +392,7 @@ describe('useSqlDump: source formats', () => {
 describe('useSqlDump: text exports', () => {
   it.each([
     ['json', 'users.json'],
+    ['jsonl', 'users.jsonl'],
     ['md', 'users.md'],
   ] as const)('exports %s, one file per table', async (format, entry) => {
     const { unzipSync, strFromU8 } = await import('fflate')
@@ -419,6 +420,12 @@ describe('useSqlDump: text exports', () => {
     const text = strFromU8(files[entry] as Uint8Array)
     if (format === 'json') {
       expect(JSON.parse(text)[0]).toEqual({
+        id: '1',
+        name: 'Alice Johnson',
+        email: 'alice@example.com',
+      })
+    } else if (format === 'jsonl') {
+      expect(JSON.parse(text.split('\n')[0] as string)).toEqual({
         id: '1',
         name: 'Alice Johnson',
         email: 'alice@example.com',

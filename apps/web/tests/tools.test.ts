@@ -48,7 +48,14 @@ describe('tool registry', () => {
   it('reads SQL dumps and SQLite databases in the one SQL tool', () => {
     const sql = findTool('sql')
     expect(sql.source).toEqual(['SQL dumps', 'SQLite databases'])
-    expect(sql.output).toEqual(['SQL', 'CSV', 'XLSX', 'JSON', 'Markdown'])
+    expect(sql.output).toEqual([
+      'SQL',
+      'CSV',
+      'XLSX',
+      'JSON',
+      'JSON Lines',
+      'Markdown',
+    ])
   })
 
   it('gives every tool a unique id and a unique route', () => {
