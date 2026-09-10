@@ -220,12 +220,19 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
   `.ods` are ZIP archives, and one that does not start like a ZIP is refused
   with the same neutral message as any unreadable file. `.xls` is not checked
   this way, because Excel also saves HTML and XML under that extension.
-- **Sheets with no used range are listed but never exported.** They would
+- **Sheets holding no value are listed but never exported.** They would
   produce a file with nothing in it, so they appear in the list, marked
   `empty`, and cannot be selected.
-- **Row counts mean data rows.** The first row of a sheet's used range names
-  the columns, so a sheet showing "5 rows" has five rows under a header — the
-  same thing "5 rows" means on the SQL side.
+- **Row counts are read from the cells, not from the used range.** Excel grows
+  the used range to cover anything that was ever touched — a fill colour
+  dragged down a column, a deleted block, a stray border — so a sheet with
+  fifty rows of data routinely reports a range of ten thousand. A row is
+  counted when it holds at least one cell with a value, which is the rule the
+  export applies when it drops blank rows, so the number on screen and the
+  number of rows in the file that comes out are the same number.
+- **Row counts mean data rows.** The first row holding anything names the
+  columns, so a sheet showing "5 rows" has five rows under a header — the same
+  thing "5 rows" means on the SQL side.
 - **File names are treated as untrusted.** A sheet name comes out of the user's
   file, and it names an entry in an archive: path separators are replaced,
   leading dots cannot produce a `..` entry or a hidden file, control characters
@@ -406,15 +413,18 @@ bun run build
 ### Project Structure
 
 ```
-sql-database-extractor/
+converter-hub/
   packages/
-    core/          SQL parsing, extraction logic, domain types
+    core/          SQL parsing, extraction logic, domain types, and the
+                   writers both tools share
   apps/
-    web/           Next.js web interface
-    cli/           Command-line interface
+    web/           Next.js web interface: the hub and both tools
+    cli/           Command-line interface (the SQL tool only)
   examples/
     <format>/sample.sql     One synthetic sample dump per readable
                             source format, named by its catalog id
+    spreadsheet/sample.xlsx A synthetic four-sheet workbook, one of whose
+                            sheets is deliberately empty
 ```
 
 Inside the core:
@@ -440,7 +450,7 @@ packages/core/src/
                  shown when one is over it
   extractor/     Rebuilds SQL from the model
   tabular/       Turns the model into columns and rows
-  generator/     CSV, XLSX and ZIP
+  generator/     CSV, XLSX, SQL inserts and ZIP
 ```
 
 Dialect-specific SQL lives only under `parser/<format>/`. Everything above it
@@ -520,7 +530,7 @@ Before considering any change complete:
 | Archives | fflate |
 | Source formats | See [Supported Formats](#supported-formats) |
 
-**Explicitly out of scope:** dialect conversion, non-SQL databases, generic SQL abstractions, Redux, MUI, server-side database connections.
+**Explicitly out of scope:** dialect conversion, generic SQL abstractions, Redux, MUI, server-side database connections. Non-SQL engines are in scope when they export a script this tool can read — MongoDB, Cassandra, Elasticsearch and Neo4j all do — and out of it when they do not, which is recorded per product above.
 
 ## Sample Data
 
