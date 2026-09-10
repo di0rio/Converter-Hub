@@ -2,7 +2,12 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import initSqlJs from 'sql.js'
 import type { SqlJsStatic } from 'sql.js'
 import { parseDump } from '@sql-extractor/core'
-import { dumpFromDatabase, isSqliteFile } from '@/lib/sqlite-file'
+import {
+  dumpFromDatabase,
+  isSqliteFile,
+  readDumpText,
+  UnreadableFileError,
+} from '@/lib/sqlite-file'
 
 /**
  * The binary reader earns its place only if the dump it writes survives the
@@ -121,5 +126,55 @@ describe('dumpFromDatabase', () => {
     const dump = dumpOf('')
     expect(dump).toContain('BEGIN TRANSACTION;')
     expect(dump).toContain('COMMIT;')
+  })
+})
+
+describe('readDumpText', () => {
+  function fileOf(name: string, bytes: Uint8Array | string): File {
+    return new File([bytes as BlobPart], name)
+  }
+
+  it('reads a text dump as-is', async () => {
+    const sql = 'CREATE TABLE t (a);\n'
+    expect(await readDumpText(fileOf('dump.sql', sql))).toBe(sql)
+  })
+
+  it('renders a binary database', async () => {
+    const db = new SQL.Database()
+    db.run('CREATE TABLE t (a); INSERT INTO t VALUES (1);')
+    const bytes = db.export()
+    db.close()
+
+    const text = await readDumpText(fileOf('bonfire.db', bytes))
+    expect(text).toContain('CREATE TABLE t')
+    expect(text).toContain('INSERT INTO "t" VALUES(1);')
+  })
+
+  // A database in WAL mode sits next to a -wal and a -shm file, so choosing the
+  // wrong one is the easy mistake. Those two names are already turned away by
+  // the picker's extension filter; these cover the paths that reach here — a
+  // companion file renamed to .db, and a drop that bypasses the filter.
+  it('points a -wal file at its database', async () => {
+    const wal = fileOf('bonfire.db-wal', new Uint8Array(0))
+    await expect(readDumpText(wal)).rejects.toThrow(UnreadableFileError)
+    await expect(readDumpText(wal)).rejects.toThrow(/Choose bonfire\.db instead/)
+  })
+
+  it('points a -shm file at its database', async () => {
+    const shm = fileOf('bonfire.db-shm', new Uint8Array([0x18, 0xe2, 0x2d, 0x00]))
+    await expect(readDumpText(shm)).rejects.toThrow(/Choose bonfire\.db instead/)
+  })
+
+  it('recognises a write-ahead log renamed to .db, by its header', async () => {
+    const header = new Uint8Array([0x37, 0x7f, 0x06, 0x82, 0, 0, 0, 0])
+    await expect(readDumpText(fileOf('copy.db', header))).rejects.toThrow(
+      /write-ahead log/,
+    )
+  })
+
+  it('rejects an empty file by name', async () => {
+    await expect(
+      readDumpText(fileOf('nothing.db', new Uint8Array(0))),
+    ).rejects.toThrow(/nothing\.db is empty/)
   })
 })
