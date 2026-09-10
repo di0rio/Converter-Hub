@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest run",
+    "test": "bun run --filter @sql-extractor/core build && vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
