@@ -10,7 +10,8 @@ SQL is ever executed.
 |-------|------------|
 | `/` | The hub — pick a tool |
 | `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
-| `/sql` | Extract databases and tables out of a SQL dump |
+| `/sql` | Extract tables out of a SQL dump or a SQLite database |
+| `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML) to another format |
 
 Every route is statically prerendered, so the app can be served as plain files.
 
@@ -44,6 +45,14 @@ convert → download a ZIP. `components/sql-tool.tsx` reads the first bytes of
 the pick: a SQLite header or a `-wal`/`-shm` companion goes to the SQLite reader
 (a real SQLite build in WebAssembly, read-only), anything else to the dump
 parser in `@sql-extractor/core`, which reads it with `file.text()`.
+
+**Data:** choose a CSV, TSV, JSON, JSON Lines or YAML file → choose CSV (with
+its delimiter), TSV, JSON, JSON Lines, YAML, Markdown, SQL or XLSX → convert →
+download one file. `lib/data-convert.ts` reads the file into a plain value and
+writes the output from it; the table outputs go through `recordsToTable` in
+the core, which refuses a nested document. `lib/formats.ts` holds the format
+metadata the tool and its hub card share. Single files download through
+`downloadFile` in `lib/download.ts`, the same helper the ZIP download uses.
 
 ## Shared Code
 

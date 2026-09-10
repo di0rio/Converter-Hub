@@ -11,9 +11,24 @@ works entirely in their browser.
 |------|-------|-------|--------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
 | SQL | `/sql` | SQL dumps, SQLite databases with their `-wal` | SQL, CSV, XLSX, JSON, Markdown |
+| Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
 
 The SQL tool's supported dump engines are whatever
-`packages/core/src/formats/catalog.ts` marks `supported`.
+`packages/core/src/formats/catalog.ts` marks `supported`. That catalog is
+SQL-specific (families, markers, dialects) and stays so. General file formats
+live in `apps/web/lib/formats.ts`: a label, extensions and a MIME type per
+format, and the lists of what each general tool reads and writes. The Data
+tool's hub card is derived from those lists, so it cannot advertise a format
+the converter does not handle.
+
+**Data workflow:** select a file → format (and, for CSV, the delimiter) →
+convert → download one file.
+
+Structured data flows `parser → value → writer`. Parsers and the table gate
+(`recordsToTable`) are in `packages/core/src/csv` and `packages/core/src/records`;
+YAML, which needs a dependency only the browser uses, is in
+`apps/web/lib/data-convert.ts`. A table output refuses a nested document with
+`DataFormatError` rather than inventing a flattening.
 
 **Spreadsheet workflow:** select workbook → select sheets → format (and, for
 CSV, the delimiter) → split → download.

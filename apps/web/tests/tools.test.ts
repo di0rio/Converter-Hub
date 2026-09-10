@@ -1,11 +1,30 @@
 import { describe, it, expect } from 'vitest'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { HUB_NAME, HUB_TAGLINE, TOOLS, findTool } from '@/lib/tools'
+import { formatLabels } from '@/lib/formats'
+import { DATA_INPUTS, DATA_OUTPUTS } from '@/lib/data-convert'
 
 describe('tool registry', () => {
   it('lists every tool the hub advertises', () => {
     // The hub must never show a tool that has no page behind it. Every entry
     // here is implemented; a new one should not be added until its route is.
-    expect(TOOLS.map((tool) => tool.id)).toEqual(['spreadsheet', 'sql'])
+    expect(TOOLS.map((tool) => tool.id)).toEqual(['spreadsheet', 'sql', 'data'])
+  })
+
+  it('has a page behind every tool it lists', () => {
+    for (const tool of TOOLS) {
+      const page = join(__dirname, '..', 'app', tool.href.slice(1), 'page.tsx')
+      expect(existsSync(page), `${tool.href} has no page`).toBe(true)
+    }
+  })
+
+  // The card cannot promise a format the tool does not read or write: both
+  // lists come from the same constants the converter itself uses.
+  it('advertises exactly the formats the data tool converts', () => {
+    const data = findTool('data')
+    expect(data.source).toEqual(formatLabels(DATA_INPUTS))
+    expect(data.output).toEqual(formatLabels(DATA_OUTPUTS))
   })
 
   // One tool for both kinds of database input: a dump is a script, a SQLite

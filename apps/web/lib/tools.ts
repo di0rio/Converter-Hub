@@ -1,5 +1,6 @@
-import { Database, Sheet } from 'lucide-react'
+import { Braces, Database, Sheet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { DATA_INPUTS, DATA_OUTPUTS, formatLabels } from '@/lib/formats'
 
 /**
  * One converter in the hub.
@@ -55,6 +56,18 @@ export const TOOLS: ConverterTool[] = [
     source: ['SQL dumps', 'SQLite databases'],
     output: ['SQL', 'CSV', 'XLSX', 'JSON', 'Markdown'],
     heading: 'Extract from a database',
+  },
+  {
+    id: 'data',
+    name: 'Data',
+    tagline: 'Convert structured data between CSV, JSON, YAML and more.',
+    description:
+      'Convert one structured data file to another format, locally in your browser.',
+    href: '/data',
+    Icon: Braces,
+    source: formatLabels(DATA_INPUTS),
+    output: formatLabels(DATA_OUTPUTS),
+    heading: 'Convert data',
   },
 ]
 
