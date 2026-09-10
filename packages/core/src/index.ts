@@ -92,3 +92,14 @@ export type {
   WasmSupplier,
   ReadOptions,
 } from './sqlite/reader.js'
+
+export { parseCsv, detectDelimiter } from './csv/index.js'
+export type { CsvParseOptions } from './csv/index.js'
+export {
+  DataFormatError,
+  parseJson,
+  parseJsonl,
+  toJsonl,
+  recordsToTable,
+  tableToRecords,
+} from './records/index.js'
