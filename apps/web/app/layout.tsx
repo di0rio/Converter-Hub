@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Inter } from 'next/font/google'
 import './globals.css'
 import { cn } from '@/lib/utils'
+import { HUB_NAME, HUB_TAGLINE } from '@/lib/tools'
 
 const interHeading = Inter({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -18,9 +19,10 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'SQL Database Extractor',
-  description:
-    'Extract tables from MySQL, MariaDB and PostgreSQL dumps locally, in your browser',
+  // Each tool sets its own title; the template keeps the product name on the
+  // tab without every page having to repeat it.
+  title: { default: HUB_NAME, template: `%s · ${HUB_NAME}` },
+  description: HUB_TAGLINE,
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
