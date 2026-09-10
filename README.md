@@ -1,12 +1,37 @@
-# SQL Database Extractor
+# Converter Hub
 
-A database dump extraction tool. Read a SQL dump from any of 24 supported engines, select the tables you want, and export them as SQL, CSV or Excel — packaged as a ZIP you download from your browser.
+Local-first tools for turning one file into the files you actually want. Every
+tool reads your file in the browser and writes the result back to it: nothing is
+uploaded, there is no server behind any of it, and no SQL is ever executed.
 
-## Why
+## Tools
 
-Database dumps are often large, monolithic exports containing many databases and tables. This tool lets you pick exactly what you need and produce a clean, smaller export — as SQL, CSV or Excel — without installing a database server or uploading your data anywhere.
+`apps/web/lib/tools.ts` is the single source of truth for this table. It feeds
+the hub cards, the page titles, the breadcrumbs and the route metadata, so a
+tool is described in one place and appears everywhere. Only tools that have a
+route behind them are listed there — the hub never advertises something that
+does not exist yet.
+
+| Tool | Route | Reads | Writes | What it does |
+|------|-------|-------|--------|--------------|
+| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS | XLSX, CSV | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
+| SQL | `/sql` | SQL dumps from 24 engines | SQL, CSV, XLSX | Extracts the databases and tables you pick out of a dump |
+
+The two are independent tools that share a design system, a virtualised data
+grid, a ZIP writer, a CSV writer and a file dropzone. Adding a third means an
+entry in the registry and a route; the hub needs no changes.
+
+A **source format** (what a tool reads) and an **output format** (what it
+writes) are kept apart throughout, because a future converter will pair them
+differently again.
 
 ## Supported Formats
+
+This section covers the SQL tool. The spreadsheet tool reads the three
+extensions listed in the table above and is described under
+[Spreadsheets](#spreadsheets).
+
+
 
 `packages/core/src/formats/catalog.ts` is the single source of truth for this
 table. Every format there carries a status, and only `supported` is advertised
@@ -176,12 +201,46 @@ those would teach people to dismiss the warning that matters.
 - **Binary column values are kept as written** (`X'...'`, `0x...`) rather than
   decoded, so no byte is invented on the way to a spreadsheet.
 
+## Spreadsheets
+
+The spreadsheet tool reads `.xlsx`, `.xlsm` and `.xls` through
+[SheetJS](https://sheetjs.com) and writes one file per sheet into a ZIP. A ZIP
+rather than separate downloads, because a browser blocks the second and later
+downloads of a burst — ten sheets would otherwise arrive silently as one file.
+
+- **Sheets with no used range are listed but never exported.** They would
+  produce a file with nothing in it, so they appear in the list, marked
+  `empty`, and cannot be selected.
+- **Row counts mean data rows.** The first row of a sheet's used range names
+  the columns, so a sheet showing "5 rows" has five rows under a header — the
+  same thing "5 rows" means on the SQL side.
+- **File names are treated as untrusted.** A sheet name comes out of the user's
+  file, and it names an entry in an archive: path separators are replaced,
+  leading dots cannot produce a `..` entry or a hidden file, control characters
+  are stripped, and the length is capped. Accents and non-Latin scripts are
+  kept, because they are legal in file names and mangling them would only make
+  the output harder to recognise. Sheets differing only by case are suffixed,
+  since they would be one file on Windows and macOS.
+- **XLSX output preserves values and formulas**, not visual formatting.
+- **CSV output goes through the same writer the SQL tool uses**, so both tools
+  produce the same shape of file: UTF-8 with a byte order mark, RFC 4180
+  quoting, and a leading `=`, `+`, `-` or `@` neutralised so a cell is not read
+  back as a formula by whatever opens it next.
+
+Note that SheetJS is installed from the vendor's own CDN
+(`https://cdn.sheetjs.com/...`), which is the installation route
+[their documentation prescribes](https://docs.sheetjs.com/docs/getting-started/installation/nodejs).
+The copy on the public npm registry stops at 0.18.5 and carries known
+prototype-pollution and ReDoS advisories that are fixed in the current release —
+which matters here, because the file being parsed is untrusted by definition.
+
 ## Privacy Model
 
-- **Web app:** All SQL parsing and extraction happens entirely in your browser using client-side JavaScript (`file.text()`). Nothing is uploaded to a server. No network requests are made for data processing.
-- **CLI:** Processes files locally on your machine.
+- **Web app:** Every tool parses and converts entirely in your browser, in client-side JavaScript (`file.text()` for dumps, `file.arrayBuffer()` for workbooks). Nothing is uploaded to a server. No network request is made for data processing, by either tool.
+- **CLI:** Processes files locally on your machine. It covers the SQL tool only.
 - **No analytics, telemetry, or external APIs.**
-- **No persistent storage** of SQL dump contents.
+- **No persistent storage** of dump or spreadsheet contents.
+- **No SQL is ever executed,** and no database is ever contacted.
 
 The web app ships a Content Security Policy and a set of security headers
 (`apps/web/next.config.ts`) so that the claim above is enforced by the browser
@@ -199,7 +258,7 @@ enter: no user-supplied HTML is rendered, nothing is read from the URL, and
 there is no server behind the page. The directives that carry the privacy model
 are unaffected either way.
 
-This project processes untrusted SQL input (your dump files). While every reasonable effort is made to handle input safely, no absolute security guarantees are made. See [SECURITY.md](./SECURITY.md) for details and vulnerability reporting.
+This project processes untrusted input (your dump and spreadsheet files). While every reasonable effort is made to handle input safely, no absolute security guarantees are made. See [SECURITY.md](./SECURITY.md) for details and vulnerability reporting.
 
 ## Limitations
 
@@ -212,6 +271,15 @@ This project processes untrusted SQL input (your dump files). While every reason
   CLI and in the web app both. That turns what used to be an out-of-memory
   crash partway through into a message saying what happened. The ceiling lives
   in `packages/core/src/limits/index.ts`.
+- **Spreadsheets have their own, lower ceiling.** A workbook is a compressed
+  archive that inflates well past its size on disk once every cell is an
+  object, so the spreadsheet tool refuses files larger than **100 MB**, again
+  by size and before reading. The ceiling lives in
+  `apps/web/lib/spreadsheet.ts`.
+- **The spreadsheet tool splits by sheet.** One file per sheet is the operation
+  it performs; it does not split by column value or row group, and it is not a
+  spreadsheet editor. Cell values and formulas survive an XLSX split; visual
+  formatting (colours, borders, column widths) does not.
 
 ## Quick Start
 
@@ -222,8 +290,8 @@ This project processes untrusted SQL input (your dump files). While every reason
 ### Install
 
 ```bash
-git clone <repo-url> sql-database-extractor
-cd sql-database-extractor
+git clone <repo-url> converter-hub
+cd converter-hub
 bun install
 ```
 
@@ -394,13 +462,15 @@ Before considering any change complete:
 | Tests | Vitest |
 | Formatting | Biome |
 | Linting | ESLint (`eslint-config-next`), web app only |
+| Spreadsheets | SheetJS (from the vendor CDN, not the stale npm copy) |
+| Archives | fflate |
 | Source formats | See [Supported Formats](#supported-formats) |
 
 **Explicitly out of scope:** dialect conversion, non-SQL databases, generic SQL abstractions, Redux, MUI, server-side database connections.
 
 ## Sample Data
 
-The `examples/` directory holds one synthetic dump per supported source format. Every name, address and value in them is invented. They are safe to use in examples and tests — they contain no real personal or production data, and no credentials.
+The `examples/` directory holds one synthetic dump per supported source format, plus `examples/spreadsheet/sample.xlsx` — a four-sheet workbook, one of whose sheets is deliberately empty so the spreadsheet tool's handling of that case can be seen. Every name, address and value in them is invented. They are safe to use in examples and tests — they contain no real personal or production data, and no credentials.
 
 ## Contributing
 
