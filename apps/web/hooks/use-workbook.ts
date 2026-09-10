@@ -2,7 +2,9 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import type { CsvDelimiter } from '@sql-extractor/core'
+import { listExtensions } from '@/components/file-select'
 import {
+  ACCEPTED_EXTENSIONS,
   buildArchive,
   isOversizedWorkbook,
   oversizedWorkbookMessage,
@@ -78,7 +80,7 @@ export function useWorkbook() {
       setSelected([])
       setLoadStatus('idle')
       setError(
-        'That file could not be read. Check that it is a valid .xlsx, .xlsm or .xls spreadsheet.',
+        `That file could not be read. Check that it is a valid ${listExtensions(ACCEPTED_EXTENSIONS)} file.`,
       )
     }
   }, [])

@@ -28,6 +28,18 @@ describe('tool registry', () => {
     }
   })
 
+  it('lists every format the spreadsheet tool reads', () => {
+    expect(findTool('spreadsheet').source).toEqual([
+      'XLSX',
+      'XLSM',
+      'XLS',
+      'XLSB',
+      'ODS',
+      'CSV',
+      'TSV',
+    ])
+  })
+
   it('lists every format the spreadsheet tool writes', () => {
     expect(findTool('spreadsheet').output).toEqual([
       'XLSX',

@@ -438,3 +438,114 @@ describe('buildArchive: formulas', () => {
     expect(source.workbook.Sheets.B.H2.f).toBe('Rate*2')
   })
 })
+
+describe('readWorkbook: formats', () => {
+  const ROWS = [
+    ['name', 'city'],
+    ['Ada', 'São Paulo'],
+    ['Grace', 'Porto'],
+  ]
+
+  /** A synthetic workbook written by SheetJS in the given format. */
+  function written(bookType: XLSX.BookType, name: string): File {
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet(ROWS),
+      'Clients',
+    )
+    return new File([XLSX.write(workbook, { bookType, type: 'array' })], name)
+  }
+
+  for (const [bookType, name] of [
+    ['xlsx', 'book.xlsx'],
+    ['xlsm', 'book.xlsm'],
+    ['biff8', 'book.xls'],
+    ['xlsb', 'book.xlsb'],
+    ['ods', 'book.ods'],
+  ] as const) {
+    it(`reads ${name} back sheet for sheet and row for row`, async () => {
+      const loaded = await readWorkbook(written(bookType, name))
+
+      expect(loaded.sheets.map((sheet) => sheet.name)).toEqual(['Clients'])
+      expect(await readSheetRows(loaded.workbook, 'Clients')).toEqual(ROWS)
+    })
+  }
+
+  it('reads a CSV as one sheet named after the file', async () => {
+    const file = new File(
+      ['name,city\r\nAda,São Paulo\r\nGrace,Porto\r\n'],
+      'clientes.csv',
+    )
+
+    const loaded = await readWorkbook(file)
+
+    expect(loaded.sheets.map((sheet) => sheet.name)).toEqual(['clientes'])
+    expect(await readSheetRows(loaded.workbook, 'clientes')).toEqual(ROWS)
+  })
+
+  it('reads a CSV saved by Excel in a decimal-comma locale', async () => {
+    // A byte order mark, semicolons, and a semicolon inside a quoted value.
+    const file = new File(
+      ['\ufeffname;city\r\nAda;São Paulo\r\n"Doe; Jane";Porto\r\n'],
+      'export.csv',
+    )
+
+    const loaded = await readWorkbook(file)
+
+    expect(await readSheetRows(loaded.workbook, 'export')).toEqual([
+      ['name', 'city'],
+      ['Ada', 'São Paulo'],
+      ['Doe; Jane', 'Porto'],
+    ])
+  })
+
+  it('keeps CSV values as the text they are', async () => {
+    // A postcode or an id keeps its leading zero, and "1.10" is not 1.1.
+    const file = new File(
+      ['code,price,day\r\n007,1.10,2024-01-02\r\n'],
+      'codes.csv',
+    )
+
+    const loaded = await readWorkbook(file)
+
+    expect(await readSheetRows(loaded.workbook, 'codes')).toEqual([
+      ['code', 'price', 'day'],
+      ['007', '1.10', '2024-01-02'],
+    ])
+  })
+
+  it('reads a TSV', async () => {
+    const file = new File(
+      ['name\tcity\nAda\tSão Paulo\nGrace\tPorto\n'],
+      'clientes.tsv',
+    )
+
+    const loaded = await readWorkbook(file)
+
+    expect(await readSheetRows(loaded.workbook, 'clientes')).toEqual(ROWS)
+  })
+
+  it('refuses a binary file renamed to .csv', async () => {
+    const file = new File(
+      [new Uint8Array([0, 1, 2, 255, 254, 0, 7])],
+      'data.csv',
+    )
+
+    await expect(readWorkbook(file)).rejects.toThrow()
+  })
+
+  it('refuses a CSV whose quotes never close', async () => {
+    const file = new File(['a,"b\n1,2\n'], 'broken.csv')
+
+    await expect(readWorkbook(file)).rejects.toThrow()
+  })
+
+  it('refuses a file whose content is not the format its extension names', async () => {
+    const text = 'hello, not a spreadsheet'
+
+    await expect(readWorkbook(new File([text], 'fake.ods'))).rejects.toThrow()
+    await expect(readWorkbook(new File([text], 'fake.xlsx'))).rejects.toThrow()
+    await expect(readWorkbook(new File([text], 'fake.xlsb'))).rejects.toThrow()
+  })
+})

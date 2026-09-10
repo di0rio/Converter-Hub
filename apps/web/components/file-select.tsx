@@ -25,7 +25,7 @@ interface FileSelectProps {
 }
 
 /** Named the way someone would read them aloud: ".xlsx, .xls or .csv". */
-function listExtensions(accept: string[]): string {
+export function listExtensions(accept: string[]): string {
   if (accept.length <= 1) return accept.join('')
   return `${accept.slice(0, -1).join(', ')} or ${accept[accept.length - 1]}`
 }

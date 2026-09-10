@@ -9,7 +9,7 @@ works entirely in their browser.
 
 | Tool | Route | Reads | Writes |
 |------|-------|-------|--------|
-| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS | XLSX, CSV, JSON, Markdown |
+| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown |
 | SQL | `/sql` | SQL dumps | SQL, CSV, XLSX |
 
 The SQL tool's supported engines are whatever

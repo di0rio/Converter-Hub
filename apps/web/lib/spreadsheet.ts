@@ -32,7 +32,23 @@ export interface ArchiveResult {
 }
 
 /** The file extensions this tool reads. */
-export const ACCEPTED_EXTENSIONS = ['.xlsx', '.xlsm', '.xls']
+export const ACCEPTED_EXTENSIONS = [
+  '.xlsx',
+  '.xlsm',
+  '.xls',
+  '.xlsb',
+  '.ods',
+  '.csv',
+  '.tsv',
+]
+
+/** Plain-text tables, read as UTF-8 text rather than as bytes. */
+const TEXT_EXTENSIONS = ['.csv', '.tsv']
+
+/** Formats stored as a ZIP archive, which always starts with "PK\x03\x04". */
+const ZIP_EXTENSIONS = ['.xlsx', '.xlsm', '.xlsb', '.ods']
+
+type SheetJS = typeof import('xlsx')
 
 /**
  * How large a workbook this tool will accept.
@@ -183,15 +199,60 @@ function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
   }
 }
 
+/**
+ * A CSV or TSV, read as UTF-8 text so accents survive, with every value kept
+ * as the text it is: "007" keeps its zero and "1.10" stays "1.10".
+ *
+ * SheetJS reads almost anything as a text table, so two cheap checks refuse
+ * what is plainly not one. A NUL character means the file is binary, and an
+ * odd number of quotes means one never closed — SheetJS would otherwise
+ * swallow the rest of the file into a single cell.
+ */
+function readTextTable(XLSX: SheetJS, text: string, name: string): WorkBook {
+  const table = text.replace(/^\ufeff/, '')
+  const quotes = table.match(/"/g)?.length ?? 0
+  if (table.includes('\0') || quotes % 2 === 1) {
+    throw new Error('Not a readable text table.')
+  }
+
+  const workbook = XLSX.read(table, { type: 'string', raw: true })
+  // A text table has one sheet, and "Sheet1" says nothing about it.
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+  return { ...workbook, SheetNames: [name], Sheets: { [name]: sheet } }
+}
+
+/**
+ * A workbook stored as bytes. A ZIP-based format that does not start like a
+ * ZIP is some other file renamed, which SheetJS would read as a text table
+ * rather than reject.
+ */
+function readBinaryWorkbook(
+  XLSX: SheetJS,
+  buffer: ArrayBuffer,
+  extension: string,
+): WorkBook {
+  const bytes = new Uint8Array(buffer)
+  const zip =
+    bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 3 && bytes[3] === 4
+  if (ZIP_EXTENSIONS.includes(extension) && !zip) {
+    throw new Error('Not the format its extension names.')
+  }
+
+  return XLSX.read(bytes, { type: 'array', cellDates: true })
+}
+
 /** Read a spreadsheet file into its sheet list. Nothing leaves the browser. */
 export async function readWorkbook(file: File): Promise<LoadedWorkbook> {
   const XLSX = await import('xlsx')
-  const buffer = await file.arrayBuffer()
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
+  const extension = /\.[^.]+$/.exec(file.name.toLowerCase())?.[0] ?? ''
+  const baseName = file.name.replace(/\.[^.]+$/, '') || 'workbook'
+  const workbook = TEXT_EXTENSIONS.includes(extension)
+    ? readTextTable(XLSX, await file.text(), baseName)
+    : readBinaryWorkbook(XLSX, await file.arrayBuffer(), extension)
 
   return {
     fileName: file.name,
-    baseName: file.name.replace(/\.[^.]+$/, '') || 'workbook',
+    baseName,
     sheets: workbook.SheetNames.map((name) =>
       describe(workbook.Sheets[name], name),
     ),
