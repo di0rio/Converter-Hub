@@ -12,6 +12,7 @@ works entirely in their browser.
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
 | SQL | `/sql` | SQL dumps, SQLite databases with their `-wal` | SQL, CSV, XLSX, JSON, Markdown |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
+| Markdown | `/markdown` | Markdown, HTML | HTML, Markdown |
 
 The SQL tool's supported dump engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`. That catalog is
@@ -23,6 +24,12 @@ the converter does not handle.
 
 **Data workflow:** select a file → format (and, for CSV, the delimiter) →
 convert → download one file.
+
+**Markdown workflow:** select a Markdown or HTML file → convert → download one
+file. The direction follows the input. `apps/web/lib/markdown.ts` holds both
+directions; it renders nothing in the app, escapes raw HTML in Markdown, and
+keeps only `http`, `https`, `mailto` and relative addresses. Never add a
+preview that injects the converted HTML into the page.
 
 Structured data flows `parser → value → writer`. Parsers and the table gate
 (`recordsToTable`) are in `packages/core/src/csv` and `packages/core/src/records`;

@@ -12,6 +12,7 @@ SQL is ever executed.
 | `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
 | `/sql` | Extract tables out of a SQL dump or a SQLite database |
 | `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML, XML) to another format |
+| `/markdown` | Turn a Markdown document into an HTML file, or an HTML page into Markdown |
 
 Every route is statically prerendered, so the app can be served as plain files.
 
@@ -54,6 +55,11 @@ writes the output from it; the table outputs go through `recordsToTable` in
 the core, which refuses a nested document. `lib/formats.ts` holds the format
 metadata the tool and its hub card share. Single files download through
 `downloadFile` in `lib/download.ts`, the same helper the ZIP download uses.
+
+**Markdown:** choose a `.md` or `.html` file → convert → download one file:
+Markdown becomes a complete HTML document, HTML becomes Markdown.
+`lib/markdown.ts` uses `marked` (imported on demand) one way and `DOMParser`
+the other. Nothing is rendered in the page; the output is only a download.
 
 ## Shared Code
 

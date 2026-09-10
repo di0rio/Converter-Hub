@@ -22,6 +22,7 @@ does not exist yet.
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
 | SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log | SQL, CSV, XLSX, JSON, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
+| Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
 
 They are independent tools that share a design system, a virtualised data grid,
 a ZIP writer, a CSV writer and a file dropzone. Adding another means an entry in
@@ -44,6 +45,17 @@ document order, a text-only element as its text, and text beside attributes or
 children under `"#text"`. A list wrapped in single-property layers —
 `<people><person>…` — reaches the table outputs as that list. A malformed file
 is refused without quoting the parser's message, which would quote the file.
+
+The Markdown tool renders nothing in the app: the result is a file to
+download. Markdown becomes a complete HTML document through the `marked`
+library, loaded only when a file is converted. Raw HTML in the Markdown is
+written as text rather than passed through, and a link or image whose address
+is not `http`, `https`, `mailto` or relative keeps its text and loses the
+address, because the HTML file will be opened somewhere. HTML becomes Markdown
+through the browser's `DOMParser`, which runs no script and loads no image, and
+a small serializer for headings, paragraphs, links, images, lists, tables,
+code, emphasis and strong text. Scripts, styles and the head are left out, and
+any other element keeps its text. Arbitrary HTML does not convert perfectly.
 
 The SQL tool takes two kinds of input through one picker. A *dump* is a script —
 the text `mysqldump` or `sqlite3 .dump` produces — and is parsed as text. A

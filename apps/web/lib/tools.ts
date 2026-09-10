@@ -1,6 +1,12 @@
-import { Braces, Database, Sheet } from 'lucide-react'
+import { Braces, Database, FileText, Sheet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { DATA_INPUTS, DATA_OUTPUTS, formatLabels } from '@/lib/formats'
+import {
+  DATA_INPUTS,
+  DATA_OUTPUTS,
+  MARKDOWN_INPUTS,
+  MARKDOWN_OUTPUTS,
+  formatLabels,
+} from '@/lib/formats'
 
 /**
  * One converter in the hub.
@@ -68,6 +74,18 @@ export const TOOLS: ConverterTool[] = [
     source: formatLabels(DATA_INPUTS),
     output: formatLabels(DATA_OUTPUTS),
     heading: 'Convert data',
+  },
+  {
+    id: 'markdown',
+    name: 'Markdown',
+    tagline: 'Turn Markdown into an HTML file, or HTML into Markdown.',
+    description:
+      'Convert a Markdown document to HTML, or an HTML page to Markdown, locally in your browser.',
+    href: '/markdown',
+    Icon: FileText,
+    source: formatLabels(MARKDOWN_INPUTS),
+    output: formatLabels(MARKDOWN_OUTPUTS),
+    heading: 'Convert Markdown and HTML',
   },
 ]
 

@@ -2,14 +2,25 @@ import { describe, it, expect } from 'vitest'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { HUB_NAME, HUB_TAGLINE, TOOLS, findTool } from '@/lib/tools'
-import { formatLabels } from '@/lib/formats'
+import { MARKDOWN_INPUTS, MARKDOWN_OUTPUTS, formatLabels } from '@/lib/formats'
 import { DATA_INPUTS, DATA_OUTPUTS } from '@/lib/data-convert'
 
 describe('tool registry', () => {
   it('lists every tool the hub advertises', () => {
     // The hub must never show a tool that has no page behind it. Every entry
     // here is implemented; a new one should not be added until its route is.
-    expect(TOOLS.map((tool) => tool.id)).toEqual(['spreadsheet', 'sql', 'data'])
+    expect(TOOLS.map((tool) => tool.id)).toEqual([
+      'spreadsheet',
+      'sql',
+      'data',
+      'markdown',
+    ])
+  })
+
+  it('advertises exactly the formats the Markdown tool converts', () => {
+    const markdown = findTool('markdown')
+    expect(markdown.source).toEqual(formatLabels(MARKDOWN_INPUTS))
+    expect(markdown.output).toEqual(formatLabels(MARKDOWN_OUTPUTS))
   })
 
   it('has a page behind every tool it lists', () => {
