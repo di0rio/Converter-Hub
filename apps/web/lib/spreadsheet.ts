@@ -7,10 +7,11 @@ export type ExportFormat = 'xlsx' | 'csv'
 
 export interface SheetInfo {
   name: string
-  /** Data rows: the used range without the header row that names the columns. */
+  /** Data rows that actually hold something, header row excluded. */
   rows: number
+  /** Index of the right-most column holding a value. */
   columns: number
-  /** No used range at all, so nothing would be written for it. */
+  /** Not a single cell with a value, so nothing would be written for it. */
   empty: boolean
 }
 
@@ -123,36 +124,62 @@ function uniqueName(base: string, taken: Set<string>): string {
   return candidate
 }
 
+const CELL_REF = /^([A-Z]+)(\d+)$/
+
+/**
+ * What a sheet actually holds.
+ *
+ * The used range (`!ref`) is not the answer. Excel grows it to cover anything
+ * that was ever touched — a fill colour dragged down a column, a deleted block,
+ * a stray border — so a sheet with fifty rows of data routinely reports a range
+ * of ten thousand. Reading the range gave a count that matched nothing: not the
+ * preview, not the exported file, not what the user sees in Excel.
+ *
+ * So the cells are walked instead. A row counts when it holds at least one cell
+ * with a value, which is the same rule the export applies when it drops blank
+ * rows — the number here and the number of rows in the file that comes out are
+ * now the same number, by construction.
+ */
 function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
-  if (!sheet || !sheet['!ref']) {
-    return { name, rows: 0, columns: 0, empty: true }
+  if (!sheet) return { name, rows: 0, columns: 0, empty: true }
+
+  const rows = new Set<number>()
+  let columns = 0
+
+  for (const ref in sheet) {
+    // Keys beginning with "!" are metadata (`!ref`, `!merges`), not cells.
+    if (ref.charCodeAt(0) === 33) continue
+
+    const cell = sheet[ref]
+    // `z` is the blank cell type; a cell can also carry formatting and no
+    // value at all. Neither is data, and neither survives into the export.
+    if (!cell || cell.t === 'z' || cell.v === undefined || cell.v === '') {
+      continue
+    }
+
+    const match = CELL_REF.exec(ref)
+    if (!match) continue
+
+    rows.add(Number(match[2]))
+
+    let column = 0
+    for (const char of match[1])
+      column = column * 26 + (char.charCodeAt(0) - 64)
+    if (column > columns) columns = column
   }
 
-  // Decoding the used range is cheaper than walking the cells, and it is the
-  // same range Excel itself reports.
-  const [start, end] = sheet['!ref'].split(':')
-  const parse = (ref: string) => {
-    const match = /^([A-Z]+)(\d+)$/.exec(ref)
-    if (!match) return { col: 0, row: 0 }
-    let col = 0
-    for (const char of match[1]) col = col * 26 + (char.charCodeAt(0) - 64)
-    return { col, row: Number(match[2]) }
+  // The first row that holds anything is the header — it names the columns in
+  // the preview and in the CSV. Counting data rows rather than every row is
+  // what makes "5 rows" here mean what it means in the SQL tool, and agree
+  // with the five numbered rows the preview shows.
+  return {
+    name,
+    rows: Math.max(0, rows.size - 1),
+    columns,
+    // A sheet holding only a header is not empty: exporting it produces a real
+    // file with real column names, which is a reasonable thing to ask for.
+    empty: rows.size === 0,
   }
-
-  const from = parse(start)
-  const to = parse(end ?? start)
-  const rows = Math.max(0, to.row - from.row + 1)
-  // The first row of the range is the sheet's header — it names the columns in
-  // the preview and in the CSV. Counting data rows rather than range rows is
-  // what makes "5 rows" here mean the same thing it means in the SQL tool, and
-  // agree with the five numbered rows the preview shows.
-  const dataRows = Math.max(0, rows - 1)
-  const columns = Math.max(0, to.col - from.col + 1)
-
-  // "Empty" still means the sheet has no used range at all. A sheet holding
-  // only a header is not empty — exporting it produces a real file with real
-  // column names, which is a reasonable thing to ask for.
-  return { name, rows: dataRows, columns, empty: rows === 0 || columns === 0 }
 }
 
 /** Read a spreadsheet file into its sheet list. Nothing leaves the browser. */
@@ -171,8 +198,12 @@ export async function readWorkbook(file: File): Promise<LoadedWorkbook> {
   }
 }
 
-/** Every row of a sheet as text, which is what both the preview and CSV take. */
-async function readRows(
+/**
+ * Every row of a sheet as text, which is what both the viewer and the CSV
+ * writer take. Blank rows are dropped, so the count matches what `describe`
+ * reports and what the exported file holds.
+ */
+export async function readSheetRows(
   workbook: WorkBook,
   sheetName: string,
   limit?: number,
@@ -190,15 +221,6 @@ async function readRows(
 
   const scoped = limit == null ? rows : rows.slice(0, limit)
   return scoped.map((row) => row.map((cell) => String(cell ?? '')))
-}
-
-/** The first rows of a sheet, for the preview table. */
-export function readPreview(
-  workbook: WorkBook,
-  sheetName: string,
-  limit = 50,
-): Promise<string[][]> {
-  return readRows(workbook, sheetName, limit)
 }
 
 /**
@@ -233,7 +255,7 @@ export async function buildArchive(
     const fileName = uniqueName(toFileName(name), taken)
 
     if (format === 'csv') {
-      const rows = await readRows(loaded.workbook, name)
+      const rows = await readSheetRows(loaded.workbook, name)
       // The first row is the header the sheet already has; the CSV writer
       // takes columns and rows apart, so it is split off rather than invented.
       const [header = [], ...body] = rows

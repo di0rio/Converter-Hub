@@ -6,7 +6,7 @@ import {
   buildArchive,
   isOversizedWorkbook,
   oversizedWorkbookMessage,
-  readPreview,
+  readSheetRows,
   readWorkbook,
   toFileName,
   type LoadedWorkbook,
@@ -126,22 +126,29 @@ describe('readWorkbook', () => {
   })
 })
 
-describe('readPreview', () => {
+describe('readSheetRows', () => {
+  it('returns every row, header first', async () => {
+    const rows = Array.from({ length: 40 }, (_, i) => [`row ${i}`])
+    const source = makeWorkbook({ Big: [['label'], ...rows] })
+
+    const read = await readSheetRows(source.workbook, 'Big')
+
+    expect(read).toHaveLength(41)
+    expect(read[0]).toEqual(['label'])
+  })
+
   it('returns at most the rows it was asked for', async () => {
     const rows = Array.from({ length: 40 }, (_, i) => [`row ${i}`])
     const source = makeWorkbook({ Big: [['label'], ...rows] })
 
-    const preview = await readPreview(source.workbook, 'Big', 10)
-
-    expect(preview).toHaveLength(10)
-    expect(preview[0]).toEqual(['label'])
+    expect(await readSheetRows(source.workbook, 'Big', 10)).toHaveLength(10)
   })
 
   it('is empty for a sheet with no used range', async () => {
     const source = makeWorkbook({ Clients: [['name']] })
     source.workbook.Sheets.Clients = {}
 
-    expect(await readPreview(source.workbook, 'Clients')).toEqual([])
+    expect(await readSheetRows(source.workbook, 'Clients')).toEqual([])
   })
 })
 
