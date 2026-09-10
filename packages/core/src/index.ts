@@ -103,3 +103,21 @@ export {
   recordsToTable,
   tableToRecords,
 } from './records/index.js'
+export {
+  bytesToBase64,
+  encodeBase64,
+  decodeBase64,
+  encodeHex,
+  decodeHex,
+  encodeUrl,
+  decodeUrl,
+  encodeHtmlEntities,
+  decodeHtmlEntities,
+} from './utilities/encoding.js'
+export { CASE_STYLES, toCase } from './utilities/case.js'
+export type { CaseStyle } from './utilities/case.js'
+export { convertTimestamp } from './utilities/timestamp.js'
+export type { Timestamp, TimestampRead } from './utilities/timestamp.js'
+export { convertColor } from './utilities/color.js'
+export type { Color } from './utilities/color.js'
+export { jsonToTypeScript } from './utilities/json-to-typescript.js'

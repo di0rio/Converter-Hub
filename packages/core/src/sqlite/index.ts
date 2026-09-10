@@ -1,5 +1,6 @@
 import type { TabularTable } from '../tabular/columns.js'
 import { normalizeColumns } from '../tabular/columns.js'
+import { bytesToBase64 } from '../utilities/encoding.js'
 
 /**
  * The shape a SQLite database takes once it has been read, and the conversions
@@ -65,31 +66,6 @@ export interface UnreadableTable {
   reason: 'virtual'
 }
 
-// ------------------------------------------------------------------ base64
-
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-
-/**
- * Base64 without depending on `Buffer` or `btoa`.
- *
- * The core runs in a browser, in Bun and under Node, and the three do not agree
- * on which of those exists. Twelve lines are cheaper than branching on the host.
- */
-function toBase64(bytes: Uint8Array): string {
-  let out = ''
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] as number
-    const b = bytes[i + 1]
-    const c = bytes[i + 2]
-    const triple = (a << 16) | ((b ?? 0) << 8) | (c ?? 0)
-    out += B64[(triple >> 18) & 63] as string
-    out += B64[(triple >> 12) & 63] as string
-    out += b === undefined ? '=' : (B64[(triple >> 6) & 63] as string)
-    out += c === undefined ? '=' : (B64[triple & 63] as string)
-  }
-  return out
-}
-
 // ------------------------------------------------------------- conversions
 
 /**
@@ -107,7 +83,7 @@ function toBase64(bytes: Uint8Array): string {
  */
 export function toCellText(value: SqliteValue): string | null {
   if (value === null) return null
-  if (value instanceof Uint8Array) return toBase64(value)
+  if (value instanceof Uint8Array) return bytesToBase64(value)
   if (typeof value === 'string') return value
   return String(value)
 }
