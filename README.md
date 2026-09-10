@@ -14,7 +14,7 @@ does not exist yet.
 
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
-| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
+| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
 | SQL | `/sql` | SQL dumps from 24 engines | SQL, CSV, XLSX | Extracts the databases and tables you pick out of a dump |
 
 The two are independent tools that share a design system, a virtualised data
@@ -256,9 +256,30 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
   escaped, a line break becomes `<br>`, `&`, `<` and `>` are escaped so a cell
   cannot inject markup into whatever renders it, and a leading `=`, `+`, `-`
   or `@` gets the same prefix the CSV applies.
-- **Headers are made usable for JSON and Markdown**: an empty header is named
-  after its position (`column_3`), and a repeated one — compared ignoring case
-  — is suffixed (`name_2`). CSV and XLSX keep the header exactly as it is.
+- **SQL output is one script per sheet**: a `CREATE TABLE` followed by
+  `INSERT`s batched 500 rows at a time. Every column is declared `TEXT`,
+  because a spreadsheet has no schema — a column of digits may be a quantity,
+  an order number or a phone number, and guessing wrong silently drops a
+  leading zero or rounds an identifier. An empty cell becomes `NULL`.
+  Identifiers are double-quoted and strings single-quoted, both escaped by
+  doubling, which is the only escape standard SQL defines.
+
+  The script opens with a MySQL-only mode line, wrapped in a versioned comment
+  so every other engine ignores it:
+
+  ```sql
+  /*!40101 SET SESSION sql_mode = 'ANSI_QUOTES,NO_BACKSLASH_ESCAPES' */;
+  ```
+
+  MySQL and MariaDB depart from the standard in two ways that matter here.
+  They read `"` as a string delimiter rather than as an identifier quote, and
+  they treat a backslash as an escape inside a string — so a cell ending in a
+  backslash would escape the closing quote and let the next value be read as
+  SQL. Those two settings turn both off, which is what makes the same file mean
+  the same thing everywhere.
+- **Headers are made usable for JSON, Markdown and SQL**: an empty header is
+  named after its position (`column_3`), and a repeated one — compared ignoring
+  case — is suffixed (`name_2`). CSV and XLSX keep the header exactly as it is.
 
 Note that SheetJS is installed from the vendor's own CDN
 (`https://cdn.sheetjs.com/...`), which is the installation route

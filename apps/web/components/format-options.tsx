@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import { Label } from '@/components/ui/label'
+import { Radio, RadioGroup } from '@/components/ui/radio-group'
 
 export interface FormatOption<T extends string> {
   id: T
@@ -20,18 +21,17 @@ interface FormatOptionsProps<T extends string> {
   onChange: (value: T) => void
 }
 
-// Tailwind reads class names literally, so the column count cannot be built
-// from a variable.
-const COLUMNS: Record<number, string> = {
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-}
-
 /**
  * The output-format picker, shared by every tool.
  *
  * What a tool reads and what it writes are separate choices; this is only the
  * second one, which is why it takes its options rather than knowing any.
+ *
+ * It is a real radio group rather than a row of buttons pretending to be one,
+ * so arrow keys move between formats and a screen reader announces the set and
+ * the position in it. Two columns rather than one per option: the list grows as
+ * writers are added, and a grid that reflows reads better at five than a row
+ * that keeps getting narrower.
  */
 export function FormatOptions<T extends string>({
   id,
@@ -46,37 +46,31 @@ export function FormatOptions<T extends string>({
         {label}
       </Label>
 
-      <div
-        role="radiogroup"
+      <RadioGroup
         aria-labelledby={id}
-        className={`grid gap-2 ${COLUMNS[options.length] ?? 'grid-cols-2'}`}
+        value={value}
+        onValueChange={(next) => onChange(next as T)}
+        className="grid gap-2 sm:grid-cols-2"
       >
-        {options.map(({ id: optionId, label: optionLabel, hint, Icon }) => {
-          const selected = value === optionId
-          return (
-            <button
-              key={optionId}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => onChange(optionId)}
-              className={
-                'flex cursor-pointer flex-col items-center gap-1 rounded-lg border px-3 py-3 text-center transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ' +
-                (selected
-                  ? 'border-primary bg-accent/50'
-                  : 'border-input hover:bg-accent/30')
-              }
-            >
-              <Icon
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <span className="text-sm font-medium">{optionLabel}</span>
-              <span className="text-xs text-muted-foreground">{hint}</span>
-            </button>
-          )
-        })}
-      </div>
+        {options.map(({ id: optionId, label: optionLabel, hint, Icon }) => (
+          <label
+            key={optionId}
+            className="flex cursor-pointer items-center gap-3 rounded-lg border border-input px-3 py-2.5 transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-accent/30 has-[[data-slot=radio][data-checked]]:border-primary has-[[data-slot=radio][data-checked]]:bg-accent/50"
+          >
+            <Radio value={optionId} />
+            <Icon
+              className="size-4 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">{optionLabel}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {hint}
+              </span>
+            </span>
+          </label>
+        ))}
+      </RadioGroup>
     </section>
   )
 }

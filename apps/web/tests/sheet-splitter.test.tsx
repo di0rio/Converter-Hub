@@ -323,7 +323,7 @@ describe('SheetSplitter', () => {
     ).toBeInTheDocument()
   })
 
-  it('offers JSON and Markdown alongside Excel and CSV', async () => {
+  it('offers every writer as one radio group', async () => {
     const { container } = render(<SheetSplitter />)
 
     await loadFile(container, makeFile(SAMPLE))
@@ -331,11 +331,29 @@ describe('SheetSplitter', () => {
     const formats = within(
       screen.getByRole('radiogroup', { name: /Output format/i }),
     )
-    expect(formats.getAllByRole('radio')).toHaveLength(4)
-    expect(formats.getByRole('radio', { name: /JSON/i })).toBeInTheDocument()
-    expect(
-      formats.getByRole('radio', { name: /Markdown/i }),
-    ).toBeInTheDocument()
+    expect(formats.getAllByRole('radio')).toHaveLength(5)
+    for (const name of [/Excel/i, /CSV/i, /JSON/i, /Markdown/i, /^SQL/i]) {
+      expect(formats.getByRole('radio', { name })).toBeInTheDocument()
+    }
+  })
+
+  it('writes one .sql per sheet into the archive', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(container, makeFile(SAMPLE))
+    fireEvent.click(screen.getByRole('radio', { name: /^SQL/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Split sheets/i }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Download ZIP/i }),
+    )
+
+    const archive = await readArchive(createObjectURL.mock.calls[0][0])
+    expect(Object.keys(archive).sort()).toEqual(['Clients.sql', 'Orders.sql'])
+
+    const sql = strFromU8(archive['Clients.sql'])
+    expect(sql).toContain('CREATE TABLE "Clients" (')
+    expect(sql).toContain('INSERT INTO "Clients" ("name", "city")')
+    expect(sql).toContain("  ('Ada', 'Lisbon'),")
   })
 
   it('writes one .json per sheet into the archive', async () => {

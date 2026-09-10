@@ -33,12 +33,13 @@ describe('Hub', () => {
   it('keeps what a tool reads apart from what it writes', () => {
     render(<Hub />)
 
-    const sql = screen.getByRole('link', { name: /SQL/ })
+    // Anchored: the spreadsheet card now names SQL among its outputs too.
+    const sql = screen.getByRole('link', { name: /^SQL/ })
     expect(sql).toHaveTextContent('SQL dumps')
     expect(sql).toHaveTextContent('SQL, CSV, XLSX')
 
-    const spreadsheet = screen.getByRole('link', { name: /Spreadsheets/ })
-    expect(spreadsheet).toHaveTextContent('XLSX, CSV, JSON, Markdown')
+    const spreadsheet = screen.getByRole('link', { name: /^Spreadsheets/ })
+    expect(spreadsheet).toHaveTextContent('XLSX, CSV, JSON, Markdown, SQL')
   })
 
   it('makes the whole card the target, so there is one stop per tool', () => {

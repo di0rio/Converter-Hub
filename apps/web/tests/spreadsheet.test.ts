@@ -549,3 +549,68 @@ describe('readWorkbook: formats', () => {
     await expect(readWorkbook(new File([text], 'fake.xlsb'))).rejects.toThrow()
   })
 })
+
+describe('buildArchive: SQL output', () => {
+  it('writes one .sql per sheet, named after the sheet', async () => {
+    const source = makeWorkbook({
+      Clients: [
+        ['name', 'city'],
+        ['Ada', 'Lisbon'],
+      ],
+      Orders: [['id'], ['A-1']],
+    })
+
+    const result = await buildArchive(source, ['Clients', 'Orders'], 'sql')
+
+    expect(result.files).toEqual(['Clients.sql', 'Orders.sql'])
+
+    const sql = strFromU8(entries(result.bytes)['Clients.sql'])
+    expect(sql).toContain('CREATE TABLE "Clients" (')
+    expect(sql).toContain('INSERT INTO "Clients" ("name", "city")')
+    expect(sql).toContain("  ('Ada', 'Lisbon');")
+  })
+
+  it('names the table after the sheet, not after the file', async () => {
+    const source = makeWorkbook({ 'Jan/Feb': [['a'], ['1']] })
+
+    const sql = strFromU8(
+      entries((await buildArchive(source, ['Jan/Feb'], 'sql')).bytes)[
+        'Jan-Feb.sql'
+      ],
+    )
+
+    // The file name is cleaned for the archive; the table keeps the sheet's
+    // own name, which SQL can quote.
+    expect(sql).toContain('CREATE TABLE "Jan/Feb" (')
+  })
+
+  it('carries a value that looks like SQL through as text', async () => {
+    const source = makeWorkbook({
+      Payload: [['note'], ["x'); DROP TABLE t; --"], ['C:\\temp\\']],
+    })
+
+    const sql = strFromU8(
+      entries((await buildArchive(source, ['Payload'], 'sql')).bytes)[
+        'Payload.sql'
+      ],
+    )
+
+    expect(sql).toContain("  ('x''); DROP TABLE t; --'),")
+    expect(sql).toContain("  ('C:\\temp\\');")
+    // The mode line is what keeps the backslash literal in MySQL.
+    expect(sql).toContain('NO_BACKSLASH_ESCAPES')
+  })
+
+  it('writes only the CREATE TABLE for a sheet holding just a header', async () => {
+    const source = makeWorkbook({ Empty: [['a', 'b']] })
+
+    const sql = strFromU8(
+      entries((await buildArchive(source, ['Empty'], 'sql')).bytes)[
+        'Empty.sql'
+      ],
+    )
+
+    expect(sql).toContain('CREATE TABLE "Empty" (')
+    expect(sql).not.toContain('INSERT INTO')
+  })
+})

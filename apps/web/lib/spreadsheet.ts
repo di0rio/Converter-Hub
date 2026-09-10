@@ -1,10 +1,15 @@
-import { createZip, formatBytes, toCsv } from '@sql-extractor/core'
+import {
+  createZip,
+  formatBytes,
+  toCsv,
+  toSqlInserts,
+} from '@sql-extractor/core'
 import type { CsvDelimiter, ExportFile } from '@sql-extractor/core'
 import type { CellObject, WorkBook, WorkSheet } from 'xlsx'
 import { toJson, toMarkdown } from '@/lib/sheet-writers'
 
 /** What the export writes for each sheet. The id is also the file extension. */
-export type ExportFormat = 'xlsx' | 'csv' | 'json' | 'md'
+export type ExportFormat = 'xlsx' | 'csv' | 'json' | 'md' | 'sql'
 
 export interface SheetInfo {
   name: string
@@ -405,7 +410,12 @@ export async function buildArchive(
           ? toCsv(table, { delimiter })
           : format === 'json'
             ? toJson(table)
-            : toMarkdown(table)
+            : format === 'sql'
+              ? // The table is named after the sheet, not after the archive
+                // entry: a file name has to survive a file system, a table
+                // name only has to survive being quoted.
+                toSqlInserts(table, { tableName: name })
+              : toMarkdown(table)
       const entry = `${fileName}.${format}`
       entries.push({ name: entry, content: encoder.encode(text) })
       files.push(entry)
