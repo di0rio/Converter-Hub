@@ -20,16 +20,18 @@ does not exist yet.
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
-| SQL | `/sql` | SQL dumps from 24 engines | SQL, CSV, XLSX | Extracts the databases and tables you pick out of a dump |
-| SQLite | `/sqlite` | SQLite database files, write-ahead log included | CSV, XLSX, SQL, JSON, Markdown | Converts the tables you pick out of a database file |
+| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log | SQL, CSV, XLSX, JSON, Markdown | Extracts the tables you pick out of a dump or a database file |
 
 They are independent tools that share a design system, a virtualised data grid,
 a ZIP writer, a CSV writer and a file dropzone. Adding another means an entry in
 the registry and a route; the hub needs no changes.
 
-The SQL and SQLite tools are not the same tool twice. One reads a *script* — the
-text `mysqldump` or `sqlite3 .dump` produces. The other reads a *database file*,
-the binary SQLite itself writes.
+The SQL tool takes two kinds of input through one picker. A *dump* is a script —
+the text `mysqldump` or `sqlite3 .dump` produces — and is parsed as text. A
+*SQLite database* is the binary SQLite itself writes, and is opened by a SQLite
+engine. The tool tells them apart by content, not by name: a file that starts
+with the SQLite header, or comes with a `-wal` or `-shm`, is a database, and
+anything else is read as a dump.
 
 ## SQLite
 

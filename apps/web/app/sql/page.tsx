@@ -1,4 +1,4 @@
-import { SqlExtractor } from '@/components/sql-extractor'
+import { SqlTool } from '@/components/sql-tool'
 import { findTool } from '@/lib/tools'
 
 const tool = findTool('sql')
@@ -15,7 +15,7 @@ export default function SqlPage() {
     // steps stack and the document scrolls, because pinning the height there
     // would squeeze the whole flow into one screen it cannot fit.
     <main className="flex w-full p-4 lg:h-dvh lg:overflow-hidden lg:p-6">
-      <SqlExtractor />
+      <SqlTool />
     </main>
   )
 }

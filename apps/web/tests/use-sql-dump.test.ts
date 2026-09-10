@@ -388,3 +388,44 @@ describe('useSqlDump: source formats', () => {
     expect(result.current.result?.files).toEqual(['people.csv'])
   })
 })
+
+describe('useSqlDump: text exports', () => {
+  it.each([
+    ['json', 'users.json'],
+    ['md', 'users.md'],
+  ] as const)('exports %s, one file per table', async (format, entry) => {
+    const { unzipSync, strFromU8 } = await import('fflate')
+    const { result } = renderHook(() => useSqlDump())
+
+    act(() => {
+      result.current.loadFile(SAMPLE_SQL, 'dump.sql')
+    })
+    act(() => {
+      result.current.toggleAllTables()
+    })
+    act(() => {
+      result.current.selectFormat(format)
+    })
+    act(() => {
+      result.current.convert()
+    })
+
+    await waitFor(() => expect(result.current.status).toBe('done'))
+    const files = unzipSync(result.current.result!.bytes)
+    expect(Object.keys(files).sort()).toEqual(
+      [entry, entry.replace('users', 'orders')].sort(),
+    )
+
+    const text = strFromU8(files[entry] as Uint8Array)
+    if (format === 'json') {
+      expect(JSON.parse(text)[0]).toEqual({
+        id: '1',
+        name: 'Alice Johnson',
+        email: 'alice@example.com',
+      })
+    } else {
+      expect(text).toContain('| id | name | email |')
+      expect(text).toContain('| 1 | Alice Johnson | alice@example.com |')
+    }
+  })
+})

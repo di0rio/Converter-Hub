@@ -46,26 +46,15 @@ export const TOOLS: ConverterTool[] = [
   {
     id: 'sql',
     name: 'SQL',
-    tagline: 'Extract tables from a database dump and convert them.',
+    tagline:
+      'Extract tables from a SQL dump or a SQLite database and convert them.',
     description:
-      'Extract tables from a database dump, locally in your browser.',
+      'Extract tables from a SQL dump or a SQLite database, locally in your browser.',
     href: '/sql',
     Icon: Database,
-    source: ['SQL dumps'],
-    output: ['SQL', 'CSV', 'XLSX'],
-    heading: 'Extract from a SQL dump',
-  },
-  {
-    id: 'sqlite',
-    name: 'SQLite',
-    tagline: 'Convert a SQLite database, write-ahead log included.',
-    description:
-      'Convert the tables of a SQLite database, locally in your browser.',
-    href: '/sqlite',
-    Icon: Database,
-    source: ['SQLite databases'],
-    output: ['CSV', 'XLSX', 'SQL', 'JSON', 'Markdown'],
-    heading: 'Convert a SQLite database',
+    source: ['SQL dumps', 'SQLite databases'],
+    output: ['SQL', 'CSV', 'XLSX', 'JSON', 'Markdown'],
+    heading: 'Extract from a database',
   },
 ]
 

@@ -7,24 +7,62 @@ import {
   detectFormat,
   describeFormat,
   UnsupportedFormatError,
+  createZip,
+  toFileName,
+  toTabular,
+  uniqueName,
 } from '@sql-extractor/core'
 import type {
+  Database,
   SqlDump,
   ExportFormat,
   ExportResult,
   FormatConfidence,
   FormatDescriptor,
 } from '@sql-extractor/core'
+import { toJson, toMarkdown } from '@/lib/sheet-writers'
 
 export type Step = 'file' | 'database' | 'tables' | 'export'
 export type ConversionStatus = 'idle' | 'converting' | 'done'
+
+/** The core writes SQL, CSV and XLSX; JSON and Markdown are the web writers. */
+export type DumpExportFormat = ExportFormat | 'json' | 'md'
+
+/** One JSON or Markdown file per selected table, packed into a ZIP. */
+function textExport(
+  database: Database,
+  tables: readonly string[],
+  format: 'json' | 'md',
+): ExportResult {
+  const encoder = new TextEncoder()
+  // Table names become entry names, and two can collide once cleaned.
+  const taken = new Set<string>()
+  const files = database.tables
+    .filter((table) => tables.includes(table.name))
+    .map((table) => {
+      const tabular = toTabular(table)
+      return {
+        name: `${uniqueName(toFileName(table.name, 'table'), taken)}.${format}`,
+        content: encoder.encode(
+          format === 'json' ? toJson(tabular) : toMarkdown(tabular),
+        ),
+      }
+    })
+
+  return {
+    filename: `${toFileName(database.name, 'database')}-export.zip`,
+    bytes: createZip(files),
+    files: files.map((file) => file.name),
+    tableCount: files.length,
+  }
+}
 
 export function useSqlDump() {
   const [dump, setDump] = useState<SqlDump | null>(null)
   const [fileName, setFileName] = useState<string>('')
   const [selectedDatabase, setSelectedDatabase] = useState<string>('')
   const [selectedTables, setSelectedTables] = useState<string[]>([])
-  const [exportFormat, setExportFormat] = useState<ExportFormat>('sql')
+  const [exportFormat, setExportFormat] = useState<DumpExportFormat>('sql')
   const [confidence, setConfidence] = useState<FormatConfidence | null>(null)
   const [status, setStatus] = useState<ConversionStatus>('idle')
   const [result, setResult] = useState<ExportResult | null>(null)
@@ -152,7 +190,7 @@ export function useSqlDump() {
     setSelectedTables((prev) => (prev.length === all.length ? [] : all))
   }, [database, clearResult])
 
-  const selectFormat = useCallback((format: ExportFormat) => {
+  const selectFormat = useCallback((format: DumpExportFormat) => {
     setExportFormat(format)
     setResult(null)
     setStatus('idle')
@@ -163,7 +201,7 @@ export function useSqlDump() {
   const someTablesSelected = selectedTables.length > 0 && !allTablesSelected
 
   const convert = useCallback(() => {
-    if (!dump || !selectedDatabase) return
+    if (!dump || !selectedDatabase || !database) return
     if (selectedTables.length === 0) {
       setError('Select at least one table to export.')
       return
@@ -176,11 +214,14 @@ export function useSqlDump() {
     // the main thread.
     setTimeout(() => {
       try {
-        const generated = generateExport(
-          dump,
-          { database: selectedDatabase, tables: selectedTables },
-          exportFormat,
-        )
+        const generated =
+          exportFormat === 'json' || exportFormat === 'md'
+            ? textExport(database, selectedTables, exportFormat)
+            : generateExport(
+                dump,
+                { database: selectedDatabase, tables: selectedTables },
+                exportFormat,
+              )
         setResult(generated)
         setStatus('done')
       } catch {
@@ -191,7 +232,7 @@ export function useSqlDump() {
         )
       }
     }, 0)
-  }, [dump, selectedDatabase, selectedTables, exportFormat])
+  }, [dump, selectedDatabase, database, selectedTables, exportFormat])
 
   const reset = useCallback(() => {
     setDump(null)

@@ -1,10 +1,12 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   AlertCircle,
   FileCode,
+  FileJson,
   FileSpreadsheet,
+  FileText,
   Table,
   Table2,
   Wand2,
@@ -15,15 +17,12 @@ import {
   isOversizedDump,
   oversizedDumpMessage,
 } from '@sql-extractor/core'
-import type {
-  ExportFormat,
-  FormatConfidence,
-  FormatDescriptor,
-} from '@sql-extractor/core'
-import { useSqlDump } from '@/hooks/use-sql-dump'
+import type { FormatConfidence, FormatDescriptor } from '@sql-extractor/core'
+import { useSqlDump, type DumpExportFormat } from '@/hooks/use-sql-dump'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { findTool } from '@/lib/tools'
-import { FileSelect } from '@/components/file-select'
+import { SQL_TOOL_EXTENSIONS } from '@/lib/sqlite-files'
+import { FileSelect, listExtensions } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
 import { FormatCaveat } from '@/components/format-caveat'
 import { DatabaseSelect } from '@/components/database-select'
@@ -35,8 +34,6 @@ import { DownloadStep } from '@/components/download-step'
 
 const tool = findTool('sql')
 
-const ACCEPTED_EXTENSIONS = ['.sql', '.txt']
-
 const FORMATS = [
   { id: 'sql' as const, label: 'SQL', hint: 'One .sql dump', Icon: FileCode },
   { id: 'csv' as const, label: 'CSV', hint: 'One file per table', Icon: Table },
@@ -45,6 +42,18 @@ const FORMATS = [
     label: 'Excel',
     hint: 'One sheet per table',
     Icon: FileSpreadsheet,
+  },
+  {
+    id: 'json' as const,
+    label: 'JSON',
+    hint: 'One file per table',
+    Icon: FileJson,
+  },
+  {
+    id: 'md' as const,
+    label: 'Markdown',
+    hint: 'One file per table',
+    Icon: FileText,
   },
 ]
 
@@ -60,7 +69,7 @@ const SUPPORTED_SUMMARY = (() => {
     labels.some((label) => label.includes(name)),
   )
 
-  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}.`
+  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, and SQLite database files with their -wal.`
 })()
 
 /**
@@ -79,7 +88,15 @@ function describeSource(
     : `Read as a ${sourceFormat.label} dump.`
 }
 
-export function SqlExtractor() {
+export function SqlExtractor({
+  selection,
+  onFiles,
+}: {
+  /** Files the SQL tool routed here as a dump. Loaded when they change. */
+  selection?: File[] | undefined
+  /** Hands a new pick back to the SQL tool, which decides who reads it. */
+  onFiles?: ((files: File[]) => void) | undefined
+} = {}) {
   const {
     step,
     dump,
@@ -153,6 +170,14 @@ export function SqlExtractor() {
 
   const handleFile = useCallback(
     (file: File) => {
+      const name = file.name.toLowerCase()
+      if (!SQL_TOOL_EXTENSIONS.some((extension) => name.endsWith(extension))) {
+        reportFileError(
+          `That file type is not supported. Choose a ${listExtensions(SQL_TOOL_EXTENSIONS)} file.`,
+        )
+        return
+      }
+
       // Reject on the size the browser already knows, before reading. Past the
       // ceiling the tab runs out of memory partway through instead of saying so.
       if (isOversizedDump(file.size)) {
@@ -173,6 +198,10 @@ export function SqlExtractor() {
     },
     [closeAllWindows, loadFile, reportFileError],
   )
+
+  useEffect(() => {
+    if (selection?.[0]) handleFile(selection[0])
+  }, [selection, handleFile])
 
   const previewedTables = windows.map((w) => w.name)
 
@@ -208,12 +237,14 @@ export function SqlExtractor() {
       <div className="space-y-8">
         <FileSelect
           id="sql-file-input"
-          label="Select a database dump"
-          buttonLabel="Choose SQL file"
-          accept={ACCEPTED_EXTENSIONS}
+          label="Select a SQL dump or SQLite database"
+          buttonLabel="Choose file"
+          accept={SQL_TOOL_EXTENSIONS}
           fileName={fileName || null}
+          multiple
           description={`${describeSource(sourceFormat, confidence)} Processed entirely in your browser.`}
           onFile={handleFile}
+          onFiles={onFiles ?? ((files) => handleFile(files[0] as File))}
           onError={reportFileError}
         />
 
@@ -255,7 +286,7 @@ export function SqlExtractor() {
 
         {step === 'export' && (
           <div className="space-y-8 motion-safe:animate-step-in">
-            <FormatOptions<ExportFormat>
+            <FormatOptions<DumpExportFormat>
               id="step-format"
               label="Export format"
               options={FORMATS}

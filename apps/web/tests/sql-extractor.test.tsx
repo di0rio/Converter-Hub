@@ -73,11 +73,13 @@ describe('SqlExtractor', () => {
     render(<SqlExtractor />)
 
     expect(
-      screen.getByRole('heading', { name: /Extract from a SQL dump/i }),
+      screen.getByRole('heading', { name: /Extract from a database/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Select a database dump/i)).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Choose SQL file/i }),
+      screen.getByText(/Select a SQL dump or SQLite database/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Choose file/i }),
     ).toBeInTheDocument()
     // The tool sits inside the hub, and says so with a way back to it.
     expect(
@@ -95,15 +97,17 @@ describe('SqlExtractor', () => {
     ) as HTMLInputElement
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
-    expect(input.accept).toBe('.sql,.txt')
+    expect(input.accept).toBe('.sql,.txt,.db,.sqlite,.sqlite3,.db3')
     // The section is labelled "Select a database dump" and the input is associated with the
     // visible label via htmlFor.
     expect(
-      screen.getByRole('region', { name: /Select a database dump/i }),
+      screen.getByRole('region', {
+        name: /Select a SQL dump or SQLite database/i,
+      }),
     ).toBeInTheDocument()
     expect(
       screen
-        .getAllByLabelText(/Select a database dump/i)
+        .getAllByLabelText(/Select a SQL dump or SQLite database/i)
         .some((el) => el.getAttribute('type') === 'file'),
     ).toBe(true)
     expect(
@@ -243,6 +247,8 @@ describe('SqlExtractor', () => {
     expect(screen.getByRole('radio', { name: /SQL/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /CSV/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Excel/i })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /JSON/i })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Markdown/i })).toBeInTheDocument()
 
     expect(screen.getByLabelText(/Convert and download/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Convert/i })).toBeInTheDocument()
