@@ -12,21 +12,17 @@ export {
   isOversizedDump,
   oversizedDumpMessage,
 } from './limits/index.js'
+export { toTabular, extractColumns, countRows } from './tabular/index.js'
+export { normalizeColumns } from './tabular/columns.js'
+export { generateExport } from './generator/index.js'
 export {
-  toTabular,
-  extractColumns,
-  countRows,
-  normalizeColumns,
-} from './tabular/index.js'
-export {
-  generateExport,
   toCsv,
   toXlsx,
   createZip,
   neutralizeFormula,
   toFileName,
   uniqueName,
-} from './generator/index.js'
+} from './generator/writers.js'
 export { toSqlInserts } from './generator/sql-inserts.js'
 export {
   CATALOG,
@@ -42,14 +38,13 @@ export {
 } from './formats/index.js'
 
 export type { ParseOptions } from './parser/index.js'
-export type { TabularTable } from './tabular/index.js'
+export type { TabularTable } from './tabular/columns.js'
+export type { ExportFormat, ExportResult } from './generator/index.js'
 export type {
   CsvDelimiter,
   CsvOptions,
-  ExportFormat,
   ExportFile,
-  ExportResult,
-} from './generator/index.js'
+} from './generator/writers.js'
 export type { SqlInsertsOptions } from './generator/sql-inserts.js'
 
 export type {
@@ -76,12 +71,12 @@ export {
   sqliteToTabular,
   sqliteToSql,
   groupSqliteFiles,
+  SqliteReadError,
 } from './sqlite/index.js'
 export {
   readSqliteDatabase,
   isSqliteFile,
   isWalFile,
-  SqliteReadError,
   SQLITE_HEADER_BYTES,
 } from './sqlite/reader.js'
 export type {
