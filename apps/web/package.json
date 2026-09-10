@@ -4,13 +4,13 @@
   "private": true,
   "description": "Web interface for Converter Hub: local tools for splitting spreadsheets and extracting database dumps",
   "scripts": {
-    "dev": "next dev",
-    "build": "bun run --filter @sql-extractor/core build && next build",
+    "dev": "node scripts/copy-sql-wasm.mjs && next dev",
+    "build": "bun run --filter @sql-extractor/core build && node scripts/copy-sql-wasm.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "setup": "node scripts/ensure-react-symlinks.mjs",
-    "test": "bun run --filter @sql-extractor/core build && node scripts/ensure-react-symlinks.mjs && vitest run"
+    "test": "bun run --filter @sql-extractor/core build && node scripts/ensure-react-symlinks.mjs && node scripts/copy-sql-wasm.mjs && vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -22,6 +22,7 @@
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "sql.js": "^1.14.2",
     "tailwind-merge": "^3.6.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
@@ -33,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^4.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
