@@ -1,7 +1,7 @@
 {
-  "name": "sql-database-extractor",
+  "name": "converter-hub",
   "private": true,
-  "description": "A privacy-conscious database dump extraction tool for every engine in the format catalog",
+  "description": "Local-first file converters: split spreadsheets and extract database dumps, entirely in the browser",
   "workspaces": [
     "packages/*",
     "apps/*"
