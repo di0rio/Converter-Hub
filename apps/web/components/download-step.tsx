@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
-import { downloadZip } from '@/lib/download'
+import { downloadFile } from '@/lib/download'
 
 /** One line of the "what you are about to get" summary. */
 export interface ResultFact {
@@ -30,8 +30,11 @@ interface DownloadStepProps {
    * invented number.
    */
   progress?: { done: number; total: number } | null
-  /** The finished archive, once there is one. */
-  result: { filename: string; bytes: Uint8Array } | null
+  /**
+   * The finished file, once there is one: a ZIP unless a `type` says it is a
+   * single file of its own format.
+   */
+  result: { filename: string; bytes: Uint8Array; type?: string } | null
   facts: ResultFact[]
   onRun: () => void
   onReset: () => void
@@ -64,7 +67,11 @@ export function DownloadStep({
     if (!result) return
 
     try {
-      downloadZip(result.bytes, result.filename)
+      downloadFile(
+        result.bytes,
+        result.filename,
+        result.type ?? 'application/zip',
+      )
     } catch {
       onError('The download could not be started. Check your browser settings.')
     }
@@ -106,7 +113,7 @@ export function DownloadStep({
         {result ? (
           <Button className="flex-1" onClick={handleDownload}>
             <Download className="size-4" />
-            Download ZIP
+            Download {result.filename.split('.').pop()?.toUpperCase()}
           </Button>
         ) : (
           <Button className="flex-1" disabled={busy} onClick={onRun}>
