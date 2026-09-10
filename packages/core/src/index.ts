@@ -25,6 +25,7 @@ export {
   createZip,
   neutralizeFormula,
 } from './generator/index.js'
+export { toSqlInserts } from './generator/sql-inserts.js'
 export {
   CATALOG,
   DATABASE_FORMATS,
@@ -47,6 +48,7 @@ export type {
   ExportFile,
   ExportResult,
 } from './generator/index.js'
+export type { SqlInsertsOptions } from './generator/sql-inserts.js'
 
 export type {
   DatabaseFormat,

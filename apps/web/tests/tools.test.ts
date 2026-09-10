@@ -46,6 +46,7 @@ describe('tool registry', () => {
       'CSV',
       'JSON',
       'Markdown',
+      'SQL',
     ])
   })
 

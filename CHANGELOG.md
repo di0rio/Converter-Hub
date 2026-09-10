@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sheet named after the file, with values kept as text, and a binary file or
   an unclosed quote is refused. A ZIP-based file that is not a ZIP is refused
   too. Every refusal uses the same neutral message.
+- **SQL output in the spreadsheet tool:** one `.sql` script per sheet — a
+  `CREATE TABLE` of `TEXT` columns and `INSERT`s batched 500 rows at a time —
+  so a spreadsheet can be loaded into a database without a schema being guessed
+  from its cells. Values are escaped by doubling quotes, the only escape
+  standard SQL defines, and the script opens with a MySQL-only mode line
+  (`ANSI_QUOTES,NO_BACKSLASH_ESCAPES`) so that a cell ending in a backslash
+  cannot escape its closing quote and be read as SQL there.
 - **JSON and Markdown outputs in the spreadsheet tool:** one `.json` array of
   row objects, or one GitHub-flavoured Markdown table, per sheet. Empty and
   repeated headers are named by `normalizeColumns` in `packages/core`, which

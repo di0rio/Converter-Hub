@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react'
 import {
   AlertCircle,
   Braces,
+  Database,
   FileSpreadsheet,
   FileText,
   Scissors,
@@ -47,6 +48,12 @@ const FORMATS = [
     label: 'Markdown',
     hint: 'One .md per sheet',
     Icon: FileText,
+  },
+  {
+    id: 'sql' as const,
+    label: 'SQL',
+    hint: 'One .sql per sheet',
+    Icon: Database,
   },
 ]
 
