@@ -221,7 +221,11 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
   kept, because they are legal in file names and mangling them would only make
   the output harder to recognise. Sheets differing only by case are suffixed,
   since they would be one file on Windows and macOS.
-- **XLSX output preserves values and formulas**, not visual formatting.
+- **XLSX output keeps values and formulas**, not visual formatting. A formula
+  that only reads its own sheet stays a formula. One that reads another sheet,
+  another workbook or a defined name would open as `#REF!` or `#NAME?` in a
+  file holding a single sheet, so it is written as the value Excel cached for
+  it instead. A formula saved without a cached value comes out empty.
 - **CSV output goes through the same writer the SQL tool uses**, so both tools
   produce the same shape of file: UTF-8 with a byte order mark, RFC 4180
   quoting, and a leading `=`, `+`, `-` or `@` neutralised so a cell is not read

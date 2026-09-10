@@ -1,6 +1,6 @@
 import { createZip, formatBytes, toCsv } from '@sql-extractor/core'
 import type { CsvDelimiter, ExportFile } from '@sql-extractor/core'
-import type { WorkBook, WorkSheet } from 'xlsx'
+import type { CellObject, WorkBook, WorkSheet } from 'xlsx'
 
 /** What the export writes: one workbook per sheet, or one plain text table. */
 export type ExportFormat = 'xlsx' | 'csv'
@@ -234,6 +234,78 @@ export async function readSheetRows(
  * files of the same shape, including the escaping that keeps a cell beginning
  * with `=` from being read back as a formula by whatever opens it next.
  */
+/** A string literal inside a formula, where "!" and "[" are only text. */
+const STRING_LITERAL = /"(?:[^"]|"")*"/g
+
+/** A sheet named in a reference: quoted ('It''s here'!A1) or bare (Sales!A1). */
+const SHEET_REFERENCE = /(?:'((?:[^']|'')+)'|([^\s'!"(),;=+\-*/&^<>:%{}]+))!/g
+
+/**
+ * Defined names belong to the source workbook and are not copied into the one
+ * a sheet is written to, so a formula using one would open as #NAME?.
+ */
+function definedNames(workbook: WorkBook): RegExp | null {
+  const names = (workbook.Workbook?.Names ?? [])
+    .map((entry) => entry.Name)
+    .filter((name) => name && !name.startsWith('_xlnm.'))
+    .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+
+  if (names.length === 0) return null
+  return new RegExp(`(?<![\\w.])(?:${names.join('|')})(?![\\w.(])`, 'i')
+}
+
+/**
+ * Whether a formula reads something a file holding only this sheet will not
+ * have: another sheet, another workbook or table (`[1]Book!A1`, `Table1[Col]`)
+ * or a defined name.
+ */
+function readsOutside(
+  formula: string,
+  sheetName: string,
+  names: RegExp | null,
+): boolean {
+  const code = formula.replace(STRING_LITERAL, '""')
+  if (code.includes('[')) return true
+  if (names?.test(code)) return true
+
+  for (const [, quoted, bare] of code.matchAll(SHEET_REFERENCE)) {
+    const referenced = quoted === undefined ? bare : quoted.replace(/''/g, "'")
+    // Naming its own sheet is fine, as long as the tab keeps that name.
+    if (referenced !== sheetName || toSheetName(sheetName) !== sheetName) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * The sheet as it should be written on its own.
+ *
+ * A formula reading outside the sheet would open as #REF! or #NAME? in a file
+ * that holds nothing else, so it is replaced by the value Excel cached next to
+ * it. Formulas that only read this sheet stay formulas. The loaded workbook is
+ * never modified: changed cells go into a copy of the sheet.
+ */
+function standalone(workbook: WorkBook, sheetName: string): WorkSheet {
+  const sheet = workbook.Sheets[sheetName]
+  const names = definedNames(workbook)
+  let copy: WorkSheet | null = null
+
+  for (const ref in sheet) {
+    if (ref.charCodeAt(0) === 33) continue
+    const cell = sheet[ref] as CellObject
+    if (!cell?.f || !readsOutside(cell.f, sheetName, names)) continue
+
+    const value: CellObject = { ...cell }
+    delete value.f
+    delete value.F
+    copy ??= { ...sheet }
+    copy[ref] = value
+  }
+
+  return copy ?? sheet
+}
+
 export type ArchiveOptions = {
   /** Read only when writing CSV. */
   delimiter?: CsvDelimiter
@@ -271,7 +343,11 @@ export async function buildArchive(
       files.push(entry)
     } else {
       const single = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(single, sheet, toSheetName(name))
+      XLSX.utils.book_append_sheet(
+        single,
+        standalone(loaded.workbook, name),
+        toSheetName(name),
+      )
       const entry = `${fileName}.xlsx`
       entries.push({
         name: entry,

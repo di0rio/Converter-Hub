@@ -306,3 +306,91 @@ describe('buildArchive', () => {
     expect(result.files).toEqual(['Clients.xlsx'])
   })
 })
+
+describe('buildArchive: formulas', () => {
+  /**
+   * Sheet B reads from its neighbours the ways a real workbook does. Each cell
+   * carries the cached value Excel would have stored next to the formula.
+   */
+  function linked(): LoadedWorkbook {
+    const source = makeWorkbook({
+      A: [['n'], [10]],
+      'Other Sheet': [['m'], [3]],
+      "O'Brien": [['q'], [4]],
+      B: [
+        ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+      ],
+    })
+    const b = source.workbook.Sheets.B
+    b.A2 = { t: 'n', v: 20, f: 'A!A2*2' }
+    b.B2 = { t: 'n', v: 6, f: "'Other Sheet'!A2*2" }
+    b.C2 = { t: 'n', v: 8, f: "'O''Brien'!A2*2" }
+    b.D2 = { t: 'n', v: 5, f: '[1]Sheet1!A1' }
+    b.E2 = { t: 'n', v: 40, f: 'A2*2' }
+    b.F2 = { t: 's', v: 'a!b', f: '"a!b"' }
+    b.G2 = { t: 'n', v: 40, f: 'B!E2' }
+    b.H2 = { t: 'n', v: 20, f: 'Rate*2' }
+    source.workbook.Workbook = { Names: [{ Name: 'Rate', Ref: 'A!$A$2' }] }
+    return source
+  }
+
+  async function exportB(source: LoadedWorkbook): Promise<XLSX.WorkSheet> {
+    const result = await buildArchive(source, ['B'], 'xlsx')
+    const book = XLSX.read(entries(result.bytes)['B.xlsx'], {
+      type: 'array',
+      cellFormula: true,
+    })
+    return book.Sheets.B
+  }
+
+  it('keeps the cached value of a formula that reads another sheet', async () => {
+    const sheet = await exportB(linked())
+
+    expect(sheet.A2.f).toBeUndefined()
+    expect(sheet.A2.v).toBe(20)
+  })
+
+  it('recognises quoted sheet names, with spaces or apostrophes', async () => {
+    const sheet = await exportB(linked())
+
+    expect(sheet.B2.f).toBeUndefined()
+    expect(sheet.B2.v).toBe(6)
+    expect(sheet.C2.f).toBeUndefined()
+    expect(sheet.C2.v).toBe(8)
+  })
+
+  it('keeps the cached value of a reference to another workbook', async () => {
+    const sheet = await exportB(linked())
+
+    expect(sheet.D2.f).toBeUndefined()
+    expect(sheet.D2.v).toBe(5)
+  })
+
+  it('keeps the cached value of a defined name, which the new file lacks', async () => {
+    const sheet = await exportB(linked())
+
+    expect(sheet.H2.f).toBeUndefined()
+    expect(sheet.H2.v).toBe(20)
+  })
+
+  it('leaves a formula that only reads its own sheet alone', async () => {
+    const sheet = await exportB(linked())
+
+    expect(sheet.E2.f).toBe('A2*2')
+    // Naming its own sheet is still reading its own sheet.
+    expect(sheet.G2.f).toBe('B!E2')
+    // A "!" inside a string literal is not a reference.
+    expect(sheet.F2.f).toBe('"a!b"')
+  })
+
+  it('never changes the workbook it was given', async () => {
+    const source = linked()
+
+    await exportB(source)
+
+    expect(source.workbook.Sheets.B.A2.f).toBe('A!A2*2')
+    expect(source.workbook.Sheets.B.C2.f).toBe("'O''Brien'!A2*2")
+    expect(source.workbook.Sheets.B.H2.f).toBe('Rate*2')
+  })
+})

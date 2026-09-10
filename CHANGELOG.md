@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A split sheet whose formulas read another sheet (`=Summary!B2`), another
+  workbook or a defined name opened with `#REF!` or `#NAME?`, because the file
+  it was written to holds only that sheet. Those formulas are now written as
+  the value Excel cached for them; formulas that read only their own sheet stay
+  formulas, and the loaded workbook is never modified.
 - The Preview control on a table or sheet row was revealed on hover only, so on
   a touch screen — which has no hover — there was no way to open a preview at
   all. It is now always visible below the desktop breakpoint.
