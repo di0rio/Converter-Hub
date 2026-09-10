@@ -2,7 +2,9 @@ import {
   createZip,
   formatBytes,
   toCsv,
+  toFileName as safeName,
   toSqlInserts,
+  uniqueName,
 } from '@sql-extractor/core'
 import type { CsvDelimiter, ExportFile } from '@sql-extractor/core'
 import type { CellObject, WorkBook, WorkSheet } from 'xlsx'
@@ -75,41 +77,11 @@ export function oversizedWorkbookMessage(bytes: number): string {
   return `That file is ${formatBytes(bytes)}. The largest spreadsheet this tool reads is ${formatBytes(MAX_WORKBOOK_BYTES)}.`
 }
 
-/**
- * Excel accepts sheet names that a file system does not, so the reserved
- * characters are replaced rather than dropped: "Jan/Feb" would otherwise
- * collapse into a path separator.
- *
- * The name comes out of the user's file, so it is treated as untrusted input
- * for the archive it is about to name: the separators that would let a ZIP
- * entry escape its own folder are gone, leading dots cannot produce a `..`
- * entry or a hidden file, control characters are stripped, and the length is
- * capped so a pathological name cannot produce an unopenable archive. What
- * survives is left alone — accents and non-Latin scripts are legal in file
- * names, and mangling them would only make the output harder to recognise.
- */
-const RESERVED = /[\\/:*?"<>|]/g
 const CONTROL = /[\x00-\x1F\x7F]/g
 
-/** Leading and trailing dots, dashes and spaces, which never carry meaning. */
-const EDGES = /^[.\-\s]+|[.\-\s]+$/g
-
+/** A sheet name as a file name: "Jan/Feb" becomes "Jan-Feb", not a folder. */
 export function toFileName(sheetName: string): string {
-  const cleaned = sheetName
-    .replace(RESERVED, '-')
-    .replace(CONTROL, '')
-    .replace(/\s+/g, ' ')
-    // A run of separators reads as one. This also means a name made only of
-    // them collapses to nothing, and falls through to the default below.
-    .replace(/-{2,}/g, '-')
-    // A leading dot would hide the file, and a bare ".." would name a parent
-    // directory rather than a sheet.
-    .replace(EDGES, '')
-    .slice(0, 100)
-    // The cut can land on a separator, so tidy the new end as well.
-    .replace(EDGES, '')
-
-  return cleaned.length > 0 ? cleaned : 'sheet'
+  return safeName(sheetName, 'sheet')
 }
 
 /**
@@ -129,21 +101,6 @@ function toSheetName(name: string): string {
     .trim()
 
   return cleaned.length > 0 ? cleaned : 'Sheet'
-}
-
-/**
- * Two sheets can differ only by case ("Sales" and "sales"), which is the same
- * file name on Windows and macOS. Suffix the later ones so nothing is lost.
- */
-function uniqueName(base: string, taken: Set<string>): string {
-  let candidate = base
-  let n = 1
-  while (taken.has(candidate.toLowerCase())) {
-    n += 1
-    candidate = `${base}_${n}`
-  }
-  taken.add(candidate.toLowerCase())
-  return candidate
 }
 
 const CELL_REF = /^([A-Z]+)(\d+)$/

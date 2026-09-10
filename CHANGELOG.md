@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A SQLite tool at `/sqlite`.** It reads a SQLite database file directly —
+  `.db`, `.sqlite`, `.sqlite3`, `.db3` or any other name, recognised by its
+  header rather than its extension — and converts the tables you pick to CSV,
+  XLSX, SQL, JSON or Markdown. This is a different job from the SQL tool, which
+  reads the text a dump tool writes; this one reads the binary SQLite itself
+  writes.
+- **Write-ahead logs are read.** Select a `name-wal` alongside the database and
+  the rows it holds are included, so a database whose recent writes have not been
+  checkpointed converts to its latest committed state instead of silently losing
+  them. A real SQLite build applies the log; nothing here parses WAL frames by
+  hand. A `name-shm` is accepted and ignored, because it carries no data.
+- The CLI gained `sqlite <files...>`: the database, optionally followed by its
+  `-wal` and `-shm`. Without an explicit log it reads the one beside the
+  database. Files are paired by path, so another database's log is refused.
+- A `-wal` whose header checksum fails is refused rather than skipped, because
+  SQLite would otherwise open the main file alone and lose the log's rows
+  without a word.
+- CSV exports from SQLite take the same delimiter choice as the spreadsheet
+  tool, through one shared `CsvDelimiterField`.
+- Values keep their SQLite storage class on the way out: NULL stays distinct from
+  an empty string, 64-bit integers stay exact, text that looks numeric is not
+  converted, and BLOBs become base64 in text formats and `X'hex'` in SQL. The SQL
+  export carries the schema SQLite already stored, so keys and constraints
+  survive.
+- A database that fails its integrity check, or that is truncated, encrypted or
+  not SQLite at all, is refused with a message that names no file contents —
+  never partially exported.
+- Generated columns are left out of every export. Reading `SELECT *` against
+  the column list `table_info` reports had shifted every value after one such
+  column into the wrong header.
+
+### Changed
+
+- `toFileName`, `uniqueName` and `groupSqliteFiles` live in `packages/core`, so
+  the spreadsheet tool, the SQLite tool and the CLI name files and pair
+  companions the same way. Two SQLite tables whose names collide once cleaned,
+  or differ only by case, no longer overwrite each other in the ZIP.
+- `TableSelect` takes a list of tables by name rather than a parsed `Database`,
+  so the SQL and SQLite tools share one picker without either adopting the
+  other's model.
+- `FileSelect` can accept a whole selection, for tools whose input is more than
+  one file.
+- The README no longer says "no SQL is ever executed" without qualification. No
+  SQL from your files is executed — a dump is never replayed — but reading a
+  SQLite database does mean a SQLite engine reads its tables, read-only, in your
+  browser.
+
 ### Changed
 
 - **The product is now Converter Hub.** The SQL extractor is no longer the whole

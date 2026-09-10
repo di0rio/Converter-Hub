@@ -24,6 +24,8 @@ export {
   toXlsx,
   createZip,
   neutralizeFormula,
+  toFileName,
+  uniqueName,
 } from './generator/index.js'
 export { toSqlInserts } from './generator/sql-inserts.js'
 export {
@@ -67,3 +69,31 @@ export type {
   ExtractionOptions,
   ExtractionResult,
 } from './types/index.js'
+
+export {
+  toCellText,
+  toSqlLiteral,
+  sqliteToTabular,
+  sqliteToSql,
+  groupSqliteFiles,
+} from './sqlite/index.js'
+export {
+  readSqliteDatabase,
+  isSqliteFile,
+  isWalFile,
+  SqliteReadError,
+  SQLITE_HEADER_BYTES,
+} from './sqlite/reader.js'
+export type {
+  SqliteValue,
+  SqliteColumn,
+  SqliteTable,
+  SqliteDatabase,
+  SqliteFileGroup,
+  UnreadableTable,
+} from './sqlite/index.js'
+export type {
+  SqliteFileSet,
+  WasmSupplier,
+  ReadOptions,
+} from './sqlite/reader.js'
