@@ -252,6 +252,50 @@ describe('buildArchive', () => {
     )
   })
 
+  it('writes one JSON array per selected sheet', async () => {
+    const source = makeWorkbook({
+      Clients: [
+        ['name', 'city'],
+        ['Ada', 'Lisbon'],
+      ],
+      Orders: [['id'], ['1']],
+    })
+
+    const result = await buildArchive(source, ['Clients', 'Orders'], 'json')
+
+    expect(result.files).toEqual(['Clients.json', 'Orders.json'])
+    const raw = entries(result.bytes)['Clients.json']
+    // No byte order mark: a JSON parser rejects one.
+    expect(raw[0]).toBe(0x5b)
+    expect(JSON.parse(strFromU8(raw))).toEqual([
+      { name: 'Ada', city: 'Lisbon' },
+    ])
+  })
+
+  it('writes an empty JSON array for a sheet holding only a header', async () => {
+    const source = makeWorkbook({ Header: [['a', 'b']] })
+
+    const result = await buildArchive(source, ['Header'], 'json')
+
+    expect(strFromU8(entries(result.bytes)['Header.json'])).toBe('[]')
+  })
+
+  it('writes one Markdown table per selected sheet', async () => {
+    const source = makeWorkbook({
+      Clients: [
+        ['name', 'city'],
+        ['Ada', 'Lisbon'],
+      ],
+    })
+
+    const result = await buildArchive(source, ['Clients'], 'md')
+
+    expect(result.files).toEqual(['Clients.md'])
+    expect(strFromU8(entries(result.bytes)['Clients.md'])).toBe(
+      '| name | city |\n| --- | --- |\n| Ada | Lisbon |\n',
+    )
+  })
+
   it('keeps two sheets that differ only by case as two files', async () => {
     // The same file name on Windows and macOS, so the later one is suffixed
     // rather than silently overwriting the first.

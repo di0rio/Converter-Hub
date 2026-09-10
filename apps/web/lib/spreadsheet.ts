@@ -1,9 +1,10 @@
 import { createZip, formatBytes, toCsv } from '@sql-extractor/core'
 import type { CsvDelimiter, ExportFile } from '@sql-extractor/core'
 import type { CellObject, WorkBook, WorkSheet } from 'xlsx'
+import { toJson, toMarkdown } from '@/lib/sheet-writers'
 
-/** What the export writes: one workbook per sheet, or one plain text table. */
-export type ExportFormat = 'xlsx' | 'csv'
+/** What the export writes for each sheet. The id is also the file extension. */
+export type ExportFormat = 'xlsx' | 'csv' | 'json' | 'md'
 
 export interface SheetInfo {
   name: string
@@ -332,14 +333,20 @@ export async function buildArchive(
 
     const fileName = uniqueName(toFileName(name), taken)
 
-    if (format === 'csv') {
+    if (format !== 'xlsx') {
       const rows = await readSheetRows(loaded.workbook, name)
-      // The first row is the header the sheet already has; the CSV writer
-      // takes columns and rows apart, so it is split off rather than invented.
+      // The first row is the header the sheet already has; the writers take
+      // columns and rows apart, so it is split off rather than invented.
       const [header = [], ...body] = rows
-      const csv = toCsv({ name, columns: header, rows: body }, { delimiter })
-      const entry = `${fileName}.csv`
-      entries.push({ name: entry, content: encoder.encode(csv) })
+      const table = { name, columns: header, rows: body }
+      const text =
+        format === 'csv'
+          ? toCsv(table, { delimiter })
+          : format === 'json'
+            ? toJson(table)
+            : toMarkdown(table)
+      const entry = `${fileName}.${format}`
+      entries.push({ name: entry, content: encoder.encode(text) })
       files.push(entry)
     } else {
       const single = XLSX.utils.book_new()

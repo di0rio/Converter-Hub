@@ -14,7 +14,7 @@ does not exist yet.
 
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
-| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS | XLSX, CSV | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
+| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS | XLSX, CSV, JSON, Markdown | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
 | SQL | `/sql` | SQL dumps from 24 engines | SQL, CSV, XLSX | Extracts the databases and tables you pick out of a dump |
 
 The two are independent tools that share a design system, a virtualised data
@@ -235,6 +235,18 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
   expects a semicolon and opens a comma-separated file as a single column. A
   value is quoted when it carries the chosen delimiter, so a semicolon inside a
   cell stays one cell. The SQL tool always writes commas.
+- **JSON output is one array per sheet**, one object per row, keyed by the
+  header row. Every object carries the same keys. Values are the same text the
+  CSV holds, written exactly as they are: JSON is read by programs, not
+  reopened by a spreadsheet, so the formula prefix would only corrupt them.
+  UTF-8, no byte order mark.
+- **Markdown output is one GitHub-flavoured table per sheet.** A pipe is
+  escaped, a line break becomes `<br>`, `&`, `<` and `>` are escaped so a cell
+  cannot inject markup into whatever renders it, and a leading `=`, `+`, `-`
+  or `@` gets the same prefix the CSV applies.
+- **Headers are made usable for JSON and Markdown**: an empty header is named
+  after its position (`column_3`), and a repeated one — compared ignoring case
+  — is suffixed (`name_2`). CSV and XLSX keep the header exactly as it is.
 
 Note that SheetJS is installed from the vendor's own CDN
 (`https://cdn.sheetjs.com/...`), which is the installation route

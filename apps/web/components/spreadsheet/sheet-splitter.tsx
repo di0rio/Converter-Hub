@@ -3,7 +3,9 @@
 import { useCallback, useMemo } from 'react'
 import {
   AlertCircle,
+  Braces,
   FileSpreadsheet,
+  FileText,
   Scissors,
   Sheet,
   Table,
@@ -34,6 +36,18 @@ const FORMATS = [
     Icon: FileSpreadsheet,
   },
   { id: 'csv' as const, label: 'CSV', hint: 'One .csv per sheet', Icon: Table },
+  {
+    id: 'json' as const,
+    label: 'JSON',
+    hint: 'One .json per sheet',
+    Icon: Braces,
+  },
+  {
+    id: 'md' as const,
+    label: 'Markdown',
+    hint: 'One .md per sheet',
+    Icon: FileText,
+  },
 ]
 
 const DELIMITERS: { value: CsvDelimiter; label: string }[] = [

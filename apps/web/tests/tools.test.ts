@@ -28,6 +28,15 @@ describe('tool registry', () => {
     }
   })
 
+  it('lists every format the spreadsheet tool writes', () => {
+    expect(findTool('spreadsheet').output).toEqual([
+      'XLSX',
+      'CSV',
+      'JSON',
+      'Markdown',
+    ])
+  })
+
   it('routes every tool from the site root', () => {
     for (const tool of TOOLS) {
       expect(tool.href.startsWith('/')).toBe(true)

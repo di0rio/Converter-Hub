@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **JSON and Markdown outputs in the spreadsheet tool:** one `.json` array of
+  row objects, or one GitHub-flavoured Markdown table, per sheet. Empty and
+  repeated headers are named by `normalizeColumns` in `packages/core`, which
+  the SQL writer will share; the CSV formula prefix is now `neutralizeFormula`
+  there too, reused by the Markdown writer.
 - **CSV delimiter choice in the spreadsheet tool:** comma (default), semicolon
   or tab, picked in the format step. `toCsv` in `packages/core` takes an
   optional `{ delimiter }`; its default output is unchanged byte for byte, so
