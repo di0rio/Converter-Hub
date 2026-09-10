@@ -21,7 +21,7 @@ import type {
   FormatDescriptor,
 } from '@sql-extractor/core'
 import { useSqlDump } from '@/hooks/use-sql-dump'
-import { readDumpText } from '@/lib/sqlite-file'
+import { readDumpText, UnreadableFileError } from '@/lib/sqlite-file'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { findTool } from '@/lib/tools'
 import { FileSelect } from '@/components/file-select'
@@ -165,9 +165,13 @@ export function SqlExtractor() {
 
       readDumpText(file)
         .then((content) => loadFile(content, file.name))
-        .catch(() => {
+        .catch((cause: unknown) => {
+          // A file we recognised and rejected explains itself; anything else
+          // failed for reasons we cannot name from here.
           reportFileError(
-            'That file could not be read. It may have been moved, renamed, or it is not a database file.',
+            cause instanceof UnreadableFileError
+              ? cause.message
+              : 'That file could not be read. It may have been moved, renamed, or it is not a database file.',
           )
         })
     },

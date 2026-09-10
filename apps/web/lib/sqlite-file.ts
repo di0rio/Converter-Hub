@@ -36,6 +36,54 @@ export function isSqliteFile(head: ArrayBuffer): boolean {
   return true
 }
 
+/**
+ * A file the user chose that cannot be read, with a message explaining what to
+ * do about it. Anything else thrown on the way is a genuine failure and keeps
+ * the generic message.
+ */
+export class UnreadableFileError extends Error {}
+
+/**
+ * SQLite's write-ahead log header, in both byte orders the format allows.
+ *
+ * A WAL written on a big-endian machine opens with the second magic; the
+ * checkpoint state that follows differs, but neither is a database.
+ */
+const WAL_MAGIC = [0x377f0682, 0x377f0683]
+
+/**
+ * Which of SQLite's companion files this is, if any.
+ *
+ * A database in WAL mode sits next to a `-wal` and a `-shm` file, and file
+ * pickers list all three together, so choosing the wrong one is the easy
+ * mistake. Neither is a database on its own: the `-shm` is a shared-memory
+ * index that exists only while a process has the database open, and the `-wal`
+ * holds pages not yet folded back in.
+ *
+ * The `-wal` is identified by its header. The `-shm` has no stable magic, so
+ * its fixed naming convention is the signal — that convention is SQLite's own
+ * and does not vary.
+ */
+function sqliteSidecar(name: string, head: ArrayBuffer): 'wal' | 'shm' | null {
+  const bytes = new Uint8Array(head)
+  if (bytes.length >= 4) {
+    const magic =
+      ((bytes[0] as number) << 24) |
+      ((bytes[1] as number) << 16) |
+      ((bytes[2] as number) << 8) |
+      (bytes[3] as number)
+    if (WAL_MAGIC.includes(magic >>> 0)) return 'wal'
+  }
+  if (/-wal$/i.test(name)) return 'wal'
+  if (/-shm$/i.test(name)) return 'shm'
+  return null
+}
+
+/** The database file that sits beside a `-wal` or `-shm`. */
+function companionName(name: string): string {
+  return name.replace(/-(wal|shm)$/i, '')
+}
+
 /** A blob, in the `X'hex'` form SQLite reads back as the same bytes. */
 function blobLiteral(bytes: Uint8Array): string {
   let hex = ''
@@ -146,6 +194,24 @@ export async function sqliteFileToDump(buffer: ArrayBuffer): Promise<string> {
  */
 export async function readDumpText(file: File): Promise<string> {
   const head = await file.slice(0, SQLITE_MAGIC_BYTES).arrayBuffer()
+
+  // Named before anything is parsed: a companion file read as text produces a
+  // meaningless "no tables found", which sends the user looking for a fault in
+  // a database that is fine.
+  const sidecar = sqliteSidecar(file.name, head)
+  if (sidecar) {
+    const database = companionName(file.name)
+    throw new UnreadableFileError(
+      sidecar === 'wal'
+        ? `${file.name} is SQLite's write-ahead log, not a database. Choose ${database} instead — it holds the tables.`
+        : `${file.name} is SQLite's shared-memory index, not a database. Choose ${database} instead — it holds the tables.`,
+    )
+  }
+
+  if (file.size === 0) {
+    throw new UnreadableFileError(`${file.name} is empty.`)
+  }
+
   if (!isSqliteFile(head)) return file.text()
   return sqliteFileToDump(await file.arrayBuffer())
 }
