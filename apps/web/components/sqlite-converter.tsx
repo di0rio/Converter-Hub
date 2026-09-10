@@ -136,6 +136,8 @@ export function SqliteConverter({
         <DataGrid
           columns={tabular.columns}
           rows={tabular.rows.slice(0, PREVIEW_ROWS)}
+          bare
+          nullLabel="NULL"
         />
       )
     },
