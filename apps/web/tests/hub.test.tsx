@@ -33,10 +33,15 @@ describe('Hub', () => {
   it('keeps what a tool reads apart from what it writes', () => {
     render(<Hub />)
 
-    // Anchored: the spreadsheet card now names SQL among its outputs too.
-    const sql = screen.getByRole('link', { name: /^SQL/ })
+    // Anchored to the whole name: the spreadsheet card names SQL among its
+    // outputs, and "SQL" is also a prefix of "SQLite".
+    const sql = screen.getByRole('link', { name: /^SQL\b(?!ite)/ })
     expect(sql).toHaveTextContent('SQL dumps')
     expect(sql).toHaveTextContent('SQL, CSV, XLSX')
+
+    const sqlite = screen.getByRole('link', { name: /^SQLite/ })
+    expect(sqlite).toHaveTextContent('SQLite databases')
+    expect(sqlite).toHaveTextContent('CSV, XLSX, SQL, JSON, Markdown')
 
     const spreadsheet = screen.getByRole('link', { name: /^Spreadsheets/ })
     expect(spreadsheet).toHaveTextContent('XLSX, CSV, JSON, Markdown, SQL')

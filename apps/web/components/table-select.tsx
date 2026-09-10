@@ -2,14 +2,20 @@
 
 import { useRef } from 'react'
 import { Table2 } from 'lucide-react'
-import type { Database } from '@sql-extractor/core'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { PREVIEW_DRAG_TYPE } from '@/components/workspace'
 import { createDragGhost } from '@/lib/drag-ghost'
 
 interface TableSelectProps {
-  database: Database
+  /**
+   * The tables to choose from, by name.
+   *
+   * Only the names are needed, so both tools pass their own table type: the SQL
+   * extractor's parsed tables and the SQLite reader's, without either having to
+   * adopt the other's model.
+   */
+  tables: readonly { name: string }[]
   selectedTables: string[]
   allSelected: boolean
   someSelected: boolean
@@ -24,7 +30,7 @@ interface TableSelectProps {
 }
 
 export function TableSelect({
-  database,
+  tables,
   selectedTables,
   allSelected,
   someSelected,
@@ -38,7 +44,7 @@ export function TableSelect({
   // rAF can run before the browser has taken its snapshot.
   const ghostRef = useRef<HTMLElement | null>(null)
 
-  const totalRows = database.tables.reduce(
+  const totalRows = tables.reduce(
     (sum, t) => sum + (rowCounts.get(t.name) ?? 0),
     0,
   )
@@ -68,7 +74,7 @@ export function TableSelect({
           />
           <span className="text-sm font-medium">Select all</span>
           <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-            {selectedTables.length} / {database.tables.length}
+            {selectedTables.length} / {tables.length}
           </span>
         </label>
 
@@ -78,7 +84,7 @@ export function TableSelect({
           Drag a table into the workspace, or press Preview.
         </span>
 
-        {database.tables.map((table) => {
+        {tables.map((table) => {
           const rows = rowCounts.get(table.name) ?? 0
           const rowLabel = `${rows.toLocaleString()} row${rows === 1 ? '' : 's'}`
           const isPreviewed = previewedTables.includes(table.name)
