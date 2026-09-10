@@ -1,5 +1,5 @@
-import type { TabularTable } from '../tabular/index.js'
-import { normalizeColumns } from '../tabular/index.js'
+import type { TabularTable } from '../tabular/columns.js'
+import { normalizeColumns } from '../tabular/columns.js'
 
 export interface SqlInsertsOptions {
   /** The name the table gets. Cleaned before it reaches the SQL. */

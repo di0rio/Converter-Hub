@@ -1,5 +1,6 @@
 import * as SQLite from 'wa-sqlite'
 import { MemoryVFS } from 'wa-sqlite/src/examples/MemoryVFS.js'
+import { SqliteReadError } from './index.js'
 import type {
   SqliteColumn,
   SqliteDatabase,
@@ -82,14 +83,7 @@ function isIntactWal(wal: Uint8Array): boolean {
   return s1 === view.getUint32(24) && s2 === view.getUint32(28)
 }
 
-/**
- * Thrown when a chosen file cannot be read, carrying a message safe to show.
- *
- * The message never quotes the database's contents, a SQL statement or an
- * internal error string: a caught message can carry fragments of the user's
- * data, and this tool never puts those on screen.
- */
-export class SqliteReadError extends Error {}
+export { SqliteReadError }
 
 /** The bytes of one database, and of its write-ahead log when supplied. */
 export interface SqliteFileSet {

@@ -1,17 +1,24 @@
-import type { TabularTable } from '../tabular/index.js'
-import { normalizeColumns } from '../tabular/index.js'
-import { SqliteReadError } from './reader.js'
+import type { TabularTable } from '../tabular/columns.js'
+import { normalizeColumns } from '../tabular/columns.js'
 
 /**
  * The shape a SQLite database takes once it has been read, and the conversions
  * that carry it into the writers the rest of the project already has.
  *
- * Nothing here opens a file or runs a query. Reading needs a SQLite runtime,
- * and the two apps have different ones — `wa-sqlite` in the browser, `bun:sqlite`
- * in the CLI — so each supplies the reader and both produce these types. What
- * lives here is the part that must not differ between them: how a stored value
- * becomes text, and how a database becomes SQL.
+ * Nothing here opens a file or runs a query, and nothing here imports the
+ * SQLite engine: that lives in `reader.ts`, which depends on this module and
+ * never the other way round, so a tool that only formats values does not pull
+ * WebAssembly into its bundle.
  */
+
+/**
+ * Thrown when a chosen file cannot be read, carrying a message safe to show.
+ *
+ * The message never quotes the database's contents, a SQL statement or an
+ * internal error string: a caught message can carry fragments of the user's
+ * data, and this tool never puts those on screen.
+ */
+export class SqliteReadError extends Error {}
 
 // ------------------------------------------------------------------- types
 
