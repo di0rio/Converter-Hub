@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Five text tools: `/encoding`, `/case`, `/timestamp`, `/color` and
+  `/json-to-typescript`.** Paste text, pick a mode, and the result updates as
+  you type, ready to copy or download. Base64, hex, URL encoding and HTML
+  entities both ways; seven identifier cases; Unix seconds, milliseconds and
+  ISO 8601 in UTC, saying when an offset was assumed; HEX, rgb() and hsl(),
+  refusing out-of-range values; TypeScript types from a JSON sample. The
+  conversions live in `packages/core/src/utilities`.
 - **A Markdown tool at `/markdown`.** A Markdown document becomes a complete
   HTML file (through `marked`, loaded on demand) and an HTML page becomes
   Markdown (through `DOMParser`). Nothing is rendered in the app. Raw HTML in
