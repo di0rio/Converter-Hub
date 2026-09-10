@@ -21,6 +21,7 @@ import type {
   FormatDescriptor,
 } from '@sql-extractor/core'
 import { useSqlDump } from '@/hooks/use-sql-dump'
+import { readDumpText } from '@/lib/sqlite-file'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { findTool } from '@/lib/tools'
 import { FileSelect } from '@/components/file-select'
@@ -35,7 +36,7 @@ import { DownloadStep } from '@/components/download-step'
 
 const tool = findTool('sql')
 
-const ACCEPTED_EXTENSIONS = ['.sql', '.txt']
+const ACCEPTED_EXTENSIONS = ['.sql', '.txt', '.db', '.sqlite', '.sqlite3']
 
 const FORMATS = [
   { id: 'sql' as const, label: 'SQL', hint: 'One .sql dump', Icon: FileCode },
@@ -162,12 +163,11 @@ export function SqlExtractor() {
 
       closeAllWindows()
 
-      file
-        .text()
+      readDumpText(file)
         .then((content) => loadFile(content, file.name))
         .catch(() => {
           reportFileError(
-            'That file could not be read. It may have been moved or renamed.',
+            'That file could not be read. It may have been moved, renamed, or it is not a database file.',
           )
         })
     },
@@ -208,8 +208,8 @@ export function SqlExtractor() {
       <div className="space-y-8">
         <FileSelect
           id="sql-file-input"
-          label="Select a database dump"
-          buttonLabel="Choose SQL file"
+          label="Select a database dump or file"
+          buttonLabel="Choose database file"
           accept={ACCEPTED_EXTENSIONS}
           fileName={fileName || null}
           description={`${describeSource(sourceFormat, confidence)} Processed entirely in your browser.`}
