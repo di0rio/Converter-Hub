@@ -14,7 +14,7 @@ export default function SpreadsheetPage() {
     // fills what is left instead of growing the page. On a narrow one the
     // steps stack and the document scrolls, because pinning the height there
     // would squeeze the whole flow into one screen it cannot fit.
-    <main className="flex w-full flex-1 p-4 lg:h-dvh lg:overflow-hidden lg:p-6">
+    <main className="flex w-full p-4 lg:h-dvh lg:overflow-hidden lg:p-6">
       <SheetSplitter />
     </main>
   )
