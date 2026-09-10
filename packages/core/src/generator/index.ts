@@ -24,6 +24,53 @@ function safeFileName(name: string): string {
   return cleaned.length > 0 ? cleaned.slice(0, 100) : 'unnamed'
 }
 
+const RESERVED = /[\\/:*?"<>|]/g
+const CONTROL = /[\x00-\x1F\x7F]/g
+
+/** Leading and trailing dots, dashes and spaces, which never carry meaning. */
+const EDGES = /^[.\-\s]+|[.\-\s]+$/g
+
+/**
+ * A name taken from the user's file — a sheet, a table, a database — made safe
+ * to name a saved file or a ZIP entry.
+ *
+ * The name is untrusted input for the archive it is about to name: the
+ * separators that would let an entry escape its folder are replaced, leading
+ * dots cannot produce a `..` entry or a hidden file, control characters are
+ * stripped, and the length is capped. What survives is left alone — accents and
+ * non-Latin scripts are legal in file names, and mangling them would only make
+ * the output harder to recognise.
+ */
+export function toFileName(name: string, fallback: string): string {
+  const cleaned = name
+    .replace(RESERVED, '-')
+    .replace(CONTROL, '')
+    .replace(/\s+/g, ' ')
+    // A run of separators reads as one, and a name made only of them collapses
+    // to nothing and falls through to the fallback.
+    .replace(/-{2,}/g, '-')
+    .replace(EDGES, '')
+    .slice(0, 100)
+    // The cut can land on a separator, so tidy the new end as well.
+    .replace(EDGES, '')
+
+  return cleaned.length > 0 ? cleaned : fallback
+}
+
+/**
+ * Two names can differ only by case ("Sales" and "sales"), or become equal
+ * once cleaned ("a/b" and "a-b"), and either is one file on Windows and macOS.
+ * Suffix the later ones so nothing is overwritten.
+ */
+export function uniqueName(base: string, taken: Set<string>): string {
+  let candidate = base
+  for (let n = 2; taken.has(candidate.toLowerCase()); n++) {
+    candidate = `${base}_${n}`
+  }
+  taken.add(candidate.toLowerCase())
+  return candidate
+}
+
 // ---------------------------------------------------------------- CSV
 
 export type CsvDelimiter = ',' | ';' | '\t'

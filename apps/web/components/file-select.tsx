@@ -22,6 +22,15 @@ interface FileSelectProps {
   description: string
   onFile: (file: File) => void
   onError: (message: string) => void
+  /**
+   * Accept a whole selection rather than one file.
+   *
+   * A SQLite database in WAL mode is two or three files that only mean
+   * something together, so that tool takes the set and decides which is which.
+   * Left off, the control behaves as it always has and passes the first file.
+   */
+  multiple?: boolean
+  onFiles?: ((files: File[]) => void) | undefined
 }
 
 /** Named the way someone would read them aloud: ".xlsx, .xls or .csv". */
@@ -49,6 +58,8 @@ export function FileSelect({
   description,
   onFile,
   onError,
+  multiple = false,
+  onFiles,
 }: FileSelectProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   // Counts nested dragenter/dragleave pairs; a plain boolean flickers off when
@@ -56,9 +67,18 @@ export function FileSelect({
   const dragDepth = useRef(0)
   const [dragOver, setDragOver] = useState(false)
 
-  function handle(file: File | undefined) {
-    if (!file) return
+  function handle(chosen: FileList | null | undefined) {
+    const files = chosen ? Array.from(chosen) : []
+    if (files.length === 0) return
 
+    // A multi-file tool judges its own selection: the companions it accepts
+    // share a basename rather than an extension of their own.
+    if (multiple && onFiles) {
+      onFiles(files)
+      return
+    }
+
+    const file = files[0] as File
     const name = file.name.toLowerCase()
     if (!accept.some((extension) => name.endsWith(extension))) {
       onError(
@@ -85,9 +105,10 @@ export function FileSelect({
         id={id}
         type="file"
         accept={accept.join(',')}
+        multiple={multiple}
         className="sr-only"
         onChange={(event) => {
-          handle(event.target.files?.[0])
+          handle(event.target.files)
           // Reset so the same file can be picked again after starting over.
           event.target.value = ''
         }}
@@ -116,7 +137,7 @@ export function FileSelect({
           event.preventDefault()
           dragDepth.current = 0
           setDragOver(false)
-          handle(event.dataTransfer.files?.[0])
+          handle(event.dataTransfer.files)
         }}
         className={
           'w-full justify-start ' +

@@ -10,7 +10,8 @@ works entirely in their browser.
 | Tool | Route | Reads | Writes |
 |------|-------|-------|--------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
-| SQL | `/sql` | SQL dumps, SQLite database files | SQL, CSV, XLSX |
+| SQL | `/sql` | SQL dumps | SQL, CSV, XLSX |
+| SQLite | `/sqlite` | SQLite database files, with their `-wal` | CSV, XLSX, SQL, JSON, Markdown |
 
 The SQL tool's supported engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`.
@@ -21,11 +22,14 @@ CSV, the delimiter) → split → download.
 **SQL workflow:** select dump → select database → select tables → format →
 convert → download.
 
-A binary SQLite database (`.db`, `.sqlite`, `.sqlite3`) is recognised by its
-file header, not its extension, and rendered into `sqlite3 .dump` text by
-`apps/web/lib/sqlite-file.ts` before it reaches the parser. Everything after
-that point sees an ordinary dump. sql.js's WASM binary is served from
-`public/`, copied there at build time by `scripts/copy-sql-wasm.mjs`.
+**SQLite workflow:** select the database (and its `-wal`/`-shm` if it has them)
+→ select tables → format → convert → download.
+
+The SQL tool reads *scripts*; the SQLite tool reads *databases*. They share the
+table picker, the preview grid, the format options and the writers, and share no
+model: `SqlDump` belongs to the parser, `SqliteDatabase` to the reader, and
+neither is expressed in terms of the other.
+
 
 Never list a tool in the registry before its route exists. The hub advertises
 only what is implemented.
@@ -49,6 +53,17 @@ converter-hub/
 - `apps/cli/` — CLI interface. Imports from core. No UI code.
 - `apps/web/` — Next.js web interface. Imports from core. No CLI code.
 - No cross-imports between CLI and Web.
+
+**Where SQLite logic lives:** `packages/core/src/sqlite/`. The reader runs a real
+SQLite compiled to WebAssembly (`wa-sqlite`) over an in-memory filesystem holding
+the selected bytes, so SQLite itself applies the write-ahead log — there is no
+hand-written WAL parser, and there must not be one: misreading a half-written
+frame would produce corrupt rows that look real. Both apps use it, so a database
+converts identically from the browser and the CLI.
+
+The `-shm` file carries no data. It is a WAL index shared between processes, and
+SQLite rebuilds it in heap memory under an exclusive lock, so the tool accepts it
+and ignores it. Only the database and its `-wal` are ever read.
 
 **Where spreadsheet logic lives:** `apps/web/lib/spreadsheet.ts`, not
 `packages/core/`. It is UI-independent and unit-tested, but it is bound to
@@ -81,7 +96,9 @@ Before writing a new component, check whether one of these already does it.
 
 Dialect-specific SQL belongs under `packages/core/src/parser/<format>/`; nothing above the `FormatParser` interface may branch on format. Lexical differences between engines are described as data in `packages/core/src/parser/shared/dialect.ts`, so a new format supplies a dialect rather than a new splitter.
 
-**Explicitly out of scope:** dialect conversion (a dump exports as the SQL it came from, never translated), non-SQL databases (MongoDB, Redis, Cassandra and the like), generic SQL abstractions, Redux, MUI, and server-side database connections. This tool reads local SQL scripts; it never connects to a database.
+**Explicitly out of scope:** dialect conversion (a dump exports as the SQL it came from, never translated), non-SQL databases (MongoDB, Redis, Cassandra and the like), generic SQL abstractions, Redux, MUI, and server-side database connections. These tools read local files — a SQL script or a SQLite database file; they never connect to a database server.
+
+**Out of scope for the SQLite tool specifically:** running SQL the user supplies, a query console, any write to the source database, migration to another engine, loading SQLite extensions, decrypting SQLCipher databases, and forensic recovery (carving, undelete, freelist or deleted-row recovery, repairing a corrupt database). A database that fails its integrity check is refused, never partially exported.
 
 ## Principles
 
