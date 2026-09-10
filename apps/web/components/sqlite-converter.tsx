@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   AlertCircle,
   FileCode,
@@ -15,6 +15,7 @@ import { sqliteToTabular } from '@sql-extractor/core'
 import { useSqlite } from '@/hooks/use-sqlite'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { findTool } from '@/lib/tools'
+import { SQL_TOOL_EXTENSIONS } from '@/lib/sqlite-files'
 import type { SqliteExportFormat } from '@/lib/sqlite-export'
 import { FileSelect } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
@@ -26,13 +27,7 @@ import { CsvDelimiterField } from '@/components/csv-delimiter-field'
 import { DownloadStep } from '@/components/download-step'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-const tool = findTool('sqlite')
-
-/**
- * SQLite mandates no extension. These are the ones in common use, and the file
- * is checked by its header regardless — the list only shapes the picker.
- */
-const ACCEPTED_EXTENSIONS = ['.db', '.sqlite', '.sqlite3', '.db3']
+const tool = findTool('sql')
 
 const FORMATS = [
   { id: 'csv' as const, label: 'CSV', hint: 'One file per table', Icon: Table },
@@ -60,7 +55,15 @@ const FORMATS = [
 /** Rows a preview shows. Enough to judge the data, never the whole table. */
 const PREVIEW_ROWS = 200
 
-export function SqliteConverter() {
+export function SqliteConverter({
+  selection,
+  onFiles,
+}: {
+  /** Files the SQL tool routed here as a database. Loaded when they change. */
+  selection?: File[] | undefined
+  /** Hands a new pick back to the SQL tool, which decides who reads it. */
+  onFiles?: ((files: File[]) => void) | undefined
+} = {}) {
   const {
     tables,
     fileName,
@@ -115,6 +118,10 @@ export function SqliteConverter() {
     [closeAllWindows, loadFiles],
   )
 
+  useEffect(() => {
+    if (selection) handleFiles(selection)
+  }, [selection, handleFiles])
+
   const handleReset = useCallback(() => {
     closeAllWindows()
     reset()
@@ -151,15 +158,15 @@ export function SqliteConverter() {
       <div className="space-y-8">
         <FileSelect
           id="sqlite-file-input"
-          label="Select a SQLite database"
-          buttonLabel="Choose database files"
-          accept={ACCEPTED_EXTENSIONS}
+          label="Select a SQL dump or SQLite database"
+          buttonLabel="Choose file"
+          accept={SQL_TOOL_EXTENSIONS}
           fileName={fileName || null}
           reading={status === 'reading'}
           multiple
           description="Select the database and, if it has them, its -wal and -shm files. Processed entirely in your browser."
           onFile={() => {}}
-          onFiles={handleFiles}
+          onFiles={onFiles ?? handleFiles}
           onError={reportError}
         />
 

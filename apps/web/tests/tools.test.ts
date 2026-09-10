@@ -5,11 +5,15 @@ describe('tool registry', () => {
   it('lists every tool the hub advertises', () => {
     // The hub must never show a tool that has no page behind it. Every entry
     // here is implemented; a new one should not be added until its route is.
-    expect(TOOLS.map((tool) => tool.id)).toEqual([
-      'spreadsheet',
-      'sql',
-      'sqlite',
-    ])
+    expect(TOOLS.map((tool) => tool.id)).toEqual(['spreadsheet', 'sql'])
+  })
+
+  // One tool for both kinds of database input: a dump is a script, a SQLite
+  // file is a database, and the tool tells them apart by content.
+  it('reads SQL dumps and SQLite databases in the one SQL tool', () => {
+    const sql = findTool('sql')
+    expect(sql.source).toEqual(['SQL dumps', 'SQLite databases'])
+    expect(sql.output).toEqual(['SQL', 'CSV', 'XLSX', 'JSON', 'Markdown'])
   })
 
   it('gives every tool a unique id and a unique route', () => {

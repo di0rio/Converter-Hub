@@ -38,9 +38,12 @@ Open [http://localhost:3000](http://localhost:3000) and pick a tool.
 `file.arrayBuffer()` (CSV and TSV with `file.text()`, as UTF-8) and parsed by
 SheetJS in the tab.
 
-**SQL:** choose a dump → pick a database → pick tables → choose SQL, CSV or XLSX
-→ convert → download a ZIP. The file is read with `file.text()` and parsed by
-`@sql-extractor/core` in the tab.
+**SQL:** choose a dump or a SQLite database (with its `-wal` and `-shm`) → pick
+a database, for a dump → pick tables → choose SQL, CSV, XLSX, JSON or Markdown →
+convert → download a ZIP. `components/sql-tool.tsx` reads the first bytes of
+the pick: a SQLite header or a `-wal`/`-shm` companion goes to the SQLite reader
+(a real SQLite build in WebAssembly, read-only), anything else to the dump
+parser in `@sql-extractor/core`, which reads it with `file.text()`.
 
 ## Shared Code
 

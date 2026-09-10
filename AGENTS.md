@@ -10,25 +10,28 @@ works entirely in their browser.
 | Tool | Route | Reads | Writes |
 |------|-------|-------|--------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
-| SQL | `/sql` | SQL dumps | SQL, CSV, XLSX |
-| SQLite | `/sqlite` | SQLite database files, with their `-wal` | CSV, XLSX, SQL, JSON, Markdown |
+| SQL | `/sql` | SQL dumps, SQLite databases with their `-wal` | SQL, CSV, XLSX, JSON, Markdown |
 
-The SQL tool's supported engines are whatever
+The SQL tool's supported dump engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`.
 
 **Spreadsheet workflow:** select workbook → select sheets → format (and, for
 CSV, the delimiter) → split → download.
 
-**SQL workflow:** select dump → select database → select tables → format →
-convert → download.
+**SQL workflow, dump:** select dump → select database → select tables → format
+→ convert → download.
 
-**SQLite workflow:** select the database (and its `-wal`/`-shm` if it has them)
-→ select tables → format → convert → download.
+**SQL workflow, SQLite:** select the database (and its `-wal`/`-shm` if it has
+them) → select tables → format (and, for CSV, the delimiter) → convert →
+download.
 
-The SQL tool reads *scripts*; the SQLite tool reads *databases*. They share the
-table picker, the preview grid, the format options and the writers, and share no
-model: `SqlDump` belongs to the parser, `SqliteDatabase` to the reader, and
-neither is expressed in terms of the other.
+One tool, two readers. `components/sql-tool.tsx` looks at what was picked — a
+file starting with the SQLite header, or a `-wal`/`-shm` companion, is a
+database; anything else is a dump — and renders `SqlExtractor` or
+`SqliteConverter`. The two share the table picker, the preview grid, the format
+options and the writers, and share no model: `SqlDump` belongs to the parser,
+`SqliteDatabase` to the reader, and neither is expressed in terms of the other.
+Keep the routing in `sql-tool.tsx`; neither flow should learn about the other.
 
 
 Never list a tool in the registry before its route exists. The hub advertises

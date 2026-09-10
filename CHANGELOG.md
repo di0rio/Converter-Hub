@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **A SQLite tool at `/sqlite`.** It reads a SQLite database file directly —
-  `.db`, `.sqlite`, `.sqlite3`, `.db3` or any other name, recognised by its
-  header rather than its extension — and converts the tables you pick to CSV,
-  XLSX, SQL, JSON or Markdown. This is a different job from the SQL tool, which
-  reads the text a dump tool writes; this one reads the binary SQLite itself
-  writes.
+- **SQLite databases in the SQL tool.** `/sql` now reads a SQLite database
+  file directly — `.db`, `.sqlite`, `.sqlite3`, `.db3` or any other name,
+  recognised by its header rather than its extension — as well as dumps, and
+  converts the tables you pick. One picker takes both: the tool reads the file's
+  first bytes and hands a database to the SQLite reader and anything else to the
+  dump parser, switching when the next file is the other kind.
+- Dumps export to JSON and Markdown too, through the same writers the
+  spreadsheet and SQLite exports use, so both inputs offer SQL, CSV, XLSX, JSON
+  and Markdown.
 - **Write-ahead logs are read.** Select a `name-wal` alongside the database and
   the rows it holds are included, so a database whose recent writes have not been
   checkpointed converts to its latest committed state instead of silently losing
