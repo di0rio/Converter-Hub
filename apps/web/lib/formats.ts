@@ -33,7 +33,12 @@ export const FILE_FORMATS = {
     type: 'application/yaml',
   },
   xml: { label: 'XML', extensions: ['.xml'], type: 'application/xml' },
-  markdown: { label: 'Markdown', extensions: ['.md'], type: 'text/markdown' },
+  markdown: {
+    label: 'Markdown',
+    extensions: ['.md', '.markdown'],
+    type: 'text/markdown',
+  },
+  html: { label: 'HTML', extensions: ['.html', '.htm'], type: 'text/html' },
   sql: { label: 'SQL', extensions: ['.sql'], type: 'application/sql' },
   xlsx: {
     label: 'XLSX',
@@ -63,6 +68,10 @@ export const DATA_OUTPUTS = [
   'sql',
   'xlsx',
 ] as const
+
+/** The Markdown tool: each input has one output, the other of the pair. */
+export const MARKDOWN_INPUTS = ['markdown', 'html'] as const
+export const MARKDOWN_OUTPUTS = ['html', 'markdown'] as const
 
 export function formatLabels(ids: readonly FormatId[]): string[] {
   return ids.map((id) => FILE_FORMATS[id].label)

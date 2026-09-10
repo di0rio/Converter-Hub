@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A Markdown tool at `/markdown`.** A Markdown document becomes a complete
+  HTML file (through `marked`, loaded on demand) and an HTML page becomes
+  Markdown (through `DOMParser`). Nothing is rendered in the app. Raw HTML in
+  Markdown is escaped, and addresses other than `http`, `https`, `mailto` and
+  relative ones are dropped from links and images in both directions.
 - **XML in the Data tool.** Read with `DOMParser` into a fixed, documented shape
   (`@attributes`, repeated elements as lists, `#text`), never resolving external
   entities. `recordsToTable` now steps through single-property wrappers to reach
