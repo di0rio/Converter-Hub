@@ -15,8 +15,8 @@ works entirely in their browser.
 The SQL tool's supported engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`.
 
-**Spreadsheet workflow:** select workbook → select sheets → format → split →
-download.
+**Spreadsheet workflow:** select workbook → select sheets → format (and, for
+CSV, the delimiter) → split → download.
 
 **SQL workflow:** select dump → select database → select tables → format →
 convert → download.

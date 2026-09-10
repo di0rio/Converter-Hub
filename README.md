@@ -226,6 +226,11 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
   produce the same shape of file: UTF-8 with a byte order mark, RFC 4180
   quoting, and a leading `=`, `+`, `-` or `@` neutralised so a cell is not read
   back as a formula by whatever opens it next.
+- **The CSV delimiter is a choice**: comma (the default), semicolon or tab.
+  Excel in locales that use a decimal comma, Brazilian Portuguese among them,
+  expects a semicolon and opens a comma-separated file as a single column. A
+  value is quoted when it carries the chosen delimiter, so a semicolon inside a
+  cell stays one cell. The SQL tool always writes commas.
 
 Note that SheetJS is installed from the vendor's own CDN
 (`https://cdn.sheetjs.com/...`), which is the installation route

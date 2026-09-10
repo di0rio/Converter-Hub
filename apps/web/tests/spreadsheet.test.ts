@@ -234,6 +234,24 @@ describe('buildArchive', () => {
     expect(csv).toContain('"Doe, Jane"')
   })
 
+  it('writes CSV with the delimiter it is given', async () => {
+    const source = makeWorkbook({
+      Clients: [
+        ['name', 'city'],
+        ['Doe; Jane', 'Lisbon'],
+      ],
+    })
+
+    const result = await buildArchive(source, ['Clients'], 'csv', {
+      delimiter: ';',
+    })
+    const csv = strFromU8(entries(result.bytes)['Clients.csv'])
+
+    expect(csv.replace(/^\ufeff/, '')).toBe(
+      'name;city\r\n"Doe; Jane";Lisbon\r\n',
+    )
+  })
+
   it('keeps two sheets that differ only by case as two files', async () => {
     // The same file name on Windows and macOS, so the later one is suffixed
     // rather than silently overwriting the first.
@@ -269,9 +287,9 @@ describe('buildArchive', () => {
     })
 
     const seen: Array<[number, number]> = []
-    await buildArchive(source, ['A', 'B', 'C'], 'xlsx', (done, total) =>
-      seen.push([done, total]),
-    )
+    await buildArchive(source, ['A', 'B', 'C'], 'xlsx', {
+      onProgress: (done, total) => seen.push([done, total]),
+    })
 
     expect(seen).toEqual([
       [1, 3],

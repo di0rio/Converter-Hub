@@ -32,7 +32,7 @@ Open [http://localhost:3000](http://localhost:3000) and pick a tool.
 ## How It Works
 
 **Spreadsheets:** choose a workbook (`.xlsx`, `.xlsm`, `.xls`) → pick the sheets
-→ choose XLSX or CSV → split → download a ZIP. The file is read with
+→ choose XLSX or CSV (comma, semicolon or tab) → split → download a ZIP. The file is read with
 `file.arrayBuffer()` and parsed by SheetJS in the tab.
 
 **SQL:** choose a dump → pick a database → pick tables → choose SQL, CSV or XLSX

@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CSV delimiter choice in the spreadsheet tool:** comma (default), semicolon
+  or tab, picked in the format step. `toCsv` in `packages/core` takes an
+  optional `{ delimiter }`; its default output is unchanged byte for byte, so
+  the SQL tool's CSV is exactly what it was.
 - **Spreadsheet tool:** split a multi-sheet `.xlsx`, `.xlsm` or `.xls` workbook
   into one file per sheet — XLSX or CSV — packaged as a ZIP. Sheets with no
   content are listed but cannot be exported, sheet names are sanitised before

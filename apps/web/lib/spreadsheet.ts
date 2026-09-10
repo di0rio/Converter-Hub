@@ -1,5 +1,5 @@
 import { createZip, formatBytes, toCsv } from '@sql-extractor/core'
-import type { ExportFile } from '@sql-extractor/core'
+import type { CsvDelimiter, ExportFile } from '@sql-extractor/core'
 import type { WorkBook, WorkSheet } from 'xlsx'
 
 /** What the export writes: one workbook per sheet, or one plain text table. */
@@ -234,12 +234,18 @@ export async function readSheetRows(
  * files of the same shape, including the escaping that keeps a cell beginning
  * with `=` from being read back as a formula by whatever opens it next.
  */
+export type ArchiveOptions = {
+  /** Read only when writing CSV. */
+  delimiter?: CsvDelimiter
+  /** Called after each sheet, so the UI can report real progress. */
+  onProgress?: (done: number, total: number) => void
+}
+
 export async function buildArchive(
   loaded: LoadedWorkbook,
   sheetNames: string[],
   format: ExportFormat,
-  /** Called after each sheet, so the UI can report real progress. */
-  onProgress?: (done: number, total: number) => void,
+  { delimiter, onProgress }: ArchiveOptions = {},
 ): Promise<ArchiveResult> {
   const XLSX = await import('xlsx')
 
@@ -259,7 +265,7 @@ export async function buildArchive(
       // The first row is the header the sheet already has; the CSV writer
       // takes columns and rows apart, so it is split off rather than invented.
       const [header = [], ...body] = rows
-      const csv = toCsv({ name, columns: header, rows: body })
+      const csv = toCsv({ name, columns: header, rows: body }, { delimiter })
       const entry = `${fileName}.csv`
       entries.push({ name: entry, content: encoder.encode(csv) })
       files.push(entry)
