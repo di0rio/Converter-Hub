@@ -11,7 +11,7 @@ SQL is ever executed.
 | `/` | The hub — pick a tool |
 | `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
 | `/sql` | Extract tables out of a SQL dump or a SQLite database |
-| `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML) to another format |
+| `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML, XML) to another format |
 
 Every route is statically prerendered, so the app can be served as plain files.
 
@@ -46,7 +46,8 @@ the pick: a SQLite header or a `-wal`/`-shm` companion goes to the SQLite reader
 (a real SQLite build in WebAssembly, read-only), anything else to the dump
 parser in `@sql-extractor/core`, which reads it with `file.text()`.
 
-**Data:** choose a CSV, TSV, JSON, JSON Lines or YAML file → choose CSV (with
+**Data:** choose a CSV, TSV, JSON, JSON Lines, YAML or XML file (XML read with
+`DOMParser` in `lib/xml.ts`) → choose CSV (with
 its delimiter), TSV, JSON, JSON Lines, YAML, Markdown, SQL or XLSX → convert →
 download one file. `lib/data-convert.ts` reads the file into a plain value and
 writes the output from it; the table outputs go through `recordsToTable` in

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<people>
+  <person>
+    <id>1</id>
+    <name>Ada Lovelace</name>
+    <city>London</city>
+  </person>
+  <person>
+    <id>2</id>
+    <name>Grace Hopper</name>
+    <city>New York, NY</city>
+  </person>
+</people>

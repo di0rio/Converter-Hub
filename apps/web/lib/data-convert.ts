@@ -14,6 +14,7 @@ import {
   type CsvDelimiter,
 } from '@sql-extractor/core'
 import { toMarkdown } from '@/lib/sheet-writers'
+import { parseXml } from '@/lib/xml'
 import { DATA_INPUTS, DATA_OUTPUTS, FILE_FORMATS } from '@/lib/formats'
 
 /**
@@ -52,6 +53,8 @@ export async function readData(
       return parseJson(text)
     case 'jsonl':
       return parseJsonl(text)
+    case 'xml':
+      return parseXml(text)
     case 'yaml': {
       const { parse } = await loadYaml()
       // The library's default alias limit refuses a document that expands

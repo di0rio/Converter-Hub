@@ -11,7 +11,7 @@ works entirely in their browser.
 |------|-------|-------|--------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
 | SQL | `/sql` | SQL dumps, SQLite databases with their `-wal` | SQL, CSV, XLSX, JSON, Markdown |
-| Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
+| Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
 
 The SQL tool's supported dump engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`. That catalog is
@@ -27,8 +27,10 @@ convert → download one file.
 Structured data flows `parser → value → writer`. Parsers and the table gate
 (`recordsToTable`) are in `packages/core/src/csv` and `packages/core/src/records`;
 YAML, which needs a dependency only the browser uses, is in
-`apps/web/lib/data-convert.ts`. A table output refuses a nested document with
-`DataFormatError` rather than inventing a flattening.
+`apps/web/lib/data-convert.ts`. XML depends on `DOMParser`, so it is in
+`apps/web/lib/xml.ts`. A table output refuses a nested document with
+`DataFormatError` rather than inventing a flattening; the only unwrapping it
+does is stepping through single-property objects to reach a list.
 
 **Spreadsheet workflow:** select workbook → select sheets → format (and, for
 CSV, the delimiter) → split → download.
