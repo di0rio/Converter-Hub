@@ -9,7 +9,7 @@ works entirely in their browser.
 
 | Tool | Route | Reads | Writes |
 |------|-------|-------|--------|
-| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown |
+| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
 | SQL | `/sql` | SQL dumps | SQL, CSV, XLSX |
 
 The SQL tool's supported engines are whatever
@@ -58,7 +58,8 @@ spreadsheet CLI ever appears, promoting it is a file move.
 - `components/download-step.tsx` — run, report, download.
 - `components/tool-header.tsx` — breadcrumb and heading.
 - `lib/download.ts` — handing a ZIP to the browser.
-- `createZip`, `toCsv` and `formatBytes` from `packages/core`.
+- `createZip`, `toCsv`, `toSqlInserts`, `normalizeColumns` and `formatBytes`
+  from `packages/core`.
 
 Before writing a new component, check whether one of these already does it.
 

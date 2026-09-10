@@ -33,8 +33,8 @@ Open [http://localhost:3000](http://localhost:3000) and pick a tool.
 
 **Spreadsheets:** choose a spreadsheet (`.xlsx`, `.xlsm`, `.xls`, `.xlsb`, `.ods`, `.csv`,
 `.tsv`) → pick the sheets
-→ choose XLSX, CSV (comma, semicolon or tab), JSON or Markdown → split →
-download a ZIP. The file is read with
+→ choose XLSX, CSV (comma, semicolon or tab), JSON, Markdown or SQL → split
+→ download a ZIP. The file is read with
 `file.arrayBuffer()` (CSV and TSV with `file.text()`, as UTF-8) and parsed by
 SheetJS in the tab.
 
@@ -56,7 +56,7 @@ component, check whether one of these already covers it:
 | `components/download-step.tsx` | Run, report what was produced, download |
 | `components/tool-header.tsx` | Breadcrumb back to the hub, plus the heading |
 | `lib/download.ts` | Handing a ZIP to the browser as a `blob:` URL |
-| `createZip`, `toCsv`, `formatBytes` from core | Archives, CSV, byte counts |
+| `createZip`, `toCsv`, `toSqlInserts`, `formatBytes` from core | Archives, CSV, SQL inserts, byte counts |
 
 Spreadsheet logic lives in `lib/spreadsheet.ts` rather than in `packages/core`:
 it is UI-independent and unit-tested, but it is bound to SheetJS and used only
