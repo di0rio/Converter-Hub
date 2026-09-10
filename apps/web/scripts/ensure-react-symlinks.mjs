@@ -12,7 +12,8 @@
 // throw "Cannot read properties of null (reading 'useContext')".
 //
 // This replaces the hard-linked react/react-dom mirrors with symlinks to the .bun store
-// realpath so every import shares one resolved path.
+// realpath so every import shares one resolved path. The links are relative, so moving or
+// renaming the repository does not leave them dangling; they still resolve to the same realpath.
 import {
   existsSync,
   lstatSync,
@@ -21,12 +22,23 @@ import {
   rmSync,
   symlinkSync,
 } from 'node:fs'
-import { join, relative } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../../../', import.meta.url))
 const webModules = join(root, 'apps', 'web', 'node_modules')
 const storeDir = join(root, 'node_modules', '.bun')
+
+// existsSync follows symlinks, so it reports a dangling link as absent even though its
+// path is still taken. lstat looks at the link itself.
+function occupied(path) {
+  try {
+    lstatSync(path)
+    return true
+  } catch {
+    return false
+  }
+}
 
 if (!existsSync(storeDir)) process.exit(0)
 
@@ -38,15 +50,16 @@ for (const name of ['react', 'react-dom']) {
   const link = join(webModules, name)
   if (!existsSync(target)) continue
 
+  const linkTarget = relative(dirname(link), target)
   const alreadyLinked =
-    existsSync(link) &&
+    occupied(link) &&
     lstatSync(link).isSymbolicLink() &&
-    readlinkSync(link) === target
+    readlinkSync(link) === linkTarget
 
   if (alreadyLinked) continue
 
-  if (existsSync(link)) rmSync(link, { recursive: true, force: true })
-  symlinkSync(target, link)
+  if (occupied(link)) rmSync(link, { recursive: true, force: true })
+  symlinkSync(linkTarget, link)
   console.log(
     `[ensure-react-symlinks] linked ${relative(root, link)} -> ${relative(root, target)}`,
   )
