@@ -12,3 +12,4 @@ dist/
 *.pem
 .vercel
 .env*
+apps/web/public/sql-wasm.wasm

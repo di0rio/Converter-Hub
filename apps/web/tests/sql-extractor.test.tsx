@@ -77,7 +77,7 @@ describe('SqlExtractor', () => {
     ).toBeInTheDocument()
     expect(screen.getByText(/Select a database dump/i)).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Choose SQL file/i }),
+      screen.getByRole('button', { name: /Choose database file/i }),
     ).toBeInTheDocument()
     // The tool sits inside the hub, and says so with a way back to it.
     expect(
@@ -95,7 +95,7 @@ describe('SqlExtractor', () => {
     ) as HTMLInputElement
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
-    expect(input.accept).toBe('.sql,.txt')
+    expect(input.accept).toBe('.sql,.txt,.db,.sqlite,.sqlite3')
     // The section is labelled "Select a database dump" and the input is associated with the
     // visible label via htmlFor.
     expect(
