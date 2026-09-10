@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **More spreadsheet inputs:** `.xlsb`, `.ods`, `.csv` and `.tsv`, each checked
+  by a round trip through SheetJS. CSV and TSV are read as UTF-8 text into one
+  sheet named after the file, with values kept as text, and a binary file or
+  an unclosed quote is refused. A ZIP-based file that is not a ZIP is refused
+  too. Every refusal uses the same neutral message.
 - **JSON and Markdown outputs in the spreadsheet tool:** one `.json` array of
   row objects, or one GitHub-flavoured Markdown table, per sheet. Empty and
   repeated headers are named by `normalizeColumns` in `packages/core`, which

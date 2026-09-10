@@ -56,7 +56,7 @@ const DELIMITERS: { value: CsvDelimiter; label: string }[] = [
   { value: '\t', label: 'Tab' },
 ]
 
-const ACCEPTED_SUMMARY = `Reads ${ACCEPTED_EXTENSIONS.join(', ')} workbooks.`
+const ACCEPTED_SUMMARY = `Reads ${ACCEPTED_EXTENSIONS.join(', ')} files.`
 
 export function SheetSplitter() {
   const {

@@ -101,7 +101,9 @@ describe('SheetSplitter', () => {
     ).toBeInTheDocument()
     expect(screen.getByText(/Select a spreadsheet/i)).toBeInTheDocument()
     expect(
-      screen.getByText(/Reads \.xlsx, \.xlsm, \.xls workbooks/i),
+      screen.getByText(
+        /Reads \.xlsx, \.xlsm, \.xls, \.xlsb, \.ods, \.csv, \.tsv files/i,
+      ),
     ).toBeInTheDocument()
     expect(
       screen.getByText(/Processed entirely in your browser/i),
@@ -124,7 +126,7 @@ describe('SheetSplitter', () => {
     const { container } = render(<SheetSplitter />)
 
     const input = fileInput(container)
-    expect(input.accept).toBe('.xlsx,.xlsm,.xls')
+    expect(input.accept).toBe('.xlsx,.xlsm,.xls,.xlsb,.ods,.csv,.tsv')
     expect(
       screen.getByRole('button', { name: /Choose spreadsheet/i }),
     ).toBeInTheDocument()
@@ -134,12 +136,14 @@ describe('SheetSplitter', () => {
     const { container } = render(<SheetSplitter />)
 
     fireEvent.change(fileInput(container), {
-      target: { files: [new File(['id,name'], 'data.csv')] },
+      target: { files: [new File(['%PDF-1.7'], 'report.pdf')] },
     })
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(/not supported/i)
-    expect(alert).toHaveTextContent(/\.xlsx, \.xlsm or \.xls/)
+    expect(alert).toHaveTextContent(
+      /\.xlsx, \.xlsm, \.xls, \.xlsb, \.ods, \.csv or \.tsv/,
+    )
   })
 
   it('lists the sheets in a loaded workbook, with their row counts', async () => {
@@ -367,6 +371,33 @@ describe('SheetSplitter', () => {
     expect(strFromU8(archive['Clients.md'])).toBe(
       '| name | city |\n| --- | --- |\n| Ada | Lisbon |\n| Grace | Porto |\n',
     )
+  })
+
+  it('reads a CSV as a single sheet named after the file', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(
+      container,
+      new File(['name;city\r\nAda;Lisbon\r\n'], 'clientes.csv'),
+    )
+
+    const sheets = within(
+      screen.getByRole('region', { name: /Select sheets/i }),
+    )
+    expect(sheets.getByText('clientes')).toBeInTheDocument()
+    expect(sheets.getByText('1 row')).toBeInTheDocument()
+  })
+
+  it('says a broken file could not be read, and nothing from inside it', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    fireEvent.change(fileInput(container), {
+      target: { files: [new File(['id,"secret-value\n'], 'broken.csv')] },
+    })
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(/could not be read/i)
+    expect(alert).not.toHaveTextContent(/secret-value/)
   })
 
   it('starts over back to the empty state', async () => {

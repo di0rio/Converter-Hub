@@ -39,7 +39,7 @@ export const TOOLS: ConverterTool[] = [
       'Split a workbook into one file per sheet, locally in your browser.',
     href: '/spreadsheet',
     Icon: Sheet,
-    source: ['XLSX', 'XLSM', 'XLS'],
+    source: ['XLSX', 'XLSM', 'XLS', 'XLSB', 'ODS', 'CSV', 'TSV'],
     output: ['XLSX', 'CSV', 'JSON', 'Markdown'],
     heading: 'Split a spreadsheet',
   },

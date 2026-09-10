@@ -14,7 +14,7 @@ does not exist yet.
 
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
-| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS | XLSX, CSV, JSON, Markdown | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
+| Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
 | SQL | `/sql` | SQL dumps from 24 engines | SQL, CSV, XLSX | Extracts the databases and tables you pick out of a dump |
 
 The two are independent tools that share a design system, a virtualised data
@@ -27,7 +27,7 @@ differently again.
 
 ## Supported Formats
 
-This section covers the SQL tool. The spreadsheet tool reads the three
+This section covers the SQL tool. The spreadsheet tool reads the
 extensions listed in the table above and is described under
 [Spreadsheets](#spreadsheets).
 
@@ -203,11 +203,23 @@ those would teach people to dismiss the warning that matters.
 
 ## Spreadsheets
 
-The spreadsheet tool reads `.xlsx`, `.xlsm` and `.xls` through
+The spreadsheet tool reads `.xlsx`, `.xlsm`, `.xls`, `.xlsb`, `.ods`, `.csv`
+and `.tsv` through
 [SheetJS](https://sheetjs.com) and writes one file per sheet into a ZIP. A ZIP
 rather than separate downloads, because a browser blocks the second and later
 downloads of a burst — ten sheets would otherwise arrive silently as one file.
 
+- **CSV and TSV are read as UTF-8 text, as one sheet named after the file.**
+  The separator is detected, a byte order mark is ignored, and every value is
+  kept as the text it is, so `007` keeps its leading zero and `1.10` is not
+  turned into `1.1`. A file holding a NUL character (binary content renamed to
+  `.csv`) or a quote that never closes is refused rather than shown as a
+  sheet of noise. A file saved in another encoding, such as Windows-1252, is
+  not converted: its accents come out wrong.
+- **A file must be what its extension says.** `.xlsx`, `.xlsm`, `.xlsb` and
+  `.ods` are ZIP archives, and one that does not start like a ZIP is refused
+  with the same neutral message as any unreadable file. `.xls` is not checked
+  this way, because Excel also saves HTML and XML under that extension.
 - **Sheets with no used range are listed but never exported.** They would
   produce a file with nothing in it, so they appear in the list, marked
   `empty`, and cannot be selected.
