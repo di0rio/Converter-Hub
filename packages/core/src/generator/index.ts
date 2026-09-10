@@ -32,12 +32,19 @@ export type CsvOptions = {
   delimiter?: CsvDelimiter
 }
 
+/**
+ * A value starting with = + - @ tab or CR is read as a formula when Excel or
+ * Sheets opens the file. Prefix it with ' so it stays literal text.
+ */
+export function neutralizeFormula(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? "'" + value : value
+}
+
 /** RFC 4180: quote when the value contains the delimiter, a quote or a newline. */
 function csvCell(value: string | null, delimiter: CsvDelimiter): string {
   if (value === null) return ''
-  // Dump content is untrusted: a cell starting with = + - @ or tab is read as a
-  // formula by Excel/Sheets on open. Prefix with ' so it stays literal text.
-  const safe = /^[=+\-@\t\r]/.test(value) ? "'" + value : value
+  // Dump and spreadsheet content is untrusted and may carry a formula payload.
+  const safe = neutralizeFormula(value)
   return safe.includes(delimiter) || /["\r\n]/.test(safe)
     ? '"' + safe.replace(/"/g, '""') + '"'
     : safe

@@ -40,7 +40,7 @@ export const TOOLS: ConverterTool[] = [
     href: '/spreadsheet',
     Icon: Sheet,
     source: ['XLSX', 'XLSM', 'XLS'],
-    output: ['XLSX', 'CSV'],
+    output: ['XLSX', 'CSV', 'JSON', 'Markdown'],
     heading: 'Split a spreadsheet',
   },
   {

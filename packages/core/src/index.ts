@@ -12,8 +12,19 @@ export {
   isOversizedDump,
   oversizedDumpMessage,
 } from './limits/index.js'
-export { toTabular, extractColumns, countRows } from './tabular/index.js'
-export { generateExport, toCsv, toXlsx, createZip } from './generator/index.js'
+export {
+  toTabular,
+  extractColumns,
+  countRows,
+  normalizeColumns,
+} from './tabular/index.js'
+export {
+  generateExport,
+  toCsv,
+  toXlsx,
+  createZip,
+  neutralizeFormula,
+} from './generator/index.js'
 export {
   CATALOG,
   DATABASE_FORMATS,

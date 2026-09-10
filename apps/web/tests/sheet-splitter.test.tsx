@@ -319,6 +319,56 @@ describe('SheetSplitter', () => {
     ).toBeInTheDocument()
   })
 
+  it('offers JSON and Markdown alongside Excel and CSV', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(container, makeFile(SAMPLE))
+
+    const formats = within(
+      screen.getByRole('radiogroup', { name: /Output format/i }),
+    )
+    expect(formats.getAllByRole('radio')).toHaveLength(4)
+    expect(formats.getByRole('radio', { name: /JSON/i })).toBeInTheDocument()
+    expect(
+      formats.getByRole('radio', { name: /Markdown/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('writes one .json per sheet into the archive', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(container, makeFile(SAMPLE))
+    fireEvent.click(screen.getByRole('radio', { name: /JSON/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Split sheets/i }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Download ZIP/i }),
+    )
+
+    const archive = await readArchive(createObjectURL.mock.calls[0][0])
+    expect(Object.keys(archive).sort()).toEqual(['Clients.json', 'Orders.json'])
+    expect(JSON.parse(strFromU8(archive['Clients.json']))).toEqual([
+      { name: 'Ada', city: 'Lisbon' },
+      { name: 'Grace', city: 'Porto' },
+    ])
+  })
+
+  it('writes one .md per sheet into the archive', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(container, makeFile(SAMPLE))
+    fireEvent.click(screen.getByRole('radio', { name: /Markdown/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Split sheets/i }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Download ZIP/i }),
+    )
+
+    const archive = await readArchive(createObjectURL.mock.calls[0][0])
+    expect(Object.keys(archive).sort()).toEqual(['Clients.md', 'Orders.md'])
+    expect(strFromU8(archive['Clients.md'])).toBe(
+      '| name | city |\n| --- | --- |\n| Ada | Lisbon |\n| Grace | Porto |\n',
+    )
+  })
+
   it('starts over back to the empty state', async () => {
     const { container } = render(<SheetSplitter />)
 

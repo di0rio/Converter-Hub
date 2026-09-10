@@ -36,6 +36,9 @@ describe('Hub', () => {
     const sql = screen.getByRole('link', { name: /SQL/ })
     expect(sql).toHaveTextContent('SQL dumps')
     expect(sql).toHaveTextContent('SQL, CSV, XLSX')
+
+    const spreadsheet = screen.getByRole('link', { name: /Spreadsheets/ })
+    expect(spreadsheet).toHaveTextContent('XLSX, CSV, JSON, Markdown')
   })
 
   it('makes the whole card the target, so there is one stop per tool', () => {
