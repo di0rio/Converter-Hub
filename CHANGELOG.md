@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The product is now Converter Hub.** The SQL extractor is no longer the whole
+  app: it is one tool of two, reached from a hub at `/` that asks which tool you
+  want before anything else. It moved to `/sql`; the spreadsheet splitter joins
+  it at `/spreadsheet`. `apps/web/lib/tools.ts` is the single source of truth for
+  the tool list and feeds the cards, titles, breadcrumbs and route metadata.
+- Both tools now scroll the document on narrow screens instead of pinning the
+  viewport height, which had squeezed the whole stacked flow into one screen it
+  could not fit
+- The spreadsheet tool counts data rows rather than range rows, so "5 rows"
+  means the same thing it means on the SQL side and matches the numbered rows
+  the preview shows
+
+### Added
+
+- **Spreadsheet tool:** split a multi-sheet `.xlsx`, `.xlsm` or `.xls` workbook
+  into one file per sheet — XLSX or CSV — packaged as a ZIP. Sheets with no
+  content are listed but cannot be exported, sheet names are sanitised before
+  they name an archive entry, and the split reports real per-sheet progress.
+- A file dropzone shared by both tools, giving the SQL tool drag-and-drop it did
+  not have, with the file picker still reachable from the keyboard
+- A virtualised data grid shared by both previews, so a large sheet costs no
+  more to paint than a large table
+- `examples/spreadsheet/sample.xlsx`, a synthetic four-sheet workbook
+
+### Fixed
+
+- The Preview control on a table or sheet row was revealed on hover only, so on
+  a touch screen — which has no hover — there was no way to open a preview at
+  all. It is now always visible below the desktop breakpoint.
+- Splitting a workbook whose sheet name contains `:` `\` `/` `?` `*` `[` or `]`
+  threw and failed the whole export; the tab name is now sanitised for the file
+  being written, while the file name keeps the original
+
+### Security
+
+- The spreadsheet tool refuses workbooks over 100 MB up front, by size, before
+  reading — a workbook inflates well past its size on disk once every cell is an
+  object
+- Spreadsheet CSV output goes through the same writer the SQL tool uses, so a
+  cell starting with `=`, `+`, `-` or `@` is neutralised rather than read back
+  as a formula
+- SheetJS is installed from the vendor's own CDN, which is the route their
+  documentation prescribes. The copy on the public npm registry stops at 0.18.5
+  and carries known prototype-pollution and ReDoS advisories — which matters
+  here, because the file being parsed is untrusted by definition.
+
 ### Added
 
 - SQLite dump support (`sqlite3 .dump`): one database named `main`, PRAGMA and

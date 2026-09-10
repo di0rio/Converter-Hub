@@ -1,6 +1,23 @@
-# SQL Database Extractor — Web Interface
+# Converter Hub — Web Interface
 
-A Next.js web interface for extracting databases and tables from MySQL, MariaDB and PostgreSQL dump files.
+The Next.js app that hosts the hub and both of its tools. Everything runs in the
+browser: no file is uploaded, there is no server behind the processing, and no
+SQL is ever executed.
+
+## Routes
+
+| Route | What it is |
+|-------|------------|
+| `/` | The hub — pick a tool |
+| `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
+| `/sql` | Extract databases and tables out of a SQL dump |
+
+Every route is statically prerendered, so the app can be served as plain files.
+
+`lib/tools.ts` is the single source of truth for the tool list. It feeds the hub
+cards, the page titles, the breadcrumbs and the route metadata, so adding a
+third tool is an entry there plus a route — the hub itself needs no changes.
+Never add an entry for a tool whose route does not exist yet.
 
 ## Getting Started
 
@@ -10,14 +27,38 @@ bun install
 bun run dev:web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and upload a `.sql` file.
+Open [http://localhost:3000](http://localhost:3000) and pick a tool.
 
 ## How It Works
 
-1. Upload a `.sql` dump file (processed entirely in your browser — nothing is uploaded to a server)
-2. Select a database
-3. Select tables to extract
-4. Download the extracted SQL
+**Spreadsheets:** choose a workbook (`.xlsx`, `.xlsm`, `.xls`) → pick the sheets
+→ choose XLSX or CSV → split → download a ZIP. The file is read with
+`file.arrayBuffer()` and parsed by SheetJS in the tab.
+
+**SQL:** choose a dump → pick a database → pick tables → choose SQL, CSV or XLSX
+→ convert → download a ZIP. The file is read with `file.text()` and parsed by
+`@sql-extractor/core` in the tab.
+
+## Shared Code
+
+The two tools are independent flows over a shared spine. Before adding a
+component, check whether one of these already covers it:
+
+| Module | Used for |
+|--------|----------|
+| `components/ui/` | The design system. Never duplicate a primitive. |
+| `components/file-dropzone.tsx` | The entry point of both flows: drop target and file picker, with a keyboard path that is not drag-and-drop |
+| `components/data-grid.tsx` | The virtualised table both previews render |
+| `components/format-options.tsx` | The output-format picker |
+| `components/download-step.tsx` | Run, report what was produced, download |
+| `components/tool-header.tsx` | Breadcrumb back to the hub, plus the heading |
+| `lib/download.ts` | Handing a ZIP to the browser as a `blob:` URL |
+| `createZip`, `toCsv`, `formatBytes` from core | Archives, CSV, byte counts |
+
+Spreadsheet logic lives in `lib/spreadsheet.ts` rather than in `packages/core`:
+it is UI-independent and unit-tested, but it is bound to SheetJS and used only
+here, and hoisting it would drag `xlsx` into the CLI's dependency graph for a
+tool the CLI does not have.
 
 ## Development
 
@@ -35,4 +76,5 @@ bun run test         # Run tests
 - React 19
 - Tailwind CSS 4
 - COSS UI (Base UI)
+- SheetJS, from the vendor CDN rather than the stale npm registry copy
 - TypeScript
