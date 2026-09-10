@@ -2,7 +2,12 @@
 
 Local-first tools for turning one file into the files you actually want. Every
 tool reads your file in the browser and writes the result back to it: nothing is
-uploaded, there is no server behind any of it, and no SQL is ever executed.
+uploaded, and there is no server behind any of it.
+
+No SQL from your files is ever executed. A dump is parsed as text and never
+replayed. A SQLite database is opened read-only by a SQLite engine running in
+your browser, which reads its tables and nothing else — no triggers fire, no
+extensions load, and the file you selected is never written to.
 
 ## Tools
 
@@ -16,10 +21,101 @@ does not exist yet.
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
 | SQL | `/sql` | SQL dumps from 24 engines | SQL, CSV, XLSX | Extracts the databases and tables you pick out of a dump |
+| SQLite | `/sqlite` | SQLite database files, write-ahead log included | CSV, XLSX, SQL, JSON, Markdown | Converts the tables you pick out of a database file |
 
-The two are independent tools that share a design system, a virtualised data
-grid, a ZIP writer, a CSV writer and a file dropzone. Adding a third means an
-entry in the registry and a route; the hub needs no changes.
+They are independent tools that share a design system, a virtualised data grid,
+a ZIP writer, a CSV writer and a file dropzone. Adding another means an entry in
+the registry and a route; the hub needs no changes.
+
+The SQL and SQLite tools are not the same tool twice. One reads a *script* — the
+text `mysqldump` or `sqlite3 .dump` produces. The other reads a *database file*,
+the binary SQLite itself writes.
+
+## SQLite
+
+### What it reads
+
+| File | Treated as |
+|------|------------|
+| `.db`, `.sqlite`, `.sqlite3`, `.db3`, or any other name | The database, if its header says `SQLite format 3` |
+| `name-wal` | The write-ahead log for `name`. Read, so recent rows are not lost |
+| `name-shm` | Accepted and ignored — it holds no data |
+
+Detection reads the file header, never the extension. SQLite mandates no
+extension, and a text file renamed to `.db` is still text.
+
+### The write-ahead log
+
+A database in WAL mode keeps recently committed rows in a `name-wal` file until
+something folds them back in. Opening only the `.db` therefore shows a database
+that is real but out of date, and says nothing about what is missing.
+
+Select the `-wal` alongside the database and those rows are included. The tool
+says so when it happens, so you know which of the two you are looking at. There
+is no hand-written WAL parser here: a real SQLite build applies the log, exactly
+as it would on your machine.
+
+The `-shm` is optional. It is an index shared between processes rather than a
+store of data, and SQLite rebuilds it in memory.
+
+Selecting only a `-wal` or `-shm` is refused: neither is a database on its own,
+and reconstructing one from them is forensic recovery, which this tool does not
+do.
+
+Companions are paired by name. `orders.db` never takes `sessions.db-wal` as its
+log, because SQLite itself cannot tell whose log it is reading and would lay one
+database's pages over another's. The browser pairs the file names you select;
+the CLI pairs paths, so a log is only ever the one in its database's own folder.
+
+A `-wal` whose header checksum does not match is refused with a neutral
+message. SQLite on its own would treat such a log as empty and open the main
+file alone, which exports the database minus its newest rows without a word.
+An incomplete last frame is a different case: SQLite stops at the last commit,
+which is exactly the state the database was in.
+
+### How values are written
+
+SQLite stores five classes and no dates. Nothing is guessed at on the way out:
+
+| Stored | CSV, XLSX, JSON, Markdown | SQL |
+|--------|---------------------------|-----|
+| NULL | empty cell, distinct from `""` | `NULL` |
+| INTEGER, REAL | the number as stored, 64-bit integers exact | unquoted |
+| TEXT | unchanged — `007` stays `007` | quoted, quotes doubled |
+| BLOB | base64 | `X'hex'`, which SQLite reads back |
+
+An INTEGER that looks like a Unix timestamp and a TEXT that looks like a date are
+left as they are. SQLite has no date type, and guessing rewrites your data.
+
+The SQL export carries the `CREATE TABLE` SQLite already stored, so primary keys,
+constraints, collations and declared types survive rather than being flattened.
+
+CSV goes through the same writer the other tools use: the delimiter you pick
+(comma, semicolon or tab), a byte order mark, and a leading `=`, `+`, `-` or
+`@` neutralised. Table names become file names the same way sheet names do —
+path separators and control characters removed — and two tables whose names
+collide once cleaned, or differ only by case, get separate files.
+
+### Limits and gaps
+
+- **Size.** The browser holds the whole database in memory; past 256 MB it is
+  refused rather than crashing the tab. The CLI has no such limit.
+- **Rows.** At most 200,000 rows per table are read in the browser. The row count
+  shown is always the true total, so a partial read is never passed off as whole.
+- **Virtual tables.** FTS and other virtual tables are listed as unreadable and
+  skipped, with their shadow tables. Their contents need the extension that wrote
+  them.
+- **Views** are not exported. Only tables are.
+- **Generated columns** are left out. Their values are derived from the other
+  columns, and leaving them out keeps the SQL export replayable — SQLite refuses
+  an `INSERT` that names one.
+- **SQLite's own tables** (`sqlite_*`, such as `sqlite_sequence`) are not
+  listed. The SQL export therefore does not carry `AUTOINCREMENT` counters; a
+  replayed table continues from its highest row id instead.
+- **The CLI** writes CSV, XLSX and SQL. JSON and Markdown are browser-only.
+- **Encrypted databases** (SQLCipher and similar) cannot be opened, and are
+  reported as unreadable. No attempt is made to bypass encryption.
+- **Corrupt databases** are refused, not partially exported.
 
 A **source format** (what a tool reads) and an **output format** (what it
 writes) are kept apart throughout, because a future converter will pair them

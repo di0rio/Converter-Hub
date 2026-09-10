@@ -3,9 +3,13 @@ import { HUB_NAME, HUB_TAGLINE, TOOLS, findTool } from '@/lib/tools'
 
 describe('tool registry', () => {
   it('lists every tool the hub advertises', () => {
-    // The hub must never show a tool that has no page behind it. Both entries
-    // here are implemented; a third should not be added until its route is.
-    expect(TOOLS.map((tool) => tool.id)).toEqual(['spreadsheet', 'sql'])
+    // The hub must never show a tool that has no page behind it. Every entry
+    // here is implemented; a new one should not be added until its route is.
+    expect(TOOLS.map((tool) => tool.id)).toEqual([
+      'spreadsheet',
+      'sql',
+      'sqlite',
+    ])
   })
 
   it('gives every tool a unique id and a unique route', () => {
