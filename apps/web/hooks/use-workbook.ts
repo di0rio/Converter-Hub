@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import type { CsvDelimiter } from '@sql-extractor/core'
 import {
   buildArchive,
   isOversizedWorkbook,
@@ -32,6 +33,7 @@ export function useWorkbook() {
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('idle')
   const [selected, setSelected] = useState<string[]>([])
   const [format, setFormat] = useState<ExportFormat>('xlsx')
+  const [delimiter, setDelimiter] = useState<CsvDelimiter>(',')
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle')
   const [progress, setProgress] = useState<Progress | null>(null)
   const [result, setResult] = useState<ArchiveResult | null>(null)
@@ -115,6 +117,14 @@ export function useWorkbook() {
     [clearResult],
   )
 
+  const selectDelimiter = useCallback(
+    (next: CsvDelimiter) => {
+      clearResult()
+      setDelimiter(next)
+    },
+    [clearResult],
+  )
+
   const separate = useCallback(async () => {
     if (!loaded || selected.length === 0) return
 
@@ -128,12 +138,10 @@ export function useWorkbook() {
     setExportStatus('building')
 
     try {
-      const archive = await buildArchive(
-        loaded,
-        ordered,
-        format,
-        (done, total) => setProgress({ done, total }),
-      )
+      const archive = await buildArchive(loaded, ordered, format, {
+        delimiter,
+        onProgress: (done, total) => setProgress({ done, total }),
+      })
       setResult(archive)
       setExportStatus('done')
     } catch {
@@ -143,13 +151,14 @@ export function useWorkbook() {
         'The archive could not be created. Try splitting fewer sheets at a time.',
       )
     }
-  }, [loaded, selected, format, reportError])
+  }, [loaded, selected, format, delimiter, reportError])
 
   const reset = useCallback(() => {
     setLoaded(null)
     setLoadStatus('idle')
     setSelected([])
     setFormat('xlsx')
+    setDelimiter(',')
     setExportStatus('idle')
     setProgress(null)
     setResult(null)
@@ -163,6 +172,7 @@ export function useWorkbook() {
     loadStatus,
     selected,
     format,
+    delimiter,
     exportStatus,
     progress,
     result,
@@ -174,6 +184,7 @@ export function useWorkbook() {
     toggleSheet,
     toggleAll,
     selectFormat,
+    selectDelimiter,
     separate,
     reset,
   }

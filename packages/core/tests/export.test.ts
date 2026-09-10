@@ -116,6 +116,78 @@ describe('csv', () => {
     expect(lines[4]).toBe('4,"\'@SUM(1,1)"')
     expect(lines[5]).toBe('5,plain text')
   })
+
+  it('keeps its default output byte for byte', () => {
+    const table = {
+      name: 'mixed',
+      columns: ['id', 'note'],
+      rows: [
+        ['1', 'Bruno, Jr.'],
+        ['2', 'say "hi"'],
+        ['3', 'a\nb'],
+        ['4', null],
+        ['5', '=1+1'],
+        ['6', 'a;b'],
+        ['7', 'a\tb'],
+      ],
+    }
+    const expected =
+      '\ufeffid,note\r\n' +
+      '1,"Bruno, Jr."\r\n' +
+      '2,"say ""hi"""\r\n' +
+      '3,"a\nb"\r\n' +
+      '4,\r\n' +
+      "5,'=1+1\r\n" +
+      '6,a;b\r\n' +
+      '7,a\tb\r\n'
+
+    expect(toCsv(table)).toBe(expected)
+    expect(toCsv(table, {})).toBe(expected)
+    expect(toCsv(table, { delimiter: ',' })).toBe(expected)
+  })
+
+  const places = {
+    name: 'places',
+    columns: ['name', 'city'],
+    rows: [['Doe; Jane', 'Lisbon, PT']],
+  }
+
+  it('quotes a value carrying a semicolon when that is the delimiter', () => {
+    expect(toCsv(places, { delimiter: ';' })).toBe(
+      '\ufeffname;city\r\n"Doe; Jane";Lisbon, PT\r\n',
+    )
+  })
+
+  it('leaves a semicolon alone under the default delimiter', () => {
+    expect(toCsv(places)).toBe('\ufeffname,city\r\nDoe; Jane,"Lisbon, PT"\r\n')
+  })
+
+  it('quotes a value carrying a tab when tab is the delimiter', () => {
+    const table = {
+      name: 't',
+      columns: ['a', 'b'],
+      rows: [
+        ['x\ty', 'z'],
+        ['\tlead', 'w'],
+      ],
+    }
+
+    expect(toCsv(table, { delimiter: '\t' })).toBe(
+      '\ufeffa\tb\r\n"x\ty"\tz\r\n"\'\tlead"\tw\r\n',
+    )
+  })
+
+  it('still quotes and neutralises under any delimiter', () => {
+    const table = {
+      name: 't',
+      columns: ['v'],
+      rows: [['say "hi"'], ['a\nb'], ['=1+1'], ['@x;y']],
+    }
+
+    expect(toCsv(table, { delimiter: ';' })).toBe(
+      '\ufeffv\r\n"say ""hi"""\r\n"a\nb"\r\n\'=1+1\r\n"\'@x;y"\r\n',
+    )
+  })
 })
 
 describe('xlsx', () => {

@@ -14,6 +14,25 @@ if (typeof Blob !== 'undefined' && typeof Blob.prototype.text !== 'function') {
   }
 }
 
+// jsdom has no PointerEvent either, and Base UI's Radio constructs one when it is
+// pressed. Without it a click on a radio never selects it.
+if (
+  typeof window !== 'undefined' &&
+  typeof window.PointerEvent !== 'function'
+) {
+  class PointerEventPolyfill extends MouseEvent {
+    pointerId: number
+    pointerType: string
+
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init)
+      this.pointerId = init.pointerId ?? 0
+      this.pointerType = init.pointerType ?? 'mouse'
+    }
+  }
+  window.PointerEvent = PointerEventPolyfill as unknown as typeof PointerEvent
+}
+
 // Same gap for arrayBuffer(), which the spreadsheet tool reads workbooks with.
 if (
   typeof Blob !== 'undefined' &&

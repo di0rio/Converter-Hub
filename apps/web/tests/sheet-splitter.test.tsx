@@ -7,6 +7,7 @@ import {
   within,
 } from '@testing-library/react'
 import * as XLSX from 'xlsx'
+import { strFromU8, unzipSync } from 'fflate'
 import { SheetSplitter } from '@/components/spreadsheet/sheet-splitter'
 
 /**
@@ -41,6 +42,17 @@ async function loadFile(container: HTMLElement, file: File) {
   await waitFor(() =>
     expect(screen.getByText(/sheets? found/i)).toBeInTheDocument(),
   )
+}
+
+/** The archive handed to the browser, unpacked. */
+function readArchive(blob: Blob): Promise<Record<string, Uint8Array>> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () =>
+      resolve(unzipSync(new Uint8Array(reader.result as ArrayBuffer)))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsArrayBuffer(blob)
+  })
 }
 
 const SAMPLE = {
@@ -241,6 +253,63 @@ describe('SheetSplitter', () => {
     // The archive on screen was written as .xlsx, so it must not be offered
     // as the result of a CSV split.
     fireEvent.click(screen.getByRole('radio', { name: /CSV/i }))
+
+    expect(
+      screen.queryByRole('button', { name: /Download ZIP/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Split sheets/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('asks for a CSV delimiter only when CSV is chosen', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(container, makeFile(SAMPLE))
+
+    expect(
+      screen.queryByRole('radiogroup', { name: /Delimiter/i }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('radio', { name: /CSV/i }))
+
+    const delimiter = within(
+      screen.getByRole('radiogroup', { name: /Delimiter/i }),
+    )
+    expect(delimiter.getByRole('radio', { name: /Comma/i })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(delimiter.getByRole('radio', { name: /Semicolon/i })).toBeVisible()
+    expect(delimiter.getByRole('radio', { name: /Tab/i })).toBeVisible()
+  })
+
+  it('writes the chosen delimiter into the archive', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(container, makeFile(SAMPLE))
+    fireEvent.click(screen.getByRole('radio', { name: /CSV/i }))
+    fireEvent.click(screen.getByRole('radio', { name: /Semicolon/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Split sheets/i }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Download ZIP/i }),
+    )
+
+    const archive = await readArchive(createObjectURL.mock.calls[0][0])
+    expect(strFromU8(archive['Clients.csv']).replace(/^\ufeff/, '')).toBe(
+      'name;city\r\nAda;Lisbon\r\nGrace;Porto\r\n',
+    )
+  })
+
+  it('drops a built archive when the delimiter changes', async () => {
+    const { container } = render(<SheetSplitter />)
+
+    await loadFile(container, makeFile(SAMPLE))
+    fireEvent.click(screen.getByRole('radio', { name: /CSV/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Split sheets/i }))
+    await screen.findByRole('button', { name: /Download ZIP/i })
+
+    fireEvent.click(screen.getByRole('radio', { name: /Semicolon/i }))
 
     expect(
       screen.queryByRole('button', { name: /Download ZIP/i }),

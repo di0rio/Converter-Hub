@@ -30,6 +30,8 @@ export {
 export type { ParseOptions } from './parser/index.js'
 export type { TabularTable } from './tabular/index.js'
 export type {
+  CsvDelimiter,
+  CsvOptions,
   ExportFormat,
   ExportFile,
   ExportResult,

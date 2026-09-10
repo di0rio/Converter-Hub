@@ -8,7 +8,7 @@ import {
   Sheet,
   Table,
 } from 'lucide-react'
-import { formatBytes } from '@sql-extractor/core'
+import { formatBytes, type CsvDelimiter } from '@sql-extractor/core'
 import { useWorkbook } from '@/hooks/use-workbook'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { ACCEPTED_EXTENSIONS, type ExportFormat } from '@/lib/spreadsheet'
@@ -16,6 +16,9 @@ import { findTool } from '@/lib/tools'
 import { FileSelect } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
 import { FormatOptions } from '@/components/format-options'
+import { Fieldset, FieldsetLegend } from '@/components/ui/fieldset'
+import { Label } from '@/components/ui/label'
+import { Radio, RadioGroup } from '@/components/ui/radio-group'
 import { DownloadStep } from '@/components/download-step'
 import { Workspace } from '@/components/workspace'
 import { SheetSelect } from '@/components/spreadsheet/sheet-select'
@@ -33,6 +36,12 @@ const FORMATS = [
   { id: 'csv' as const, label: 'CSV', hint: 'One .csv per sheet', Icon: Table },
 ]
 
+const DELIMITERS: { value: CsvDelimiter; label: string }[] = [
+  { value: ',', label: 'Comma (,)' },
+  { value: ';', label: 'Semicolon (;)' },
+  { value: '\t', label: 'Tab' },
+]
+
 const ACCEPTED_SUMMARY = `Reads ${ACCEPTED_EXTENSIONS.join(', ')} workbooks.`
 
 export function SheetSplitter() {
@@ -43,6 +52,7 @@ export function SheetSplitter() {
     loadStatus,
     selected,
     format,
+    delimiter,
     exportStatus,
     progress,
     result,
@@ -54,6 +64,7 @@ export function SheetSplitter() {
     toggleSheet,
     toggleAll,
     selectFormat,
+    selectDelimiter,
     separate,
     reset,
   } = useWorkbook()
@@ -163,13 +174,36 @@ export function SheetSplitter() {
 
         {hasSheets && exportable.length > 0 && (
           <div className="space-y-8 motion-safe:animate-step-in">
-            <FormatOptions<ExportFormat>
-              id="step-format"
-              label="Output format"
-              options={FORMATS}
-              value={format}
-              onChange={selectFormat}
-            />
+            <div className="flex flex-col gap-4">
+              <FormatOptions<ExportFormat>
+                id="step-format"
+                label="Output format"
+                options={FORMATS}
+                value={format}
+                onChange={selectFormat}
+              />
+
+              {format === 'csv' && (
+                <Fieldset className="flex flex-col gap-3 motion-safe:animate-step-in">
+                  <FieldsetLegend className="text-sm">Delimiter</FieldsetLegend>
+                  <RadioGroup
+                    aria-label="CSV delimiter"
+                    value={delimiter}
+                    onValueChange={(value) =>
+                      selectDelimiter(value as CsvDelimiter)
+                    }
+                    className="flex-row flex-wrap gap-x-5 gap-y-2"
+                  >
+                    {DELIMITERS.map(({ value, label }) => (
+                      <Label key={label}>
+                        <Radio value={value} />
+                        {label}
+                      </Label>
+                    ))}
+                  </RadioGroup>
+                </Fieldset>
+              )}
+            </div>
 
             <DownloadStep
               id="step-download"

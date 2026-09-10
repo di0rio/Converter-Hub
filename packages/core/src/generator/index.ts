@@ -26,18 +26,31 @@ function safeFileName(name: string): string {
 
 // ---------------------------------------------------------------- CSV
 
-/** RFC 4180: quote when the value contains a delimiter, quote or newline. */
-function csvCell(value: string | null): string {
+export type CsvDelimiter = ',' | ';' | '\t'
+
+export type CsvOptions = {
+  delimiter?: CsvDelimiter
+}
+
+/** RFC 4180: quote when the value contains the delimiter, a quote or a newline. */
+function csvCell(value: string | null, delimiter: CsvDelimiter): string {
   if (value === null) return ''
   // Dump content is untrusted: a cell starting with = + - @ or tab is read as a
   // formula by Excel/Sheets on open. Prefix with ' so it stays literal text.
   const safe = /^[=+\-@\t\r]/.test(value) ? "'" + value : value
-  return /["\,\r\n]/.test(safe) ? '"' + safe.replace(/"/g, '""') + '"' : safe
+  return safe.includes(delimiter) || /["\r\n]/.test(safe)
+    ? '"' + safe.replace(/"/g, '""') + '"'
+    : safe
 }
 
-export function toCsv(table: TabularTable): string {
-  const lines = [table.columns.map(csvCell).join(',')]
-  for (const row of table.rows) lines.push(row.map(csvCell).join(','))
+export function toCsv(
+  table: TabularTable,
+  { delimiter = ',' }: CsvOptions = {},
+): string {
+  const line = (cells: (string | null)[]) =>
+    cells.map((cell) => csvCell(cell, delimiter)).join(delimiter)
+  const lines = [line(table.columns)]
+  for (const row of table.rows) lines.push(line(row))
   // Excel only reads UTF-8 CSV correctly when a byte order mark is present.
   return '\ufeff' + lines.join('\r\n') + '\r\n'
 }
