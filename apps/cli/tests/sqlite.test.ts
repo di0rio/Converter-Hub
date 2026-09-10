@@ -32,10 +32,18 @@ function capture() {
   })
 }
 
+/**
+ * Connections left open on purpose. Closing the last one checkpoints the log
+ * away, and the garbage collector would close an unreferenced one whenever it
+ * ran — so without this list the fixture loses its WAL at random.
+ */
+const open: DatabaseSync[] = []
+
 /** Build a database, leaving `walOnly` stranded in the write-ahead log. */
 function build(name: string, schema: string, walOnly?: string): string {
   const path = join(dir, `${name}.db`)
   const db = new DatabaseSync(path)
+  open.push(db)
   db.exec('PRAGMA journal_mode=WAL')
   db.exec('PRAGMA wal_autocheckpoint=0')
   db.exec(schema)
