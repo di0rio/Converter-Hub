@@ -12,4 +12,4 @@ dist/
 *.pem
 .vercel
 .env*
-apps/web/public/sql-wasm*.wasm
+apps/web/public/wa-sqlite.wasm
