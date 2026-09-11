@@ -23,6 +23,12 @@ const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 /** Past this, some browsers refuse the canvas or hand back a blank one. */
 const MAX_SIDE = 16384
 
+/**
+ * A canvas costs four bytes a pixel, so a small file that decodes to a huge
+ * image could take gigabytes. This caps the canvas near 256 MB.
+ */
+const MAX_PIXELS = 64 * 1024 * 1024
+
 /** JPEG and WebP quality: the browsers' own default for JPEG. */
 const QUALITY = 0.92
 
@@ -99,9 +105,9 @@ export async function convertImage(
   const image = await load(source)
   const width = image.naturalWidth
   const height = image.naturalHeight
-  if (width > MAX_SIDE || height > MAX_SIDE) {
+  if (width > MAX_SIDE || height > MAX_SIDE || width * height > MAX_PIXELS) {
     throw new DataFormatError(
-      `This image is too large to convert. The longest side this tool draws is ${MAX_SIDE} pixels.`,
+      `This image is too large to convert. This tool draws up to ${MAX_SIDE} pixels a side and ${MAX_PIXELS / 1024 / 1024} million pixels in all.`,
     )
   }
   if (width === 0 || height === 0) {

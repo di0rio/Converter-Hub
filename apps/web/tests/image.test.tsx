@@ -134,8 +134,12 @@ describe('convertImage', () => {
     ).rejects.toThrow(DataFormatError)
   })
 
-  it('refuses an image too large to draw', async () => {
-    size = { width: 20000, height: 10 }
+  it.each([
+    ['a side', { width: 20000, height: 10 }],
+    // Each side is allowed; together they would be a gigabyte of canvas.
+    ['the pixel count', { width: 16000, height: 16000 }],
+  ])('refuses an image too large to draw by %s', async (_by, big) => {
+    size = big
     await expect(
       convertImage(new Blob(['png']), 'png', 'webp'),
     ).rejects.toThrow(/too large/)
