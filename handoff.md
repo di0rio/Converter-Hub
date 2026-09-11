@@ -154,7 +154,7 @@ desta rodada já conferiu:
 - **Máquina nova:** rode `bun install` antes de tudo. Sem isso falta o
   `wa-sqlite` e o typecheck do core quebra.
 - **Formatação:** `bunx biome format --write <arquivos>`.
-- **BOM e caracteres de controle:** use sempre escape (`'FEFF'`), nunca o
+- **BOM e caracteres de controle:** use sempre escape (`'\uFEFF'`), nunca o
   caractere literal.
 - Teste que tem JSX precisa ser `.tsx`.
 - **UI:** componentes COSS e nenhuma classe de cor no `className`.
