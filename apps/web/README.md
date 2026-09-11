@@ -13,10 +13,6 @@ SQL from your files is ever executed.
 | `/sql` | Extract tables out of a SQL dump or a SQLite database |
 | `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML, XML) to another format |
 | `/markdown` | Turn a Markdown document into an HTML file, or an HTML page into Markdown |
-| `/encoding` | Encode or decode Base64, hex, URL encoding and HTML entities |
-| `/case` | Convert names between seven identifier cases |
-| `/timestamp` | Read a Unix timestamp or ISO 8601 date as seconds, milliseconds and ISO UTC |
-| `/color` | Convert a color between HEX, rgb() and hsl() |
 | `/json-to-typescript` | Generate TypeScript types from a JSON sample |
 | `/image` | Convert an SVG, PNG, JPEG, WebP or AVIF image to PNG, JPEG or WebP |
 
@@ -68,11 +64,13 @@ Markdown becomes a complete HTML document, HTML becomes Markdown.
 `lib/markdown.ts` uses `marked` (imported on demand) one way and `DOMParser`
 the other. Nothing is rendered in the page; the output is only a download.
 
-**Text tools** (`/encoding`, `/case`, `/timestamp`, `/color`,
-`/json-to-typescript`): paste text → pick a mode where there is one → the
-output updates as you type → copy it or download it (`.txt`, or `.ts` for
-TypeScript). All five are `components/text-tool.tsx`, one spec each over the
-functions in `@sql-extractor/core`.
+**JSON to TypeScript:** paste a JSON sample → the types update as you type →
+copy them or download a `.ts` file. The page is `components/text-tool.tsx`,
+which takes one spec per text tool over the functions in `@sql-extractor/core`.
+
+**Parked:** Encoding, Case, Timestamps and Colors are built but off the hub.
+Their pages are in `app/_parked`, which is not routed; see
+`app/_parked/README.md` to bring one back.
 
 **Images:** choose an SVG, PNG, JPEG, WebP or AVIF file → choose PNG, JPEG or
 WebP → convert → download one file. `lib/image.ts` decodes it with an `Image`

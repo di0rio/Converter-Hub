@@ -1,13 +1,11 @@
+// Binary, CaseSensitive, Clock and Palette are the parked tools' icons; see
+// the commented entries at the end of TOOLS.
 import {
-  Binary,
   Braces,
-  CaseSensitive,
-  Clock,
   Database,
   FileCode,
   FileText,
   ImageIcon,
-  Palette,
   Sheet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -101,62 +99,6 @@ export const TOOLS: ConverterTool[] = [
     heading: 'Convert Markdown and HTML',
   },
   {
-    id: 'encoding',
-    name: 'Encoding',
-    tagline: 'Encode or decode Base64, hex, URL encoding and HTML entities.',
-    description:
-      'Encode text as Base64, hex, URL encoding or HTML entities, or decode it, locally in your browser.',
-    href: '/encoding',
-    Icon: Binary,
-    source: ['Text', 'Base64', 'Hex', 'URL encoding', 'HTML entities'],
-    output: ['Text', 'Base64', 'Hex', 'URL encoding', 'HTML entities'],
-    heading: 'Encode and decode text',
-  },
-  {
-    id: 'case',
-    name: 'Case',
-    tagline: 'Rename identifiers between camelCase, snake_case and more.',
-    description:
-      'Convert names between identifier styles, one per line, locally in your browser.',
-    href: '/case',
-    Icon: CaseSensitive,
-    source: ['Text'],
-    output: [
-      'camelCase',
-      'PascalCase',
-      'snake_case',
-      'kebab-case',
-      'SCREAMING_SNAKE_CASE',
-      'dot.case',
-      'Title Case',
-    ],
-    heading: 'Change case',
-  },
-  {
-    id: 'timestamp',
-    name: 'Timestamps',
-    tagline: 'Read a Unix timestamp or an ISO 8601 date in every form.',
-    description:
-      'Convert between Unix seconds, Unix milliseconds and ISO 8601, in UTC, locally in your browser.',
-    href: '/timestamp',
-    Icon: Clock,
-    source: ['Unix seconds', 'Unix milliseconds', 'ISO 8601'],
-    output: ['Unix seconds', 'Unix milliseconds', 'ISO 8601 UTC'],
-    heading: 'Convert a timestamp',
-  },
-  {
-    id: 'color',
-    name: 'Colors',
-    tagline: 'Convert a color between HEX, rgb() and hsl().',
-    description:
-      'Convert a color between HEX, rgb() and hsl(), locally in your browser.',
-    href: '/color',
-    Icon: Palette,
-    source: ['HEX', 'RGB', 'HSL'],
-    output: ['HEX', 'RGB', 'HSL'],
-    heading: 'Convert a color',
-  },
-  {
     id: 'json-to-typescript',
     name: 'JSON to TypeScript',
     tagline: 'Write TypeScript types that describe a JSON sample.',
@@ -180,6 +122,66 @@ export const TOOLS: ConverterTool[] = [
     output: formatLabels(IMAGE_OUTPUTS),
     heading: 'Convert an image',
   },
+  // Parked: built and tested, but kept off the hub for now. To bring one
+  // back, uncomment its entry and its icon import, and move its page from
+  // app/_parked/<id> to app/<id>. See app/_parked/README.md.
+  //
+  // {
+  //   id: 'encoding',
+  //   name: 'Encoding',
+  //   tagline: 'Encode or decode Base64, hex, URL encoding and HTML entities.',
+  //   description:
+  //     'Encode text as Base64, hex, URL encoding or HTML entities, or decode it, locally in your browser.',
+  //   href: '/encoding',
+  //   Icon: Binary,
+  //   source: ['Text', 'Base64', 'Hex', 'URL encoding', 'HTML entities'],
+  //   output: ['Text', 'Base64', 'Hex', 'URL encoding', 'HTML entities'],
+  //   heading: 'Encode and decode text',
+  // },
+  // {
+  //   id: 'case',
+  //   name: 'Case',
+  //   tagline: 'Rename identifiers between camelCase, snake_case and more.',
+  //   description:
+  //     'Convert names between identifier styles, one per line, locally in your browser.',
+  //   href: '/case',
+  //   Icon: CaseSensitive,
+  //   source: ['Text'],
+  //   output: [
+  //     'camelCase',
+  //     'PascalCase',
+  //     'snake_case',
+  //     'kebab-case',
+  //     'SCREAMING_SNAKE_CASE',
+  //     'dot.case',
+  //     'Title Case',
+  //   ],
+  //   heading: 'Change case',
+  // },
+  // {
+  //   id: 'timestamp',
+  //   name: 'Timestamps',
+  //   tagline: 'Read a Unix timestamp or an ISO 8601 date in every form.',
+  //   description:
+  //     'Convert between Unix seconds, Unix milliseconds and ISO 8601, in UTC, locally in your browser.',
+  //   href: '/timestamp',
+  //   Icon: Clock,
+  //   source: ['Unix seconds', 'Unix milliseconds', 'ISO 8601'],
+  //   output: ['Unix seconds', 'Unix milliseconds', 'ISO 8601 UTC'],
+  //   heading: 'Convert a timestamp',
+  // },
+  // {
+  //   id: 'color',
+  //   name: 'Colors',
+  //   tagline: 'Convert a color between HEX, rgb() and hsl().',
+  //   description:
+  //     'Convert a color between HEX, rgb() and hsl(), locally in your browser.',
+  //   href: '/color',
+  //   Icon: Palette,
+  //   source: ['HEX', 'RGB', 'HSL'],
+  //   output: ['HEX', 'RGB', 'HSL'],
+  //   heading: 'Convert a color',
+  // },
 ]
 
 export function findTool(id: string): ConverterTool {

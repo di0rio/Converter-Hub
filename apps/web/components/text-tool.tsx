@@ -40,7 +40,7 @@ type TextToolSpec = {
   type: string
 }
 
-export const CASE_LABELS: Record<CaseStyle, string> = {
+const CASE_LABELS: Record<CaseStyle, string> = {
   camel: 'camelCase',
   pascal: 'PascalCase',
   snake: 'snake_case',
@@ -58,8 +58,12 @@ const READ_AS: Record<TimestampRead, string> = {
 }
 
 /**
- * The five text tools differ only in what they call: paste text, maybe pick a
+ * The text tools differ only in what they call: paste text, maybe pick a
  * mode, read the result as you type. Each is one entry here.
+ *
+ * Only JSON to TypeScript is on the hub. Encoding, case, timestamp and color
+ * are parked: their specs stay so their pages in app/_parked still build, but
+ * their registry entries in lib/tools.ts are commented out.
  */
 const SPECS = {
   encoding: {
