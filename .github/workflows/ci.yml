@@ -26,6 +26,14 @@ jobs:
           # Do not leave the token in .git/config for later steps to reach.
           persist-credentials: false
 
+      # Vitest runs on Node, and from 4.x it treats as built-in only what
+      # Node's module.builtinModules lists. Before Node 23.5 that list leaves
+      # out prefix-only modules like node:sqlite, which the web tests import,
+      # so Node is pinned to the version in .nvmrc rather than the runner's.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           # Pinned to match "packageManager" in apps/web/package.json.
