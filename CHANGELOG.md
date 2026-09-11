@@ -88,6 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file, since JSON to TypeScript reads pasted text.
 - An SVG with only a viewBox converts at the viewBox size, instead of the
   letterboxed 300×150 the browser gives it by default.
+- The hub footer and the READMEs say "no SQL from your files is ever
+  executed": reading a SQLite database runs a SQLite engine in the tab.
 
 ### Changed
 

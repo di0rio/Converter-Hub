@@ -96,7 +96,7 @@ export function Hub(): React.ReactElement {
         <span>
           Every tool here reads your file in the browser and writes the result
           back to it. Your data never leaves this tab, there is no server behind
-          any of this, and no SQL is ever executed.
+          any of this, and no SQL from your files is ever executed.
         </span>
       </p>
     </div>

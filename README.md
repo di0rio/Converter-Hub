@@ -461,7 +461,9 @@ which matters here, because the file being parsed is untrusted by definition.
 - **CLI:** Processes files locally on your machine. It covers the SQL tool only.
 - **No analytics, telemetry, or external APIs.**
 - **No persistent storage** of dump or spreadsheet contents.
-- **No SQL is ever executed,** and no database is ever contacted.
+- **No SQL from your files is ever executed,** and no database server is ever
+  contacted. A SQLite database is read, read-only, by a SQLite engine running
+  in the tab.
 
 The web app ships a Content Security Policy and a set of security headers
 (`apps/web/next.config.ts`) so that the claim above is enforced by the browser
