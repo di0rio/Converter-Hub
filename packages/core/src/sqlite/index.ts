@@ -63,7 +63,14 @@ export interface SqliteDatabase {
 
 export interface UnreadableTable {
   name: string
-  reason: 'virtual'
+  /**
+   * Why it is not read: a SQLite virtual table, or a Firebird table with an
+   * ARRAY column, an external file, temporary rows, an unsupported character
+   * set, or damaged pages.
+   */
+  reason: 'virtual' | 'array' | 'external' | 'temporary' | 'charset' | 'damaged'
+  /** For diagnostics only; never shown in the app. */
+  detail?: string
 }
 
 // ------------------------------------------------------------- conversions
