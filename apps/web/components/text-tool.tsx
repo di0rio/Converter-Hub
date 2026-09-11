@@ -5,6 +5,7 @@ import { AlertCircle, Copy, Download } from 'lucide-react'
 import {
   CASE_STYLES,
   DataFormatError,
+  formatBytes,
   convertColor,
   convertTimestamp,
   decodeBase64,
@@ -22,6 +23,7 @@ import {
 } from '@sql-extractor/core'
 import { findTool } from '@/lib/tools'
 import { downloadFile } from '@/lib/download'
+import { FileSelect, listExtensions } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -38,7 +40,12 @@ type TextToolSpec = {
   modes: Mode[]
   filename: string
   type: string
+  /** Extensions a file may be opened with instead of pasting, if any. */
+  file?: string[]
 }
+
+/** Pasted-sized text: a sample to describe, not a data dump. */
+const MAX_FILE_BYTES = 10 * 1024 * 1024
 
 const CASE_LABELS: Record<CaseStyle, string> = {
   camel: 'camelCase',
@@ -127,6 +134,7 @@ const SPECS = {
     input: 'A JSON sample',
     filename: 'types.ts',
     type: 'text/typescript',
+    file: ['.json'],
     modes: [
       { label: 'Convert', convert: (text: string) => jsonToTypeScript(text) },
     ],
@@ -141,6 +149,32 @@ export function TextTool({ id }: { id: TextToolId }) {
   const [text, setText] = useState('')
   const [modeLabel, setModeLabel] = useState(spec.modes[0]?.label ?? '')
   const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [source, setSource] = useState<'text' | 'file'>('text')
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
+
+  function change(next: string) {
+    setText(next)
+    setCopy('idle')
+  }
+
+  async function openFile(file: File) {
+    if (file.size > MAX_FILE_BYTES) {
+      setFileError(
+        `That file is ${formatBytes(file.size)}. The largest this tool reads is ${formatBytes(MAX_FILE_BYTES)}.`,
+      )
+      return
+    }
+    try {
+      change(await file.text())
+      setFileName(file.name)
+      setFileError(null)
+    } catch {
+      setFileError(
+        'That file could not be read. It may have been moved or renamed.',
+      )
+    }
+  }
 
   const mode =
     spec.modes.find((candidate) => candidate.label === modeLabel) ??
@@ -194,24 +228,57 @@ export function TextTool({ id }: { id: TextToolId }) {
         </RadioGroup>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor={`${id}-input`}>{spec.input}</Label>
-        <Textarea
-          id={`${id}-input`}
-          className="font-mono"
-          value={text}
-          spellCheck={false}
-          onChange={(event) => {
-            setText(event.target.value)
-            setCopy('idle')
+      {spec.file && (
+        <RadioGroup
+          aria-label="Source"
+          value={source}
+          onValueChange={(next) => {
+            setSource(next as 'text' | 'file')
+            setFileName(null)
+            setFileError(null)
+            change('')
           }}
-        />
-      </div>
+          className="flex-row flex-wrap gap-x-5 gap-y-2"
+        >
+          <Label>
+            <Radio value="text" />
+            Paste text
+          </Label>
+          <Label>
+            <Radio value="file" />
+            Open a file
+          </Label>
+        </RadioGroup>
+      )}
 
-      {error && (
+      {source === 'file' && spec.file ? (
+        <FileSelect
+          id={`${id}-file`}
+          label="Select a file"
+          buttonLabel="Choose file"
+          accept={spec.file}
+          fileName={fileName}
+          description={`Reads ${listExtensions(spec.file)}. Processed entirely in your browser.`}
+          onFile={(file) => void openFile(file)}
+          onError={setFileError}
+        />
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor={`${id}-input`}>{spec.input}</Label>
+          <Textarea
+            id={`${id}-input`}
+            className="font-mono"
+            value={text}
+            spellCheck={false}
+            onChange={(event) => change(event.target.value)}
+          />
+        </div>
+      )}
+
+      {(fileError ?? error) && (
         <Alert variant="error">
           <AlertCircle aria-hidden="true" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{fileError ?? error}</AlertDescription>
         </Alert>
       )}
 

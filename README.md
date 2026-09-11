@@ -48,8 +48,9 @@ children under `"#text"`. A list wrapped in single-property layers —
 `<people><person>…` — reaches the table outputs as that list. A malformed file
 is refused without quoting the parser's message, which would quote the file.
 
-The Markdown tool renders nothing in the app: the result is a file to
-download. Markdown becomes a complete HTML document through the `marked`
+The Markdown tool asks which way to convert, Markdown to HTML or HTML to
+Markdown, and then takes only that kind of file. It renders nothing in the app:
+the result is a file to download. Markdown becomes a complete HTML document through the `marked`
 library, loaded only when a file is converted. Raw HTML in the Markdown is
 written as text rather than passed through, and a link or image whose address
 is not `http`, `https`, `mailto` or relative keeps its text and loses the
@@ -59,7 +60,7 @@ a small serializer for headings, paragraphs, links, images, lists, tables,
 code, emphasis and strong text. Scripts, styles and the head are left out, and
 any other element keeps its text. Arbitrary HTML does not convert perfectly.
 
-JSON to TypeScript takes a pasted JSON sample rather than a file, writes the
+JSON to TypeScript takes a pasted JSON sample or a `.json` file, writes the
 types as you type, and offers them to copy or download as a `.ts` file. It
 merges the values it sees into one type per position, marks a field some
 objects lack as optional, and writes `unknown` where the sample says nothing.

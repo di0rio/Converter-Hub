@@ -17,6 +17,8 @@ SQL from your files is ever executed.
 | `/image` | Convert an SVG, PNG, JPEG, WebP or AVIF image to PNG, JPEG or WebP |
 
 Every route is statically prerendered, so the app can be served as plain files.
+Links do not prefetch (`prefetch={false}`): a tool's code loads when it is
+opened, not when its card scrolls into view.
 
 `lib/tools.ts` is the single source of truth for the tool list. It feeds the hub
 cards, the page titles, the breadcrumbs and the route metadata, so adding a
@@ -59,13 +61,14 @@ the core, which refuses a nested document. `lib/formats.ts` holds the format
 metadata the tool and its hub card share. Single files download through
 `downloadFile` in `lib/download.ts`, the same helper the ZIP download uses.
 
-**Markdown:** choose a `.md` or `.html` file → convert → download one file:
-Markdown becomes a complete HTML document, HTML becomes Markdown.
+**Markdown:** choose Markdown to HTML or HTML to Markdown → choose a file of
+that kind → convert → download one file: Markdown becomes a complete HTML
+document, HTML becomes Markdown.
 `lib/markdown.ts` uses `marked` (imported on demand) one way and `DOMParser`
 the other. Nothing is rendered in the page; the output is only a download.
 
-**JSON to TypeScript:** paste a JSON sample → the types update as you type →
-copy them or download a `.ts` file. The page is `components/text-tool.tsx`,
+**JSON to TypeScript:** paste a JSON sample or open a `.json` file → the types
+update as you type → copy them or download a `.ts` file. The page is `components/text-tool.tsx`,
 which takes one spec per text tool over the functions in `@sql-extractor/core`.
 
 **Parked:** Encoding, Case, Timestamps and Colors are built but off the hub.

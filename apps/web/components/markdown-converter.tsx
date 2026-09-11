@@ -1,17 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertCircle, Wand2 } from 'lucide-react'
+import { AlertCircle, FileCode, FileText, Wand2 } from 'lucide-react'
 import { formatBytes, toFileName } from '@sql-extractor/core'
 import { findTool } from '@/lib/tools'
-import {
-  FILE_FORMATS,
-  MARKDOWN_INPUTS,
-  formatExtensions,
-  formatOf,
-} from '@/lib/formats'
+import { FILE_FORMATS, type MARKDOWN_INPUTS, formatOf } from '@/lib/formats'
 import { htmlToMarkdown, markdownToHtml } from '@/lib/markdown'
 import { FileSelect, listExtensions } from '@/components/file-select'
+import { FormatOptions } from '@/components/format-options'
 import { ToolHeader } from '@/components/tool-header'
 import { DownloadStep } from '@/components/download-step'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -21,27 +17,44 @@ const tool = findTool('markdown')
 /** A document, not a data dump: this is far past any real one. */
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
 
-const EXTENSIONS = formatExtensions(MARKDOWN_INPUTS)
-
 type Input = (typeof MARKDOWN_INPUTS)[number]
-type Loaded = { name: string; text: string; input: Input }
+type Loaded = { name: string; text: string }
 type Result = { filename: string; bytes: Uint8Array; type: string }
 
 /** Each input has one output: Markdown becomes HTML, HTML becomes Markdown. */
 const OUTPUT_OF = { markdown: 'html', html: 'markdown' } as const
 
+const DIRECTIONS = [
+  {
+    id: 'markdown' as const,
+    label: 'Markdown to HTML',
+    hint: 'A .md file becomes a web page',
+    Icon: FileText,
+  },
+  {
+    id: 'html' as const,
+    label: 'HTML to Markdown',
+    hint: 'A .html file becomes Markdown',
+    Icon: FileCode,
+  },
+]
+
 export function MarkdownConverter() {
+  const [input, setInput] = useState<Input>('markdown')
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [result, setResult] = useState<Result | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const inputFormat = FILE_FORMATS[input]
+  const outputFormat = FILE_FORMATS[OUTPUT_OF[input]]
+  const extensions = [...inputFormat.extensions]
+
   async function handleFile(file: File) {
     setResult(null)
-    const input = formatOf(file.name, MARKDOWN_INPUTS)
-    if (!input) {
+    if (!formatOf(file.name, [input])) {
       setError(
-        `That file type is not supported. Choose a ${listExtensions(EXTENSIONS)} file.`,
+        `That file type is not supported. Choose a ${listExtensions(extensions)} file.`,
       )
       return
     }
@@ -54,7 +67,7 @@ export function MarkdownConverter() {
 
     try {
       const text = await file.text()
-      setLoaded({ name: file.name.replace(/\.[^.]+$/, ''), text, input })
+      setLoaded({ name: file.name.replace(/\.[^.]+$/, ''), text })
       setError(null)
     } catch {
       setError(
@@ -68,20 +81,17 @@ export function MarkdownConverter() {
     setBusy(true)
     setError(null)
     try {
-      const output = FILE_FORMATS[OUTPUT_OF[loaded.input]]
       const content =
-        loaded.input === 'markdown'
+        input === 'markdown'
           ? await markdownToHtml(loaded.text, loaded.name)
           : htmlToMarkdown(loaded.text)
       setResult({
-        filename: `${toFileName(loaded.name, 'document')}${output.extensions[0]}`,
+        filename: `${toFileName(loaded.name, 'document')}${outputFormat.extensions[0]}`,
         bytes: new TextEncoder().encode(content),
-        type: output.type,
+        type: outputFormat.type,
       })
     } catch {
-      setError(
-        `This ${FILE_FORMATS[loaded.input].label} file could not be converted.`,
-      )
+      setError(`This ${inputFormat.label} file could not be converted.`)
     } finally {
       setBusy(false)
     }
@@ -93,7 +103,10 @@ export function MarkdownConverter() {
     setError(null)
   }
 
-  const outputLabel = loaded ? FILE_FORMATS[OUTPUT_OF[loaded.input]].label : ''
+  function choose(next: Input) {
+    setInput(next)
+    reset()
+  }
 
   return (
     <div className="w-full max-w-lg space-y-8">
@@ -107,21 +120,23 @@ export function MarkdownConverter() {
       )}
 
       <div className="space-y-8">
+        <FormatOptions<Input>
+          id="step-direction"
+          label="Conversion"
+          options={DIRECTIONS}
+          value={input}
+          onChange={choose}
+        />
+
         <FileSelect
           id="markdown-file-input"
-          label="Select a Markdown or HTML file"
+          label={`Select a ${inputFormat.label} file`}
           buttonLabel="Choose file"
-          accept={EXTENSIONS}
+          accept={extensions}
           fileName={
-            loaded
-              ? `${loaded.name}${FILE_FORMATS[loaded.input].extensions[0]}`
-              : null
+            loaded ? `${loaded.name}${inputFormat.extensions[0]}` : null
           }
-          description={`${
-            loaded
-              ? `Read as ${FILE_FORMATS[loaded.input].label}. Converts to ${outputLabel}.`
-              : 'Markdown becomes an HTML file; HTML becomes Markdown.'
-          } Processed entirely in your browser.`}
+          description={`Reads ${listExtensions(extensions)}. Processed entirely in your browser.`}
           onFile={(file) => void handleFile(file)}
           onError={setError}
         />
@@ -131,7 +146,7 @@ export function MarkdownConverter() {
             <DownloadStep
               id="step-download"
               label="Convert and download"
-              pending={`Ready to convert to ${outputLabel}.`}
+              pending={`Ready to convert to ${outputFormat.label}.`}
               actionLabel="Convert"
               actionIcon={Wand2}
               busyLabel="Converting..."

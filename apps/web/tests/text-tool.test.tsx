@@ -40,7 +40,7 @@ describe('TextTool', () => {
   it('writes types as you type, with no mode to pick', () => {
     render(<TextTool id="json-to-typescript" />)
 
-    expect(screen.queryByRole('radiogroup')).toBeNull()
+    expect(screen.queryByRole('radiogroup', { name: 'Mode' })).toBeNull()
     type('{"name": "Ada"}')
     expect(output()).toContain('export interface Root')
     expect(output()).toContain('name: string')
@@ -54,6 +54,20 @@ describe('TextTool', () => {
       'This is not valid JSON.',
     )
     expect(output()).toBe('')
+  })
+
+  it('reads the JSON from a file in file mode', async () => {
+    const { container } = render(<TextTool id="json-to-typescript" />)
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Open a file' }))
+    const picker = container.querySelector('input[type="file"]')
+    if (!picker) throw new Error('no file input')
+    fireEvent.change(picker, {
+      target: { files: [new File(['{"id": 1}'], 'sample.json')] },
+    })
+
+    expect(await screen.findByText('sample.json')).toBeTruthy()
+    expect(output()).toContain('id: number')
   })
 
   it('downloads the generated types as a .ts file', async () => {
