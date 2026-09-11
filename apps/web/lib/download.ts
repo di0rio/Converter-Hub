@@ -13,20 +13,11 @@ export function downloadFile(
   filename: string,
   type: string,
 ): void {
-  let part: ArrayBuffer | string = content as string
-  if (typeof content !== 'string') {
-    part = new ArrayBuffer(content.byteLength)
-    new Uint8Array(part).set(content)
-  }
-
+  const part = typeof content === 'string' ? content : content.slice()
   const url = URL.createObjectURL(new Blob([part], { type }))
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = filename
   anchor.click()
   URL.revokeObjectURL(url)
-}
-
-export function downloadZip(bytes: Uint8Array, filename: string): void {
-  downloadFile(bytes, filename, 'application/zip')
 }
