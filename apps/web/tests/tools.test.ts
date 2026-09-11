@@ -2,7 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { HUB_NAME, HUB_TAGLINE, TOOLS, findTool } from '@/lib/tools'
-import { MARKDOWN_INPUTS, MARKDOWN_OUTPUTS, formatLabels } from '@/lib/formats'
+import {
+  IMAGE_INPUTS,
+  IMAGE_OUTPUTS,
+  MARKDOWN_INPUTS,
+  MARKDOWN_OUTPUTS,
+  formatLabels,
+} from '@/lib/formats'
 import { DATA_INPUTS, DATA_OUTPUTS } from '@/lib/data-convert'
 
 describe('tool registry', () => {
@@ -19,7 +25,16 @@ describe('tool registry', () => {
       'timestamp',
       'color',
       'json-to-typescript',
+      'image',
     ])
+  })
+
+  it('advertises exactly the formats the image tool converts', () => {
+    const image = findTool('image')
+    expect(image.source).toEqual(formatLabels(IMAGE_INPUTS))
+    expect(image.output).toEqual(formatLabels(IMAGE_OUTPUTS))
+    // Read where the browser decodes it; canvas cannot write it.
+    expect(image.output).not.toContain('AVIF')
   })
 
   it('advertises exactly the formats the Markdown tool converts', () => {

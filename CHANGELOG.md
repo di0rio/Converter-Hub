@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An Images tool at `/image`.** SVG, PNG, JPEG, WebP and AVIF in; PNG, JPEG
+  and WebP out, as one file, with no library: `Image`, canvas, `toBlob`. An SVG
+  is validated by content and loaded only through `<img>` from a Blob URL, so
+  its scripts never run and its external resources are never fetched. AVIF is
+  input only, where the browser decodes it.
 - **JSON Lines from the SQL tool.** Dumps and SQLite databases export one
   `.jsonl` per table, one record per row, through the core's `toJsonl` and
   `tableToRecords`.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 120 80">
+  <!-- Synthetic fixture. The script must never run and the image must never be fetched. -->
+  <script>alert('this must not run')</script>
+  <rect width="120" height="80" fill="#1e293b"/>
+  <circle cx="60" cy="40" r="24" fill="#f59e0b"/>
+  <image href="https://example.com/tracker.png" width="1" height="1"/>
+</svg>

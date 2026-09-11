@@ -45,6 +45,11 @@ export const FILE_FORMATS = {
     extensions: ['.xlsx'],
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   },
+  svg: { label: 'SVG', extensions: ['.svg'], type: 'image/svg+xml' },
+  png: { label: 'PNG', extensions: ['.png'], type: 'image/png' },
+  jpeg: { label: 'JPEG', extensions: ['.jpg', '.jpeg'], type: 'image/jpeg' },
+  webp: { label: 'WebP', extensions: ['.webp'], type: 'image/webp' },
+  avif: { label: 'AVIF', extensions: ['.avif'], type: 'image/avif' },
 } as const satisfies Record<string, FileFormat>
 
 export type FormatId = keyof typeof FILE_FORMATS
@@ -72,6 +77,13 @@ export const DATA_OUTPUTS = [
 /** The Markdown tool: each input has one output, the other of the pair. */
 export const MARKDOWN_INPUTS = ['markdown', 'html'] as const
 export const MARKDOWN_OUTPUTS = ['html', 'markdown'] as const
+
+/**
+ * The image tool. AVIF is read where the browser decodes it, but never
+ * written: `canvas.toBlob` does not produce AVIF in general.
+ */
+export const IMAGE_INPUTS = ['svg', 'png', 'jpeg', 'webp', 'avif'] as const
+export const IMAGE_OUTPUTS = ['png', 'jpeg', 'webp'] as const
 
 export function formatLabels(ids: readonly FormatId[]): string[] {
   return ids.map((id) => FILE_FORMATS[id].label)

@@ -18,6 +18,7 @@ SQL is ever executed.
 | `/timestamp` | Read a Unix timestamp or ISO 8601 date as seconds, milliseconds and ISO UTC |
 | `/color` | Convert a color between HEX, rgb() and hsl() |
 | `/json-to-typescript` | Generate TypeScript types from a JSON sample |
+| `/image` | Convert an SVG, PNG, JPEG, WebP or AVIF image to PNG, JPEG or WebP |
 
 Every route is statically prerendered, so the app can be served as plain files.
 
@@ -72,6 +73,11 @@ the other. Nothing is rendered in the page; the output is only a download.
 output updates as you type → copy it or download it (`.txt`, or `.ts` for
 TypeScript). All five are `components/text-tool.tsx`, one spec each over the
 functions in `@sql-extractor/core`.
+
+**Images:** choose an SVG, PNG, JPEG, WebP or AVIF file → choose PNG, JPEG or
+WebP → convert → download one file. `lib/image.ts` decodes it with an `Image`
+from a Blob URL, draws it on a canvas and encodes it with `canvas.toBlob`. An
+SVG must parse as SVG in `DOMParser` first, and is never inserted into the page.
 
 ## Shared Code
 

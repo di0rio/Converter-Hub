@@ -18,6 +18,7 @@ works entirely in their browser.
 | Timestamps | `/timestamp` | Unix seconds or milliseconds, ISO 8601 | all three, in UTC |
 | Colors | `/color` | HEX, RGB, HSL | all three |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript |
+| Images | `/image` | SVG, PNG, JPEG, WebP, AVIF | PNG, JPEG, WebP |
 
 The SQL tool's supported dump engines are whatever
 `packages/core/src/formats/catalog.ts` marks `supported`. That catalog is
@@ -42,6 +43,12 @@ component, `apps/web/components/text-tool.tsx`, driven by a table of specs; the
 conversions are pure functions in `packages/core/src/utilities`. A new text
 tool is a spec entry, a registry entry and a route. Errors shown are only
 `DataFormatError` messages or a generic one.
+
+**Image workflow:** select an image → PNG, JPEG or WebP → convert → download
+one file. `apps/web/lib/image.ts` decodes through `Image`, draws on a canvas
+and encodes with `canvas.toBlob`. An SVG is validated by content with
+`DOMParser` and loaded only through `<img>` from a Blob URL. Never inject an SVG
+into the DOM and never advertise AVIF as an output.
 
 Structured data flows `parser → value → writer`. Parsers and the table gate
 (`recordsToTable`) are in `packages/core/src/csv` and `packages/core/src/records`;
