@@ -79,6 +79,13 @@ export {
   isWalFile,
   SQLITE_HEADER_BYTES,
 } from './sqlite/reader.js'
+export {
+  readFdbDatabase,
+  isFdbFile,
+  FdbReadError,
+  FDB_HEADER_BYTES,
+} from './fdb/index.js'
+export type { FdbReadOptions } from './fdb/index.js'
 export type {
   SqliteValue,
   SqliteColumn,
