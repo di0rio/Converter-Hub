@@ -86,6 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   leave `apps/web/node_modules/react` missing.
 - Invalid JSON is reported as "This is not valid JSON." rather than naming a
   file, since JSON to TypeScript reads pasted text.
+- An SVG with only a viewBox converts at the viewBox size, instead of the
+  letterboxed 300×150 the browser gives it by default.
 
 ### Changed
 

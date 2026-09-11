@@ -26,14 +26,46 @@ const MAX_SIDE = 16384
 /** JPEG and WebP quality: the browsers' own default for JPEG. */
 const QUALITY = 0.92
 
-export function isSvg(text: string): boolean {
+/** The `<svg>` root of a document, or null when the text is not SVG. */
+function parseSvg(text: string): Element | null {
   const document = new DOMParser().parseFromString(text, 'image/svg+xml')
   const root = document.documentElement
-  return (
-    document.getElementsByTagName('parsererror').length === 0 &&
+  return document.getElementsByTagName('parsererror').length === 0 &&
     root?.localName === 'svg' &&
     root.namespaceURI === SVG_NAMESPACE
-  )
+    ? root
+    : null
+}
+
+export function isSvg(text: string): boolean {
+  return parseSvg(text) !== null
+}
+
+const ABSOLUTE = /^\s*\d+(\.\d+)?(px)?\s*$/
+
+/**
+ * An SVG with neither an absolute width nor height is drawn by the browser at
+ * a default 300×150, letterboxed. Given a viewBox, it gets that size instead.
+ * With one of the two set, the browser already derives the other from it.
+ */
+function withSize(root: Element): string {
+  const width = root.getAttribute('width') ?? ''
+  const height = root.getAttribute('height') ?? ''
+  const box = (root.getAttribute('viewBox') ?? '')
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number)
+  const [, , boxWidth = 0, boxHeight = 0] = box
+  if (
+    !ABSOLUTE.test(width) &&
+    !ABSOLUTE.test(height) &&
+    boxWidth > 0 &&
+    boxHeight > 0
+  ) {
+    root.setAttribute('width', String(boxWidth))
+    root.setAttribute('height', String(boxHeight))
+  }
+  return new XMLSerializer().serializeToString(root)
 }
 
 function load(blob: Blob): Promise<HTMLImageElement> {
@@ -58,22 +90,22 @@ export async function convertImage(
 ): Promise<Uint8Array> {
   let source = file
   if (input === 'svg') {
-    const text = await file.text()
-    if (!isSvg(text))
-      throw new DataFormatError('This file is not an SVG image.')
+    const root = parseSvg(await file.text())
+    if (!root) throw new DataFormatError('This file is not an SVG image.')
     // The SVG type is what makes the browser decode it as an image at all.
-    source = new Blob([text], { type: FILE_FORMATS.svg.type })
+    source = new Blob([withSize(root)], { type: FILE_FORMATS.svg.type })
   }
 
   const image = await load(source)
-  // ponytail: an SVG with no absolute width and height gets the browser's
-  // default 300×150; read its viewBox if that ever matters.
-  const width = image.naturalWidth || 300
-  const height = image.naturalHeight || 150
+  const width = image.naturalWidth
+  const height = image.naturalHeight
   if (width > MAX_SIDE || height > MAX_SIDE) {
     throw new DataFormatError(
       `This image is too large to convert. The longest side this tool draws is ${MAX_SIDE} pixels.`,
     )
+  }
+  if (width === 0 || height === 0) {
+    throw new DataFormatError('This image has no size to draw.')
   }
 
   const canvas = document.createElement('canvas')

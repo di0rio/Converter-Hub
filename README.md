@@ -84,8 +84,8 @@ it is never put into the page. JPEG output is painted onto white, since JPEG
 has no transparency. AVIF is read where the browser can decode it but is not
 offered as an output, because `canvas.toBlob` does not write it in general; a
 browser that cannot write the chosen format is reported rather than handed a
-PNG in disguise. An SVG without an absolute width and height is drawn at the
-browser's default 300×150.
+PNG in disguise. An SVG with neither an absolute width nor height is drawn at
+its viewBox size rather than the browser's default 300×150.
 
 The SQL tool takes two kinds of input through one picker. A *dump* is a script —
 the text `mysqldump` or `sqlite3 .dump` produces — and is parsed as text. A

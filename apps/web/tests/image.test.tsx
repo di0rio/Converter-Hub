@@ -97,6 +97,25 @@ describe('convertImage', () => {
     expect(fillRect).not.toHaveBeenCalled()
   })
 
+  // The browser would draw it at a letterboxed 300×150 otherwise.
+  it('gives an SVG with only a viewBox the viewBox size', async () => {
+    const icon =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64"/></svg>'
+    await convertImage(new Blob([icon]), 'svg', 'png')
+
+    const source = await (createObjectURL.mock.calls[0]?.[0] as Blob).text()
+    expect(source).toContain('width="64"')
+    expect(source).toContain('height="64"')
+  })
+
+  it('leaves an SVG that sets its own size alone', async () => {
+    await convertImage(new Blob([SVG]), 'svg', 'png')
+
+    const source = await (createObjectURL.mock.calls[0]?.[0] as Blob).text()
+    expect(source).toContain('width="120"')
+    expect(source).toContain('height="80"')
+  })
+
   it('paints JPEG onto white, since JPEG has no transparency', async () => {
     await convertImage(new Blob(['png']), 'png', 'jpeg')
     expect(fillRect).toHaveBeenCalledWith(0, 0, 120, 80)
