@@ -28,6 +28,7 @@ does not exist yet.
 | Timestamps | `/timestamp` | Unix seconds, Unix milliseconds, ISO 8601 | Unix seconds, Unix milliseconds, ISO 8601 UTC | Shows one moment in every form |
 | Colors | `/color` | HEX, RGB, HSL | HEX, RGB, HSL | Shows one color in every notation |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript | Writes types that describe a JSON sample |
+| Images | `/image` | SVG, PNG, JPEG, WebP, AVIF | PNG, JPEG, WebP | Converts one image to another format, as a single file |
 
 They are independent tools that share a design system, a virtualised data grid,
 a ZIP writer, a CSV writer and a file dropzone. Adding another means an entry in
@@ -73,6 +74,18 @@ offset is read as UTC and the result says so — nothing uses the machine's
 timezone. A color out of range is refused, never clamped. JSON to TypeScript
 merges the values it sees into one type per position, marks a field some
 objects lack as optional, and writes `unknown` where the sample says nothing.
+
+The Images tool uses no library: the browser decodes the file through an
+`Image`, draws it onto a canvas and encodes it with `canvas.toBlob`. An SVG is
+recognised by its content — `DOMParser` must find an `<svg>` root in the SVG
+namespace — and is then loaded through `<img>` from a Blob URL, where the
+browser runs none of its scripts and fetches none of its external resources;
+it is never put into the page. JPEG output is painted onto white, since JPEG
+has no transparency. AVIF is read where the browser can decode it but is not
+offered as an output, because `canvas.toBlob` does not write it in general; a
+browser that cannot write the chosen format is reported rather than handed a
+PNG in disguise. An SVG without an absolute width and height is drawn at the
+browser's default 300×150.
 
 The SQL tool takes two kinds of input through one picker. A *dump* is a script —
 the text `mysqldump` or `sqlite3 .dump` produces — and is parsed as text. A

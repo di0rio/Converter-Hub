@@ -6,6 +6,7 @@ import {
   Database,
   FileCode,
   FileText,
+  ImageIcon,
   Palette,
   Sheet,
 } from 'lucide-react'
@@ -13,6 +14,8 @@ import type { LucideIcon } from 'lucide-react'
 import {
   DATA_INPUTS,
   DATA_OUTPUTS,
+  IMAGE_INPUTS,
+  IMAGE_OUTPUTS,
   MARKDOWN_INPUTS,
   MARKDOWN_OUTPUTS,
   formatLabels,
@@ -164,6 +167,18 @@ export const TOOLS: ConverterTool[] = [
     source: ['JSON'],
     output: ['TypeScript'],
     heading: 'Generate TypeScript types',
+  },
+  {
+    id: 'image',
+    name: 'Images',
+    tagline: 'Convert SVG and raster images to PNG, JPEG or WebP.',
+    description:
+      'Convert an SVG, PNG, JPEG, WebP or AVIF image to PNG, JPEG or WebP, locally in your browser.',
+    href: '/image',
+    Icon: ImageIcon,
+    source: formatLabels(IMAGE_INPUTS),
+    output: formatLabels(IMAGE_OUTPUTS),
+    heading: 'Convert an image',
   },
 ]
 
