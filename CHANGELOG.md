@@ -84,6 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Mode. `ensure-react-symlinks.mjs` links with a directory junction there, and
   builds the new link before removing the old one, so a failure can no longer
   leave `apps/web/node_modules/react` missing.
+- Invalid JSON is reported as "This is not valid JSON." rather than naming a
+  file, since JSON to TypeScript reads pasted text.
 
 ### Changed
 
