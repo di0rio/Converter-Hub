@@ -41,9 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   detection) and JSON / JSON Lines parsing with the table gate in
   `packages/core/src/records`. Errors name the problem, and for JSON Lines the
   line, never the content.
-- Single-file downloads: `downloadFile` in `apps/web/lib/download.ts`, which
-  `downloadZip` now calls, and `DownloadStep` names the button after the file's
-  format.
+- Single-file downloads: `downloadFile` in `apps/web/lib/download.ts` replaces
+  `downloadZip`, and `DownloadStep` names the button after the file's format.
 - **SQLite databases in the SQL tool.** `/sql` now reads a SQLite database
   file directly — `.db`, `.sqlite`, `.sqlite3`, `.db3` or any other name,
   recognised by its header rather than its extension — as well as dumps, and
