@@ -1,9 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import {
   createZip,
+  formatBytes,
   groupSqliteFiles,
   readSqliteDatabase,
   sqliteToSql,
@@ -27,6 +28,9 @@ import type { ExportFile, SqliteTable } from '@sql-extractor/core'
  * Nothing is written back to the database. It is read into memory and opened
  * read-only.
  */
+
+/** Four times the browser's ceiling: Node has room a tab does not. */
+const MAX_SQLITE_FILE_BYTES = 1024 * 1024 * 1024
 
 export type SqliteFormat = 'sql' | 'csv' | 'xlsx'
 
@@ -75,6 +79,15 @@ export async function sqliteCommand(
 
   const path = group.main.name
   const walPath = group.wal?.name ?? `${path}-wal`
+  // Checked before reading: the database and its log are read whole into
+  // memory, and a file past the ceiling would end in an out-of-memory crash.
+  const size =
+    statSync(path).size + (existsSync(walPath) ? statSync(walPath).size : 0)
+  if (size > MAX_SQLITE_FILE_BYTES) {
+    throw new Error(
+      `That database is ${formatBytes(size)}. The largest this tool opens is ${formatBytes(MAX_SQLITE_FILE_BYTES)}.`,
+    )
+  }
   const main = await readFile(path)
   // An empty log is what a checkpoint leaves behind; it carries nothing.
   const wal = existsSync(walPath) ? await readFile(walPath) : undefined
