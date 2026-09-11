@@ -23,7 +23,7 @@ export type SqliteStatus = 'idle' | 'reading' | 'converting' | 'done'
  * Everything is held in memory — the file, SQLite's page cache and the decoded
  * rows all at once — so the ceiling is the tab's, not the format's. Past this
  * the tab dies partway through with no message; refusing up front says so
- * instead. A database beyond it is a job for the CLI, which streams from disk.
+ * instead. A database beyond it is a job for the CLI, which opens up to 1 GB.
  */
 export const MAX_SQLITE_BYTES = 256 * 1024 * 1024
 
