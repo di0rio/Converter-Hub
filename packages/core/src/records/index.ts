@@ -29,7 +29,7 @@ export function parseJson(text: string): unknown {
   try {
     return JSON.parse(stripBom(text))
   } catch {
-    throw new DataFormatError('This file is not valid JSON.')
+    throw new DataFormatError('This is not valid JSON.')
   }
 }
 
