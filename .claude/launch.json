@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "--filter", "web", "dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "web-prod",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/web/node_modules/next/dist/bin/next", "start", "apps/web", "-p", "3100"],
+      "port": 3100
     }
   ]
 }

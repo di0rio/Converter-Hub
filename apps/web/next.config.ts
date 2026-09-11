@@ -22,8 +22,11 @@ const isDev = process.env.NODE_ENV === 'development'
 
 const csp = [
   "default-src 'self'",
-  // 'unsafe-eval' is React Refresh in development only.
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  // 'wasm-unsafe-eval' lets the browser compile the SQLite engine, which is
+  // WebAssembly; it allows no JavaScript eval. 'unsafe-eval' is React Refresh
+  // in development only — it also covers WebAssembly, which is why a missing
+  // 'wasm-unsafe-eval' breaks SQLite in production and nowhere else.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
   // Tailwind and Next inject styles through <style> tags.
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
