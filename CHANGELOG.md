@@ -78,6 +78,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the column list `table_info` reports had shifted every value after one such
   column into the wrong header.
 
+### Fixed
+
+- The web test script no longer breaks React on Windows without Developer
+  Mode. `ensure-react-symlinks.mjs` links with a directory junction there, and
+  builds the new link before removing the old one, so a failure can no longer
+  leave `apps/web/node_modules/react` missing.
+
 ### Changed
 
 - `toFileName`, `uniqueName` and `groupSqliteFiles` live in `packages/core`, so
