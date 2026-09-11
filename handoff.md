@@ -1,143 +1,107 @@
-# Converter Hub — expansão v2: onde parou e o que falta
+# Converter Hub — expansão v2: concluída
 
-Continuação da task "Converter Hub — Implementação da expansão v2" (o prompt
-longo com FASE 0 a FASE 7 e Grupos A a E). Tudo foi feito na `master`.
+Continuação da task "Converter Hub — Implementação da expansão v2" (FASE 0 a
+FASE 7, Grupos A a E). Tudo foi feito na `master`.
 
-## Estado atual
+## Estado
 
-Grupos A, B, C, D e E estão prontos e commitados. Falta só a entrega final da
-FASE 7 e as pendências listadas no fim.
+Todas as fases e grupos estão prontos e commitados, e as pendências da rodada
+anterior foram resolvidas. A entrega final da FASE 7 está logo abaixo.
 
 **Nada foi enviado para o GitHub.** Rode `git log origin/master..master` para
-ver os commits locais e `git push` quando quiser publicar.
-
-### Commits desta rodada
-
-```
-c630885 feat(web): add an Images tool for SVG and raster images
-6e03d9d feat(web): export JSON Lines from the SQL tool
-7a030d5 feat(web): add five text tools for encoding, case, timestamps, colors and JSON types
-05e0204 fix(core): declare TextEncoder and TextDecoder for the core typecheck
-```
-
-### Números
-
-- Gates: typecheck, lint, test e build passam.
-- Testes: core 797, CLI 32, web 339.
-- Nenhuma dependência nova nesta rodada. As únicas da expansão continuam sendo
-  `yaml` e `marked`, as duas carregadas sob demanda.
-- O tamanho do bundle por rota não foi medido de novo. O Next 16 não mostra
-  esse número no build.
+ver os commits locais e `git push` para publicar.
 
 ---
 
-## O que já está pronto
+## Entrega final (FASE 7)
 
-### FASE 0 — Auditoria
+### Implementado
 
-- O SQLite já estava integrado ao `/sql` via `wa-sqlite`. O script em uso é
-  `scripts/copy-sqlite-wasm.mjs`.
-- `packages/core/src/formats/catalog.ts` continua específico de SQL.
+| Grupo | Rota | Commits |
+|-------|------|---------|
+| Infraestrutura | — | `17a6671`, `e55367a` |
+| A — Dados | `/data` | `75f51b9` |
+| B — Estrutura | XML no `/data`, `/markdown` | `f803576`, `361e0c2` |
+| C — Utilidades de texto | `/encoding`, `/case`, `/timestamp`, `/color`, `/json-to-typescript` | `317b583`, `5879567`, `05e0204`, `7a030d5` |
+| D — Imagens | `/image` | `c630885`, `4aadf4d` |
+| E — SQLite | JSON Lines no `/sql` | `6e03d9d` |
 
-### FASE 1 — Infraestrutura (`17a6671`, `e55367a`)
+Correções desta rodada:
 
-- `packages/core/src/csv`: `parseCsv` (RFC 4180) e `detectDelimiter`.
-- `packages/core/src/records`: `parseJson`, `parseJsonl`, `toJsonl`,
-  `recordsToTable` (o gate: desce por wrappers de uma propriedade, até 32
-  camadas, e nunca achata), `tableToRecords` e `DataFormatError`.
-- `apps/web/lib/download.ts`: `downloadFile`, que o `downloadZip` usa.
+- `f0b189a`: o script de symlink do React agora funciona no Windows sem
+  Developer Mode.
+- `640036c`: a mensagem de JSON inválido não fala mais em "arquivo".
+- `4aadf4d`: um SVG só com `viewBox` é desenhado no tamanho do `viewBox`.
+- `d849872`: o rodapé do hub e os READMEs dizem "no SQL from your files is ever
+  executed".
 
-### Grupo A — Dados (`75f51b9`)
+### Formatos
 
-- `/data`: CSV, TSV, JSON, JSON Lines, YAML e XML de entrada. Saída em CSV, TSV,
-  JSON, JSON Lines, YAML, Markdown, SQL e XLSX.
-- `apps/web/lib/formats.ts` é o catálogo de formatos genéricos. Os cards do hub
-  saem das listas `*_INPUTS` e `*_OUTPUTS` dele.
+| Ferramenta | Lê | Escreve |
+|------------|----|---------|
+| Spreadsheets | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
+| SQL | dumps SQL, bancos SQLite | SQL, CSV, XLSX, JSON, JSON Lines, Markdown |
+| Data | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
+| Markdown | Markdown, HTML | HTML, Markdown |
+| Encoding | texto, Base64, hex, URL, entidades HTML | os mesmos |
+| Case | texto | 7 estilos de identificador |
+| Timestamps | Unix s/ms, ISO 8601 | Unix s/ms, ISO 8601 UTC |
+| Colors | HEX, RGB, HSL | HEX, RGB, HSL |
+| JSON to TypeScript | JSON | TypeScript |
+| Images | SVG, PNG, JPEG, WebP, AVIF | PNG, JPEG, WebP |
 
-### Grupo B — Estrutura (`f803576`, `361e0c2`)
+### Arquitetura
 
-- XML no `/data`, via `DOMParser` (`apps/web/lib/xml.ts`).
-- `/markdown`: Markdown → HTML com `marked`, e HTML → Markdown com
-  `DOMParser`. Não tem preview.
+- `apps/web/lib/tools.ts` é o registry. Cada ferramenta tem uma entrada ali e
+  uma rota, e há teste garantindo que toda entrada tem página.
+- `apps/web/lib/formats.ts` é o catálogo dos formatos genéricos. Os cards de
+  Data, Markdown e Images saem das mesmas listas que o conversor usa.
+- Parsers e utilidades puras ficam no core (`csv`, `records`, `utilities`). O
+  que depende do navegador (`DOMParser`, canvas, `yaml`, `marked`) fica em
+  `apps/web/lib`.
+- As cinco ferramentas de texto são um único componente, `text-tool.tsx`,
+  guiado pela tabela `SPECS`.
 
-### Grupo C — Utilidades de texto (`317b583`, `5879567`, `05e0204`, `7a030d5`)
+### Dependências
 
-- Core, em `packages/core/src/utilities`:
-  - `encoding` (Base64 e hex via UTF-8, URL, entidades HTML);
-  - `case` (7 estilos);
-  - `timestamp` (abaixo de 1e11 é segundos, ISO sem offset vira UTC e o
-    resultado avisa);
-  - `color` (HEX, rgb(), hsl(); valor fora da faixa é recusado);
-  - `json-to-typescript`.
-- O typecheck do core falhava por falta de `TextEncoder`/`TextDecoder` no lib
-  ES2022. Foi resolvido com uma declaração mínima em
-  `packages/core/src/text-encoding.d.ts`, sem incluir o DOM.
-- Web: um só componente, `apps/web/components/text-tool.tsx`, guiado por uma
-  tabela `SPECS` com uma entrada por ferramenta:
-  - modo por `RadioGroup` quando há mais de um;
-  - saída somente leitura;
-  - botões Copiar e Download (`.txt`, ou `.ts` no JSON to TypeScript);
-  - conversão ao vivo;
-  - erro num `Alert`, só com `DataFormatError` ou uma mensagem genérica.
-- Rotas: `/encoding`, `/case`, `/timestamp`, `/color`, `/json-to-typescript`.
-- Uma ferramenta de texto nova precisa de uma entrada em `SPECS`, uma no
-  `tools.ts` e um `app/<rota>/page.tsx`.
+- Na expansão entraram só `yaml` e `marked`, os dois carregados sob demanda.
+- As imagens não usam biblioteca: `Image`, canvas e `toBlob`.
+- JS por rota, somando os chunks do HTML pré-renderizado, sem compressão:
 
-### Grupo D — Imagens (`c630885`)
+  | Rota | JS |
+  |------|----|
+  | hub | 562 KB |
+  | `/spreadsheet` | 722 KB |
+  | `/sql` | 800 KB |
+  | `/data` | 689 KB |
+  | `/markdown` | 652 KB |
+  | cada ferramenta de texto | 666 KB |
+  | `/image` | 684 KB |
 
-- `/image`: SVG, PNG, JPEG, WebP e AVIF de entrada. PNG, JPEG e WebP de saída,
-  num arquivo só.
-- `apps/web/lib/image.ts`: `Image` a partir de Blob URL, depois canvas, depois
-  `toBlob`. Não usa biblioteca.
-- **Segurança:**
-  - o SVG é validado pelo conteúdo (`DOMParser`, raiz `<svg>` no namespace
-    SVG);
-  - ele só é carregado via `<img>`, nunca injetado no DOM;
-  - verificado no Chromium de verdade: o `<script>` e o `<image>` externo do
-    fixture não rodam e não são buscados.
-- JPEG é pintado sobre fundo branco. O lado máximo é 16384 px. Se o navegador
-  não gerar o formato pedido, isso é avisado.
-- AVIF é só entrada.
-- Fixture: `examples/image/sample.svg`.
+### Segurança
 
-### Grupo E — SQLite (`6e03d9d`)
+- **Mensagens de erro:** só `DataFormatError`, `SqliteReadError` ou uma
+  mensagem genérica. Nunca a mensagem de um parser, que pode citar a entrada.
+- **XML e HTML:** lidos com `DOMParser`, que não executa nada. Entidades
+  externas nunca são resolvidas.
+- **Markdown:** o HTML cru é escapado. Nos links e imagens só passam `http`,
+  `https`, `mailto` e endereços relativos.
+- **SVG:** validado pelo conteúdo e carregado só via `<img>` a partir de Blob
+  URL. Verificado no Chromium: o `<script>` e o `<image>` externo do fixture
+  não rodam e não são buscados. O SVG nunca é injetado no DOM.
+- **CSP:** a de `next.config.ts` permite `img-src blob:` e mantém
+  `connect-src 'self'`.
 
-- JSON Lines como saída do `/sql`, tanto para dumps (`textExport` em
-  `hooks/use-sql-dump.ts`) quanto para SQLite (`buildSqliteExport`). Um
-  `.jsonl` por tabela.
-- Usa `toJsonl` e `tableToRecords` do core.
+### Quality gates
 
----
+- `bun run typecheck`, `bun run lint`, `bun run test` e `bun run build`
+  passam.
+- Testes: core 797, CLI 32, web 341.
 
-## O que falta
+### Adiado
 
-### FASE 7 — Entrega final
-
-Escrever a entrega no formato da seção 32 do prompt: Implementado, Formatos,
-Arquitetura, Dependências, Segurança, Quality gates e Adiado. A auditoria
-desta rodada já conferiu:
-
-- que toda ferramenta do registry tem página (há teste para isso);
-- que os cards de Data, Markdown e Image saem das mesmas listas que o conversor
-  usa;
-- que não entrou nenhuma dependência nova.
-
-### Pendências
-
-1. **Bug no Windows:** `apps/web/scripts/ensure-react-symlinks.mjs`, rodado
-   pelo `test` da web, apaga `apps/web/node_modules/react` e depois falha com
-   `EPERM` no `symlinkSync` quando o Windows está sem Developer Mode.
-   - Enquanto isso, rode `bun install` para restaurar e depois, dentro de
-     `apps/web`, `bunx vitest run`.
-   - Correção sugerida: usar junction no win32 e não apagar antes de conseguir
-     criar o link.
-2. **Rodapé do hub:** diz "no SQL is ever executed". Com SQLite, isso não é
-   exato. Proposta: "no SQL from your files is ever executed". Fica a cargo do
-   dono.
-3. **Mensagem do `parseJson`:** diz "This file is not valid JSON." até no JSON
-   to TypeScript, onde o JSON é colado, não é arquivo.
-4. **SVG sem width/height absolutos:** é desenhado em 300×150 (o padrão do
-   navegador). Ler o `viewBox` só se isso incomodar alguém.
+- AVIF como saída: `canvas.toBlob` não gera AVIF em geral.
+- Nenhum preview renderizado de HTML ou SVG. É intencional.
 
 ---
 
@@ -145,26 +109,13 @@ desta rodada já conferiu:
 
 - **TDD:** escreva o teste, veja falhar, e só então implemente. Fixtures só
   sintéticas, em `examples/`.
-- **Commits separados por assunto.** `git add -p` não funciona no ambiente do
-  Claude.
-- **Gates:** `bun run typecheck`, `bun run lint`, `bun run test` e
-  `bun run build`.
+- **Commits separados por assunto.** Para commitar só parte de um arquivo, gere
+  a versão parcial a partir de `git show HEAD:<arquivo>`, grave com
+  `git hash-object -w` e coloque no índice com `git update-index --cacheinfo`.
 - **Depois de mexer no core**, rode `bun run --filter @sql-extractor/core build`
-  antes do typecheck da web. A web lê o core pelo `dist`.
-- **Máquina nova:** rode `bun install` antes de tudo. Sem isso falta o
-  `wa-sqlite` e o typecheck do core quebra.
+  antes do typecheck da web.
+- **Máquina nova:** rode `bun install` antes de tudo.
 - **Formatação:** `bunx biome format --write <arquivos>`.
-- **BOM e caracteres de controle:** use sempre escape (`'\uFEFF'`), nunca o
-  caractere literal.
-- Teste que tem JSX precisa ser `.tsx`.
+- **BOM e caracteres de controle:** use sempre o escape, nunca o caractere
+  literal. O editor tende a inserir U+FEFF literal.
 - **UI:** componentes COSS e nenhuma classe de cor no `className`.
-- **Mensagens de erro:** nunca mostrar mensagem de parser. Só
-  `DataFormatError`, `SqliteReadError` ou uma mensagem genérica.
-
-## Arquivos para testar à mão
-
-- `examples/data/*` no `/data`.
-- `examples/markdown/sample.{md,html}` no `/markdown`.
-- `examples/image/sample.svg` no `/image`.
-- Qualquer texto nas cinco ferramentas de texto.
-- Dev server: `bun run dev:web` e depois `http://localhost:3000`.
