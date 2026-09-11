@@ -1,5 +1,7 @@
 import {
+  FDB_HEADER_BYTES,
   groupSqliteFiles,
+  isFdbFile,
   isSqliteFile,
   SQLITE_HEADER_BYTES,
   type SqliteFileGroup,
@@ -37,13 +39,17 @@ export const SQL_TOOL_EXTENSIONS = [
   '.sqlite',
   '.sqlite3',
   '.db3',
+  '.fdb',
+  '.gdb',
 ]
 
 /**
- * Whether a selection is a SQLite database rather than a dump.
+ * Whether a selection is a database file — SQLite or Firebird — rather than
+ * a dump.
  *
- * A `-wal` or `-shm` only ever sits beside a database, and a database says so
- * in its first 16 bytes whatever it is called. Only that header is read here.
+ * A `-wal` or `-shm` only ever sits beside a SQLite database, and a database
+ * says what it is in its first bytes whatever it is called. Only that header
+ * is read here.
  */
 export async function isSqliteSelection(
   files: readonly File[],
@@ -51,6 +57,10 @@ export async function isSqliteSelection(
   if (files.some((file) => /-(wal|shm)$/i.test(file.name))) return true
   const [first] = files
   if (!first) return false
-  const head = await first.slice(0, SQLITE_HEADER_BYTES).arrayBuffer()
-  return isSqliteFile(new Uint8Array(head))
+  const head = new Uint8Array(
+    await first
+      .slice(0, Math.max(SQLITE_HEADER_BYTES, FDB_HEADER_BYTES))
+      .arrayBuffer(),
+  )
+  return isSqliteFile(head) || isFdbFile(head)
 }

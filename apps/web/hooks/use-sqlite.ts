@@ -1,7 +1,12 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { readSqliteDatabase, SqliteReadError } from '@sql-extractor/core'
+import {
+  isFdbFile,
+  readFdbDatabase,
+  readSqliteDatabase,
+  SqliteReadError,
+} from '@sql-extractor/core'
 import type {
   CsvDelimiter,
   SqliteDatabase,
@@ -97,19 +102,22 @@ export function useSqlite() {
         }
 
         const bytes = await readSelection(selection)
-        const read = await readSqliteDatabase(
-          bytes,
-          async () => {
-            const response = await fetch('/wa-sqlite.wasm')
-            if (!response.ok) {
-              throw new SqliteReadError(
-                'The SQLite engine could not be loaded. Reload the page and try again.',
-              )
-            }
-            return response.arrayBuffer()
-          },
-          { rowLimit: MAX_ROWS_PER_TABLE },
-        )
+        // A Firebird database is read by the core directly; no engine to load.
+        const read = isFdbFile(bytes.main)
+          ? readFdbDatabase(bytes.main, { rowLimit: MAX_ROWS_PER_TABLE })
+          : await readSqliteDatabase(
+              bytes,
+              async () => {
+                const response = await fetch('/wa-sqlite.wasm')
+                if (!response.ok) {
+                  throw new SqliteReadError(
+                    'The SQLite engine could not be loaded. Reload the page and try again.',
+                  )
+                }
+                return response.arrayBuffer()
+              },
+              { rowLimit: MAX_ROWS_PER_TABLE },
+            )
 
         setDatabase(read)
         setFileName(selection.main.name)

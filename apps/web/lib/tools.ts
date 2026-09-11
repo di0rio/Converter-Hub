@@ -70,7 +70,7 @@ export const TOOLS: ConverterTool[] = [
       'Extract tables from a SQL dump or a SQLite database, locally in your browser.',
     href: '/sql',
     Icon: Database,
-    source: ['SQL dumps', 'SQLite databases'],
+    source: ['SQL dumps', 'SQLite databases', 'Firebird databases'],
     output: ['SQL', 'CSV', 'XLSX', 'JSON', 'JSON Lines', 'Markdown'],
     heading: 'Extract from a database',
   },

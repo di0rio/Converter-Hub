@@ -76,7 +76,7 @@ describe('SqlExtractor', () => {
       screen.getByRole('heading', { name: /Extract from a database/i }),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(/Select a SQL dump or SQLite database/i),
+      screen.getByText(/Select a SQL dump or a database file/i),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Choose file/i }),
@@ -97,17 +97,17 @@ describe('SqlExtractor', () => {
     ) as HTMLInputElement
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
-    expect(input.accept).toBe('.sql,.txt,.db,.sqlite,.sqlite3,.db3')
+    expect(input.accept).toBe('.sql,.txt,.db,.sqlite,.sqlite3,.db3,.fdb,.gdb')
     // The section is labelled "Select a database dump" and the input is associated with the
     // visible label via htmlFor.
     expect(
       screen.getByRole('region', {
-        name: /Select a SQL dump or SQLite database/i,
+        name: /Select a SQL dump or a database file/i,
       }),
     ).toBeInTheDocument()
     expect(
       screen
-        .getAllByLabelText(/Select a SQL dump or SQLite database/i)
+        .getAllByLabelText(/Select a SQL dump or a database file/i)
         .some((el) => el.getAttribute('type') === 'file'),
     ).toBe(true)
     expect(

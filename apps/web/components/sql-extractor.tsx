@@ -75,7 +75,7 @@ const SUPPORTED_SUMMARY = (() => {
     labels.some((label) => label.includes(name)),
   )
 
-  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, and SQLite database files with their -wal.`
+  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, SQLite database files with their -wal, and Firebird 2.x databases.`
 })()
 
 /**
@@ -243,7 +243,7 @@ export function SqlExtractor({
       <div className="space-y-8">
         <FileSelect
           id="sql-file-input"
-          label="Select a SQL dump or SQLite database"
+          label="Select a SQL dump or a database file"
           buttonLabel="Choose file"
           accept={SQL_TOOL_EXTENSIONS}
           fileName={fileName || null}

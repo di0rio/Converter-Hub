@@ -10,7 +10,7 @@ works entirely in their browser.
 | Tool | Route | Reads | Writes |
 |------|-------|-------|--------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL |
-| SQL | `/sql` | SQL dumps, SQLite databases with their `-wal` | SQL, CSV, XLSX, JSON, JSON Lines, Markdown |
+| SQL | `/sql` | SQL dumps, SQLite databases with their `-wal`, Firebird 2.x databases | SQL, CSV, XLSX, JSON, JSON Lines, Markdown |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript |
