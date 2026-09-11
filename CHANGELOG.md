@@ -77,6 +77,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the column list `table_info` reports had shifted every value after one such
   column into the wrong header.
 
+### Security
+
+- Vitest is on 4.1.11 or later, past GHSA-82fw-gwwq-j7x9 (arbitrary file read
+  through a redirected mock). `bun audit` reports nothing.
+- The CI actions are pinned to full commit SHAs instead of mutable tags.
+- The CLI refuses a SQLite database over 1 GB before reading it, as the dump
+  reader already did for dumps.
+- The Images tool refuses an image over 64 million pixels, not only one over
+  16384 pixels a side, so a small file cannot decode into gigabytes of canvas.
+- Three unused dev dependencies are gone: `@vitejs/plugin-react`,
+  `@testing-library/user-event` and `tw-animate-css`.
+- `SECURITY.md` covers every tool, not only the SQL extractor.
+
 ### Changed
 
 - The hub lays its cards out in three columns on wide screens instead of two.
