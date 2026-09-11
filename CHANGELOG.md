@@ -82,6 +82,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vitest is on 4.1.11 or later, past GHSA-82fw-gwwq-j7x9 (arbitrary file read
   through a redirected mock). `bun audit` reports nothing.
 - The CI actions are pinned to full commit SHAs instead of mutable tags.
+- CI runs Node 24, named in `.nvmrc`. Vitest 4 treats as built-in only what
+  Node's `builtinModules` lists, which leaves out `node:sqlite` before Node
+  23.5, so the web tests that build SQLite fixtures failed on the runner's
+  older Node.
 - The CLI refuses a SQLite database over 1 GB before reading it, as the dump
   reader already did for dumps.
 - The Images tool refuses an image over 64 million pixels, not only one over
