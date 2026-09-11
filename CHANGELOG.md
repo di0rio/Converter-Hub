@@ -105,6 +105,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- SQLite databases open in production. The Content Security Policy had no
+  `'wasm-unsafe-eval'`, so the browser refused to compile the SQLite engine and
+  every SQLite file was reported as "could not be opened". Development was
+  unaffected because its `'unsafe-eval'` also allows WebAssembly. A test now
+  checks the production policy.
 - The web test script no longer breaks React on Windows without Developer
   Mode. `ensure-react-symlinks.mjs` links with a directory junction there, and
   builds the new link before removing the old one, so a failure can no longer
