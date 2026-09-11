@@ -23,10 +23,6 @@ does not exist yet.
 | SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
-| Encoding | `/encoding` | Text, Base64, Hex, URL encoding, HTML entities | Text, Base64, Hex, URL encoding, HTML entities | Encodes pasted text, or decodes it back |
-| Case | `/case` | Text | camelCase, PascalCase, snake_case, kebab-case, SCREAMING_SNAKE_CASE, dot.case, Title Case | Renames identifiers, one per line |
-| Timestamps | `/timestamp` | Unix seconds, Unix milliseconds, ISO 8601 | Unix seconds, Unix milliseconds, ISO 8601 UTC | Shows one moment in every form |
-| Colors | `/color` | HEX, RGB, HSL | HEX, RGB, HSL | Shows one color in every notation |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript | Writes types that describe a JSON sample |
 | Images | `/image` | SVG, PNG, JPEG, WebP, AVIF | PNG, JPEG, WebP | Converts one image to another format, as a single file |
 
@@ -63,17 +59,16 @@ a small serializer for headings, paragraphs, links, images, lists, tables,
 code, emphasis and strong text. Scripts, styles and the head are left out, and
 any other element keeps its text. Arbitrary HTML does not convert perfectly.
 
-The five text tools — Encoding, Case, Timestamps, Colors and JSON to
-TypeScript — take pasted text rather than a file, convert it as you type, and
-offer the result to copy or download. The conversions are plain functions in
-`packages/core/src/utilities`, sharing one page layout in the web app. Base64
-and hex go through UTF-8, so any text survives the round trip, and decoding
-refuses bytes that are not UTF-8 text. A whole number below 1e11 is read as
-Unix seconds and anything larger as milliseconds; an ISO 8601 date without an
-offset is read as UTC and the result says so — nothing uses the machine's
-timezone. A color out of range is refused, never clamped. JSON to TypeScript
+JSON to TypeScript takes a pasted JSON sample rather than a file, writes the
+types as you type, and offers them to copy or download as a `.ts` file. It
 merges the values it sees into one type per position, marks a field some
 objects lack as optional, and writes `unknown` where the sample says nothing.
+
+Four more text tools are built but parked off the hub: Encoding (Base64, hex,
+URL encoding, HTML entities), Case (seven identifier styles), Timestamps (Unix
+seconds, milliseconds and ISO 8601 in UTC) and Colors (HEX, rgb(), hsl()).
+Their conversions are in `packages/core/src/utilities` and tested there; their
+pages wait in `apps/web/app/_parked`, which the router ignores.
 
 The Images tool uses no library: the browser decodes the file through an
 `Image`, draws it onto a canvas and encodes it with `canvas.toBlob`. An SVG is

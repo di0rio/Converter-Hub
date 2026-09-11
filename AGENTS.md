@@ -13,10 +13,6 @@ works entirely in their browser.
 | SQL | `/sql` | SQL dumps, SQLite databases with their `-wal` | SQL, CSV, XLSX, JSON, JSON Lines, Markdown |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown |
-| Encoding | `/encoding` | Text, Base64, Hex, URL encoding, HTML entities | the same |
-| Case | `/case` | Text | 7 identifier cases |
-| Timestamps | `/timestamp` | Unix seconds or milliseconds, ISO 8601 | all three, in UTC |
-| Colors | `/color` | HEX, RGB, HSL | all three |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript |
 | Images | `/image` | SVG, PNG, JPEG, WebP, AVIF | PNG, JPEG, WebP |
 
@@ -38,11 +34,17 @@ keeps only `http`, `https`, `mailto` and relative addresses. Never add a
 preview that injects the converted HTML into the page.
 
 **Text tools workflow:** paste text → pick a mode, where there is one → read,
-copy or download the result, converted as you type. The five tools are one
+copy or download the result, converted as you type. The text tools are one
 component, `apps/web/components/text-tool.tsx`, driven by a table of specs; the
 conversions are pure functions in `packages/core/src/utilities`. A new text
 tool is a spec entry, a registry entry and a route. Errors shown are only
 `DataFormatError` messages or a generic one.
+
+Only JSON to TypeScript is on the hub. Encoding, Case, Timestamps and Colors are
+parked: their registry entries are commented out at the end of `TOOLS`, and
+their pages sit in `apps/web/app/_parked`, a private folder the router ignores.
+`apps/web/app/_parked/README.md` says how to bring one back. Do not re-enable
+one without being asked.
 
 **Image workflow:** select an image → PNG, JPEG or WebP → convert → download
 one file. `apps/web/lib/image.ts` decodes through `Image`, draws on a canvas
