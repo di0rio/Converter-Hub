@@ -27,14 +27,15 @@ the converter does not handle.
 **Data workflow:** select a file → format (and, for CSV, the delimiter) →
 convert → download one file.
 
-**Markdown workflow:** select a Markdown or HTML file → convert → download one
-file. The direction follows the input. `apps/web/lib/markdown.ts` holds both
+**Markdown workflow:** choose the direction (Markdown to HTML or HTML to
+Markdown) → select a file of that kind → convert → download one file. `apps/web/lib/markdown.ts` holds both
 directions; it renders nothing in the app, escapes raw HTML in Markdown, and
 keeps only `http`, `https`, `mailto` and relative addresses. Never add a
 preview that injects the converted HTML into the page.
 
-**Text tools workflow:** paste text → pick a mode, where there is one → read,
-copy or download the result, converted as you type. The text tools are one
+**Text tools workflow:** paste text, or open a file where the spec allows it →
+pick a mode, where there is one → read, copy or download the result, converted
+as you type. The text tools are one
 component, `apps/web/components/text-tool.tsx`, driven by a table of specs; the
 conversions are pure functions in `packages/core/src/utilities`. A new text
 tool is a spec entry, a registry entry and a route. Errors shown are only

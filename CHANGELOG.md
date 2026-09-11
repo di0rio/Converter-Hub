@@ -77,6 +77,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the column list `table_info` reports had shifted every value after one such
   column into the wrong header.
 
+### Changed
+
+- The hub lays its cards out in three columns on wide screens instead of two.
+- Links no longer prefetch. The hub linked to every tool, so each visit
+  downloaded every tool's code in the background.
+- The Markdown tool asks for the direction first, Markdown to HTML or HTML to
+  Markdown, instead of inferring it from the file.
+- JSON to TypeScript can open a `.json` file as well as take pasted text.
+
 ### Fixed
 
 - The web test script no longer breaks React on Windows without Developer

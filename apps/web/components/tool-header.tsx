@@ -26,7 +26,7 @@ export function ToolHeader({
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>
+            <BreadcrumbLink render={<Link href="/" prefetch={false} />}>
               {HUB_NAME}
             </BreadcrumbLink>
           </BreadcrumbItem>

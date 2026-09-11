@@ -21,6 +21,9 @@ function ToolCard({
   return (
     <Link
       href={tool.href}
+      // No prefetch: every tool is a static page that loads fast on click,
+      // and prefetching all of them on the hub downloads code nobody asked for.
+      prefetch={false}
       // The lift is small on purpose: enough to say the card is the target,
       // not so much that the grid moves while the eye scans it. The press
       // scale is the same feedback every button in the product gives.
@@ -66,7 +69,7 @@ function ToolCard({
 
 export function Hub(): React.ReactElement {
   return (
-    <div className="mx-auto w-full max-w-3xl py-10 sm:py-16">
+    <div className="mx-auto w-full max-w-6xl py-10 sm:py-16">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           {HUB_NAME}
@@ -84,7 +87,7 @@ export function Hub(): React.ReactElement {
           Tools
         </h2>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {TOOLS.map((tool, index) => (
             <ToolCard key={tool.id} tool={tool} index={index} />
           ))}

@@ -59,6 +59,7 @@ describe('MarkdownConverter', () => {
   it('turns an HTML file into one Markdown file', async () => {
     const { container } = render(<MarkdownConverter />)
 
+    fireEvent.click(screen.getByRole('radio', { name: /HTML to Markdown/ }))
     select(container, fixture('sample.html'))
     fireEvent.click(await screen.findByRole('button', { name: /^Convert$/ }))
     fireEvent.click(await screen.findByRole('button', { name: /Download MD/ }))
@@ -68,9 +69,17 @@ describe('MarkdownConverter', () => {
     expect(await blob.text()).toContain('# Field notes')
   })
 
+  it('reads only the kind of file the chosen direction takes', () => {
+    const { container } = render(<MarkdownConverter />)
+
+    select(container, fixture('sample.html'))
+    expect(screen.getByRole('alert').textContent).toMatch(/Choose a \.md/)
+  })
+
   it('never renders the document it converts', async () => {
     const { container } = render(<MarkdownConverter />)
 
+    fireEvent.click(screen.getByRole('radio', { name: /HTML to Markdown/ }))
     select(container, fixture('sample.html'))
     await screen.findByRole('button', { name: /^Convert$/ })
 
