@@ -58,6 +58,8 @@ describe('Hub', () => {
 
     expect(screen.getByText(/nothing is uploaded/i)).toBeInTheDocument()
     expect(screen.getByText(/never leaves this tab/i)).toBeInTheDocument()
-    expect(screen.getByText(/no SQL is ever executed/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/no SQL from your files is ever executed/i),
+    ).toBeInTheDocument()
   })
 })

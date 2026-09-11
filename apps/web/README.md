@@ -1,8 +1,8 @@
 # Converter Hub — Web Interface
 
-The Next.js app that hosts the hub and both of its tools. Everything runs in the
+The Next.js app that hosts the hub and its tools. Everything runs in the
 browser: no file is uploaded, there is no server behind the processing, and no
-SQL is ever executed.
+SQL from your files is ever executed.
 
 ## Routes
 
