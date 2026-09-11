@@ -38,7 +38,7 @@ SQL Database Extractor processes **untrusted input** (SQL dump files) and should
 
 ### What the Tools Do
 
-- **SQL:** parses dump files with a per-engine parser and opens SQLite databases read-only with a SQLite engine compiled to WebAssembly. No SQL from your files is ever executed against anything.
+- **SQL:** parses dump files with a per-engine parser and opens SQLite databases read-only with a SQLite engine compiled to WebAssembly. No SQL from your files is ever executed against anything. Firebird 2.x database files are parsed directly, with no engine, and every page, record and chain in them is bounds-checked.
 - **Spreadsheets:** reads workbooks with SheetJS (the patched 0.20.3 build from the SheetJS CDN, locked by hash).
 - **Data:** reads CSV, TSV, JSON, JSON Lines, YAML (alias expansion capped by the `yaml` library) and XML (with `DOMParser`, which resolves no external entity).
 - **Markdown:** writes HTML with raw HTML escaped and only `http`, `https`, `mailto` and relative links kept. Nothing is rendered in the app.

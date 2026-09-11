@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { SqliteReadError } from '@sql-extractor/core'
-import { groupSqliteFiles } from '@/lib/sqlite-files'
+import { groupSqliteFiles, isSqliteSelection } from '@/lib/sqlite-files'
 
 const file = (name: string, bytes = 1) =>
   new File([new Uint8Array(bytes)], name)
@@ -62,5 +62,25 @@ describe('groupSqliteFiles', () => {
   it('matches companion names case-insensitively', () => {
     const set = groupSqliteFiles([file('Bonfire.DB'), file('bonfire.db-WAL')])
     expect(set.wal?.name).toBe('bonfire.db-WAL')
+  })
+})
+
+describe('isSqliteSelection', () => {
+  // Page type 1, 16 KB pages, ODS 11 with the Firebird flag: a Firebird 2.5
+  // database header, whatever the file is called.
+  const firebird = Uint8Array.from([
+    1, 0, 0x39, 0x30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x40, 0x0b, 0x80,
+  ])
+
+  it('takes a Firebird database for a database, not a dump', async () => {
+    expect(await isSqliteSelection([new File([firebird], 'DADOS.FDB')])).toBe(
+      true,
+    )
+  })
+
+  it('takes a text file for a dump', async () => {
+    expect(
+      await isSqliteSelection([new File(['CREATE TABLE t (a int);'], 'a.sql')]),
+    ).toBe(false)
   })
 })

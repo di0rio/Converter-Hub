@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Firebird 2.x database files in the SQL tool.** A `.fdb` or `.gdb` file
+  written by Firebird 2.0, 2.1 or 2.5 (ODS 11) opens like a SQLite database and
+  exports the same way, read by a new dependency-free reader in
+  `packages/core/src/fdb` built from Firebird 2.5's source. Only committed row
+  versions are shown, exact decimals stay exact, and text is decoded in each
+  column's character set. Other versions are refused by name.
+  `scripts/fdb-probe.mjs` lists a file's tables and row counts without printing
+  any rows.
 - **An Images tool at `/image`.** SVG, PNG, JPEG, WebP and AVIF in; PNG, JPEG
   and WebP out, as one file, with no library: `Image`, canvas, `toBlob`. An SVG
   is validated by content and loaded only through `<img>` from a Blob URL, so

@@ -166,7 +166,7 @@ export function SqliteConverter({
       <div className="space-y-8">
         <FileSelect
           id="sqlite-file-input"
-          label="Select a SQL dump or SQLite database"
+          label="Select a SQL dump or a database file"
           buttonLabel="Choose file"
           accept={SQL_TOOL_EXTENSIONS}
           fileName={fileName || null}

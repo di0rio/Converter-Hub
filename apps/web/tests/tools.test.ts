@@ -56,9 +56,13 @@ describe('tool registry', () => {
 
   // One tool for both kinds of database input: a dump is a script, a SQLite
   // file is a database, and the tool tells them apart by content.
-  it('reads SQL dumps and SQLite databases in the one SQL tool', () => {
+  it('reads SQL dumps and database files in the one SQL tool', () => {
     const sql = findTool('sql')
-    expect(sql.source).toEqual(['SQL dumps', 'SQLite databases'])
+    expect(sql.source).toEqual([
+      'SQL dumps',
+      'SQLite databases',
+      'Firebird databases',
+    ])
     expect(sql.output).toEqual([
       'SQL',
       'CSV',
