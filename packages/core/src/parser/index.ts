@@ -20,11 +20,11 @@ import { neo4jParser } from './neo4j/index.js'
  * The catalog lists every format the project knows about; this map lists the
  * ones it can parse. A format declared in the catalog but absent here is
  * recognisable but not readable, which is exactly what `status: 'planned'`
- * means. Adding an engine means adding one entry here and one parser module —
+ * means. Adding an engine means adding one entry here and one parser module -
  * nothing else in the application dispatches on format.
  */
 const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
-  // MySQL family — one reader, one identity each.
+  // MySQL family - one reader, one identity each.
   mysql: createMysqlParser('mysql'),
   mariadb: createMysqlParser('mariadb'),
   tidb: createMysqlParser('tidb'),
@@ -85,9 +85,9 @@ export function readableFormats(): DatabaseFormat[] {
  * The file is not a dump this project can read.
  *
  * The message carries none of the input: no SQL, no paths, nothing about the
- * parser. Naming a recognised-but-unsupported engine is deliberate — telling
+ * parser. Naming a recognised-but-unsupported engine is deliberate - telling
  * someone their SQL Server dump is not supported yet is more useful than
- * refusing to place the file — and the engine name comes from the catalog, not
+ * refusing to place the file - and the engine name comes from the catalog, not
  * from the file's contents. Safe to show a user as-is.
  */
 export class UnsupportedFormatError extends Error {
@@ -115,7 +115,7 @@ export interface ParseOptions {
  *
  * With no explicit format the source engine is detected from the dump's own
  * markers; a file with nothing recognisable in it is rejected rather than
- * guessed at. The SQL is only ever read as text — never executed.
+ * guessed at. The SQL is only ever read as text - never executed.
  */
 export function parseDump(sql: string, options: ParseOptions = {}): SqlDump {
   const format = options.format ?? detectFormat(sql).format

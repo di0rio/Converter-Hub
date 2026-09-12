@@ -1,4 +1,4 @@
-# Converter Hub — Web Interface
+# Converter Hub - Web Interface
 
 The Next.js app that hosts the hub and its tools. Everything runs in the
 browser: no file is uploaded, there is no server behind the processing, and no
@@ -8,7 +8,7 @@ SQL from your files is ever executed.
 
 | Route | What it is |
 |-------|------------|
-| `/` | The hub — pick a tool |
+| `/` | The hub - pick a tool |
 | `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
 | `/sql` | Extract tables out of a SQL dump, a SQLite database or a Firebird 2.x database |
 | `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML, XML) to another format |
@@ -22,7 +22,7 @@ opened, not when its card scrolls into view.
 
 `lib/tools.ts` is the single source of truth for the tool list. It feeds the hub
 cards, the page titles, the breadcrumbs and the route metadata, so adding a
-third tool is an entry there plus a route — the hub itself needs no changes.
+third tool is an entry there plus a route - the hub itself needs no changes.
 Never add an entry for a tool whose route does not exist yet.
 
 ## Getting Started

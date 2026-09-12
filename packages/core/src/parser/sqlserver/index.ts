@@ -253,7 +253,7 @@ export function countDataRows(statement: string): number {
 /**
  * The engines whose scripts this parser reads. Synapse is T-SQL plus its own
  * table-shape clauses, which sit outside the column list and so do not change
- * how the script is read — but it stays its own product, not a relabelling.
+ * how the script is read - but it stays its own product, not a relabelling.
  */
 export type SqlServerFamilyFormat = Extract<
   DatabaseFormat,

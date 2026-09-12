@@ -78,14 +78,14 @@ export interface UnreadableTable {
 /**
  * One stored value as text, for CSV, XLSX, JSON and Markdown.
  *
- * NULL stays `null` — writers distinguish it from an empty string, and SQLite
+ * NULL stays `null` - writers distinguish it from an empty string, and SQLite
  * does too. A BLOB becomes base64, which is the only representation that
  * survives a text file without inventing or dropping bytes; the README says so
  * next to the format list.
  *
  * Nothing is interpreted on the way through. SQLite has no date type, so an
  * INTEGER that happens to look like a Unix timestamp and a TEXT that happens to
- * look like a date are left exactly as they were stored — guessing wrong there
+ * look like a date are left exactly as they were stored - guessing wrong there
  * silently rewrites the user's data.
  */
 export function toCellText(value: SqliteValue): string | null {
@@ -100,7 +100,7 @@ export function toCellText(value: SqliteValue): string | null {
  *
  * Doubling an embedded quote is SQLite's only string escape, so a value
  * carrying `'); DROP TABLE t; --` survives as text rather than as syntax. A
- * BLOB is written `X'hex'`, which SQLite reads back as the same bytes — the
+ * BLOB is written `X'hex'`, which SQLite reads back as the same bytes - the
  * reason the SQL export uses it rather than the base64 the text formats get.
  *
  * Infinity and NaN have no SQLite literal. `sqlite3` itself writes them as
@@ -215,8 +215,8 @@ export interface SqliteFileGroup<T> {
  * browser passes file names and the CLI passes paths, so a log is also only
  * ever paired with the database in its own directory.
  *
- * The `-shm` is accepted and ignored. It holds no data of its own — SQLite
- * rebuilds the index in memory — so requiring it would turn a readable
+ * The `-shm` is accepted and ignored. It holds no data of its own - SQLite
+ * rebuilds the index in memory - so requiring it would turn a readable
  * selection into an error for nothing.
  */
 export function groupSqliteFiles<T extends { name: string }>(
@@ -241,7 +241,7 @@ export function groupSqliteFiles<T extends { name: string }>(
   if (mains.length === 0) {
     throw new SqliteReadError(
       sidecars.length > 0
-        ? 'Only SQLite companion files were selected. Add the database file itself — the one without a -wal or -shm suffix.'
+        ? 'Only SQLite companion files were selected. Add the database file itself - the one without a -wal or -shm suffix.'
         : 'No file was selected.',
     )
   }

@@ -17,10 +17,10 @@ We will acknowledge receipt within 48 hours and aim to provide an initial assess
 
 ## What Must NEVER Be Included in Reports
 
-- **SQL dumps** — They may contain real personal data, credentials, or proprietary information.
-- **Credentials** — Passwords, API keys, tokens, connection strings, or authentication data.
-- **Personal data** — Names, emails, phone numbers, addresses, or any personally identifiable information.
-- **Production data** — Any real data from your systems.
+- **SQL dumps** - They may contain real personal data, credentials, or proprietary information.
+- **Credentials** - Passwords, API keys, tokens, connection strings, or authentication data.
+- **Personal data** - Names, emails, phone numbers, addresses, or any personally identifiable information.
+- **Production data** - Any real data from your systems.
 
 Use synthetic, fictional data in any examples or reproductions. The `examples/` directory contains a sample dump you can modify to demonstrate issues.
 

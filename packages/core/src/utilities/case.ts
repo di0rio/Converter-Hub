@@ -2,7 +2,7 @@
  * Identifier case conversion.
  *
  * A line is split into words at every run of anything that is not a letter or
- * a digit — spaces, punctuation, `_`, `-`, `.` — and again where a lowercase
+ * a digit - spaces, punctuation, `_`, `-`, `.` - and again where a lowercase
  * letter meets an uppercase one (`userName`) or an acronym meets the next word
  * (`XMLHttp`). Digits stay with the word before them (`id2`). Accented and
  * non-Latin letters are letters; case is changed with the locale-independent
@@ -40,7 +40,9 @@ function convert(line: string, style: CaseStyle): string {
   const lower = parts.map((word) => word.toLowerCase())
   switch (style) {
     case 'camel':
-      return parts.map((word, i) => (i === 0 ? word.toLowerCase() : capital(word))).join('')
+      return parts
+        .map((word, i) => (i === 0 ? word.toLowerCase() : capital(word)))
+        .join('')
     case 'pascal':
       return parts.map(capital).join('')
     case 'snake':

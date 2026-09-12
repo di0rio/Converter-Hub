@@ -68,7 +68,7 @@ export function parseXml(text: string): XmlValue {
   }
 
   // A browser reports a syntax error as a document holding <parsererror>,
-  // whose text quotes the file — so it is detected, never shown.
+  // whose text quotes the file - so it is detected, never shown.
   const root = document.documentElement
   if (!root || document.getElementsByTagName('parsererror').length > 0) {
     throw refuse()

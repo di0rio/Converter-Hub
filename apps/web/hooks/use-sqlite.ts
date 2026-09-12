@@ -25,8 +25,8 @@ export type SqliteStatus = 'idle' | 'reading' | 'converting' | 'done'
 /**
  * The largest database this tool will open.
  *
- * Everything is held in memory — the file, SQLite's page cache and the decoded
- * rows all at once — so the ceiling is the tab's, not the format's. Past this
+ * Everything is held in memory - the file, SQLite's page cache and the decoded
+ * rows all at once - so the ceiling is the tab's, not the format's. Past this
  * the tab dies partway through with no message; refusing up front says so
  * instead. A database beyond it is a job for the CLI, which opens up to 1 GB.
  */

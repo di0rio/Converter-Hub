@@ -244,7 +244,7 @@ export function SheetSplitter() {
 
   return (
     // Two panes on desktop, stacked on narrow screens. The selection column is
-    // a fixed track so opening a preview can never resize or reflow it — the
+    // a fixed track so opening a preview can never resize or reflow it - the
     // same shape the SQL tool uses.
     <div className="flex w-full flex-col gap-6 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-8">
       <div className="no-scrollbar flex shrink-0 justify-center lg:w-[34rem] lg:justify-start lg:overflow-y-auto lg:pr-2">

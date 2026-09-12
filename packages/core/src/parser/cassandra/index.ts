@@ -54,7 +54,7 @@ function classifyStatement(sql: string): StatementType {
  * What does not fit is left alone rather than approximated. Collection types
  * (`map<text, int>`) are read as one column, not flattened; user-defined types
  * are carried as text. Statement text is stored verbatim so a SQL export stays
- * valid CQL — this is not a converter. Nothing here is executed.
+ * valid CQL - this is not a converter. Nothing here is executed.
  */
 export function parseCassandraDump(sql: string): SqlDump {
   const statements = splitScript(sql, CQL_DIALECT)

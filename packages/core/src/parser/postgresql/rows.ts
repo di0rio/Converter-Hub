@@ -56,7 +56,7 @@ export function readColumns(createStatement: string): string[] {
     // column and must survive. Only the forms that cannot be a column
     // definition are skipped: a quoted family name, or none at all. An
     // unquoted family name (`FAMILY fam_0 (id)`) is indistinguishable from
-    // `family varchar(10)` at this level and is left alone deliberately —
+    // `family varchar(10)` at this level and is left alone deliberately -
     // dropping a real column is far worse than keeping a spurious one.
     if (COLUMN_FAMILY.test(part)) continue
 

@@ -195,4 +195,4 @@ export function findTool(id: string): ConverterTool {
 export const HUB_NAME = 'Converter Hub'
 
 export const HUB_TAGLINE =
-  'Local tools for transforming your files. Everything runs in your browser — nothing is uploaded.'
+  'Local tools for transforming your files. Everything runs in your browser - nothing is uploaded.'

@@ -8,7 +8,7 @@ import { IDENT, normalizeKey } from './identifiers.js'
  * column with a standalone `CREATE GENERATOR` (or, since 3.0, `CREATE
  * SEQUENCE`) plus a `BEFORE INSERT` trigger that calls `GEN_ID(gen, 1)` or
  * `NEXT VALUE FOR gen`. The generator's own statement carries no reference to
- * the table — only the trigger connects them — so the whole script has to be
+ * the table - only the trigger connects them - so the whole script has to be
  * scanned for trigger bodies before generators can be attached to anything.
  *
  * Returns generator name (normalised key) -> owning table name, raw as the

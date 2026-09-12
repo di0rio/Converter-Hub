@@ -11,7 +11,7 @@ import { IDENT, displayName, identAfter, normalizeKey } from './identifiers.js'
 import { findGeneratorOwners } from './generators.js'
 
 /**
- * A Firebird script has no notion of multiple databases or schemas — one
+ * A Firebird script has no notion of multiple databases or schemas - one
  * script targets one `.fdb` file. `CREATE DATABASE 'name.fdb'` names it; a
  * script that skips database creation (most restore scripts do, since the
  * file already exists) falls back to this, the same way the MySQL reader
@@ -55,7 +55,7 @@ function classify(sql: string): StatementType {
 }
 
 /**
- * The database name from `CREATE DATABASE 'path/to/name.fdb' ...` — the
+ * The database name from `CREATE DATABASE 'path/to/name.fdb' ...` - the
  * file's base name, without its directory or extension, the way a restore
  * target is usually referred to in conversation even though the statement
  * itself names a file path.
@@ -79,8 +79,8 @@ function databaseNameFromCreate(clean: string): string | null {
  * arrives as one statement.
  *
  * Triggers and procedures are DDL, not tables: a trigger's text is preserved
- * — attached to the table it fires on when its `FOR` clause names one already
- * in the script, parked in the preamble/postamble otherwise — and never
+ * - attached to the table it fires on when its `FOR` clause names one already
+ * in the script, parked in the preamble/postamble otherwise - and never
  * becomes a selectable table itself. Generators (Firebird's sequences) are
  * attached to a table the same way, but only when a trigger's `GEN_ID` or
  * `NEXT VALUE FOR` call ties the two together; an unattached generator, or a
@@ -94,8 +94,8 @@ export function parseFirebirdDump(sql: string): SqlDump {
 
   let database: Database | null = null
   const tables = new Map<string, Table>()
-  // DDL that names a table before that table's CREATE TABLE has been seen —
-  // a generator or trigger preceding it in the script — waits here.
+  // DDL that names a table before that table's CREATE TABLE has been seen -
+  // a generator or trigger preceding it in the script - waits here.
   const pendingPreData = new Map<string, string[]>()
 
   let preamble = ''

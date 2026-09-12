@@ -2,7 +2,7 @@
 
 Este documento descreve o caminho que um arquivo de dump percorre até virar uma
 tabela (CSV, XLSX ou SQL filtrado). Todo o trabalho acontece em
-`packages/core` — os apps (`apps/cli`, `apps/web`) só orquestram entrada e saída.
+`packages/core` - os apps (`apps/cli`, `apps/web`) só orquestram entrada e saída.
 
 O SQL nunca é executado. Ele é lido apenas como texto.
 
@@ -30,10 +30,10 @@ entre MySQL e PostgreSQL.
 
 ---
 
-## 1. Detecção de formato — `packages/core/src/formats/index.ts`
+## 1. Detecção de formato - `packages/core/src/formats/index.ts`
 
 `detectFormat(sql)` resolve em dois passos, a partir do catálogo em
-`formats/catalog.ts` — que é a fonte única de quais engines existem e de qual é
+`formats/catalog.ts` - que é a fonte única de quais engines existem e de qual é
 o status de cada um:
 
 1. **Família**, por marcadores que a família inteira emite. MySQL: comentários
@@ -41,7 +41,7 @@ o status de cada um:
    crase fora de comentário. PostgreSQL: `\connect`, `FROM stdin;`, terminador
    `\.`, `SET search_path`. E assim para SQL Server, SQLite, Firebird, Oracle,
    Db2, Cassandra e MongoDB.
-2. **Membro dentro da família**, por marcadores que só aquele produto escreve —
+2. **Membro dentro da família**, por marcadores que só aquele produto escreve -
    `/*M!100101` para MariaDB, `DISTRIBUTED BY` para Greenplum, `DISTKEY` para
    Redshift, `/*T![` para TiDB. Sem nenhum, vale o padrão da família.
 
@@ -54,10 +54,10 @@ Regras de decisão:
 - Marcadores de duas famílias ao mesmo tempo: só decide se uma estiver à frente
   por 2 ou mais acertos; senão retorna `{ format: null }`.
 - Os marcadores próprios de um produto também contam para a família dele. Sem
-  isso, DDL de Redshift — que diz `DISTKEY` mas nunca escreve cabeçalho de
-  `pg_dump` — pontuaria zero para a família que sabe lê-lo.
+  isso, DDL de Redshift - que diz `DISTKEY` mas nunca escreve cabeçalho de
+  `pg_dump` - pontuaria zero para a família que sabe lê-lo.
 - SQL genérico (só `CREATE TABLE` / `INSERT INTO`, sem marcador de engine):
-  retorna `mysql` com `confidence: 'assumed'` — o leitor MySQL é um superconjunto
+  retorna `mysql` com `confidence: 'assumed'` - o leitor MySQL é um superconjunto
   do SQL portátil.
 - Nada reconhecível: `{ format: null }`, e `parseDump` lança
   `UnsupportedFormatError`.
@@ -65,7 +65,7 @@ Regras de decisão:
 A distinção `detected` vs `assumed` existe para a UI não afirmar que reconheceu
 um engine quando na verdade apenas chutou.
 
-## 2. Parsing — `packages/core/src/parser/`
+## 2. Parsing - `packages/core/src/parser/`
 
 ### Despacho
 
@@ -83,8 +83,8 @@ const PARSERS: Partial<Record<DatabaseFormat, FormatParser>> = {
 
 É `Partial` de propósito: o catálogo nomeia formatos que o projeto **reconhece
 mas não lê**, e um sem parser aqui é exatamente isso. Assim um dump de um engine
-sem leitor é *identificado* — a mensagem diz qual engine é e que não é suportado
-— em vez de recusado como irreconhecível.
+sem leitor é *identificado* - a mensagem diz qual engine é e que não é suportado
+- em vez de recusado como irreconhecível.
 
 Vários formatos apontam para o mesmo leitor construído com a identidade deles
 (`createPostgresParser('greenplum')`), porque compartilhar leitor não é ser o
@@ -94,7 +94,7 @@ Esse é o **único** ponto do projeto que despacha por formato. Adicionar um eng
 = uma entrada aqui + um módulo de parser (ou, quando o dialeto já existe, só a
 entrada).
 
-### O modelo de dialeto — `parser/shared/dialect.ts`
+### O modelo de dialeto - `parser/shared/dialect.ts`
 
 O que difere entre engines na hora de quebrar um script é descrito como **dado**,
 não como código: terminador, separador de lote (`GO`, `/`), estilos de
@@ -103,9 +103,9 @@ aspas de identificador (crase, `"…"`, `[…]`), corpos `BEGIN … END`, e bloc
 só o separador de lote fecha.
 
 `splitScript(sql, dialect)` consome esse descritor. É por isso que a maioria dos
-formatos novos não precisa de splitter próprio — fornece um dialeto.
+formatos novos não precisa de splitter próprio - fornece um dialeto.
 
-### O contrato `FormatParser` — `parser/shared/format-parser.ts`
+### O contrato `FormatParser` - `parser/shared/format-parser.ts`
 
 ```ts
 interface FormatParser {
@@ -123,7 +123,7 @@ de um dump grande é barato porque não decodifica nenhum valor.
 ### 2a. Tokenização
 
 Antes de classificar qualquer coisa, o texto é quebrado em statements. Isso não é
-um `split(';')` — é uma máquina de estados que respeita aspas e comentários.
+um `split(';')` - é uma máquina de estados que respeita aspas e comentários.
 
 **MySQL** (`parser/mysql/index.ts`, `splitStatements`): aspas simples, aspas
 duplas, crases, escapes com barra invertida, comentários `--`, `#` e `/* */`.
@@ -135,7 +135,7 @@ barra (strings padrão), mais três coisas que não são SQL:
 - meta-comandos do psql (`\connect`)
 - corpos com dollar-quote (`$$ ... $$`, `$tag$ ... $tag$`)
 - blocos `COPY ... FROM stdin;` cujas linhas de dados são texto cru e **podem
-  conter ponto e vírgula** — o lexer lê até a linha terminadora `\.`.
+  conter ponto e vírgula** - o lexer lê até a linha terminadora `\.`.
 
 Regras léxicas compartilhadas ficam em `parser/shared/syntax.ts`:
 `readBalanced` (lê parênteses balanceados respeitando aspas), `splitTopLevel`
@@ -160,7 +160,7 @@ Table     { name, database, format,
 ```
 
 O texto de cada statement é guardado **verbatim**. Por isso a exportação SQL
-reproduz o dialeto de origem — o projeto não converte dialeto: um dump
+reproduz o dialeto de origem - o projeto não converte dialeto: um dump
 PostgreSQL sai como SQL PostgreSQL.
 
 Casos de borda tratados no MySQL:
@@ -182,13 +182,13 @@ O modelo também abstrai a diferença de nomenclatura: MySQL/MariaDB agrupam por
 *database*, PostgreSQL por *schema*. `describeFormat()` devolve o rótulo certo
 (`namespaceLabel`) para a UI não chamar schema de database.
 
-## 3. Achatamento tabular — `packages/core/src/tabular/index.ts`
+## 3. Achatamento tabular - `packages/core/src/tabular/index.ts`
 
 **Este é o passo que transforma statements SQL em linhas e colunas.**
 
 `toTabular(table): TabularTable` faz:
 
-1. `parser.readColumns(table.createStatement)` — extrai os nomes de coluna do
+1. `parser.readColumns(table.createStatement)` - extrai os nomes de coluna do
    `CREATE TABLE`, na ordem de declaração, pulando cláusulas de constraint
    (`PRIMARY`, `KEY`, `FOREIGN`, `CHECK`, ...).
 2. Para cada statement em `dataStatements`, chama `parser.readDataBlock(stmt)`,
@@ -197,7 +197,7 @@ O modelo também abstrai a diferença de nomenclatura: MySQL/MariaDB agrupam por
      (`readTuples`) e decodifica cada literal (`decodeLiteral`): `NULL` vira
      `null`, remove aspas, resolve `\n \t \r \0` e aspas duplicadas.
    - **PostgreSQL** (`parser/postgresql/rows.ts`): dois caminhos que convergem na
-     mesma forma —
+     mesma forma -
      - bloco `COPY`: campos separados por tab, `\N` é null, escapes
        `\n \t \r \b \f \v \\`;
      - `INSERT` (`pg_dump --inserts`): strings padrão (só aspas duplicadas
@@ -207,19 +207,19 @@ O modelo também abstrai a diferença de nomenclatura: MySQL/MariaDB agrupam por
    os valores são remapeados para a ordem do `CREATE TABLE`; coluna ausente vira
    `null`. Se não nomeia, os valores entram na ordem em que vieram.
 4. **Fallback sem DDL**: dump com linhas mas sem `CREATE TABLE` ainda produz
-   saída útil — usa a lista de colunas declarada no primeiro statement de dados
+   saída útil - usa a lista de colunas declarada no primeiro statement de dados
    se o tamanho bater, senão gera `column_1`, `column_2`, ...
 
-Resultado: `{ name, columns: string[], rows: (string | null)[][] }` — a forma que
+Resultado: `{ name, columns: string[], rows: (string | null)[][] }` - a forma que
 CSV e XLSX consomem. Nada aqui é específico de dialeto: qual engine escreveu o
 dump muda *como um statement é decodificado*, nunca *como as linhas se alinham
 às colunas*.
 
 `countRows(table)` percorre os mesmos `dataStatements` chamando `countDataRows`,
-sem decodificar valores — é o número mostrado na UI por tabela. Um `INSERT`
+sem decodificar valores - é o número mostrado na UI por tabela. Um `INSERT`
 multi-linha conta como suas linhas, não como um statement.
 
-## 4. Geração de saída — `packages/core/src/generator/index.ts`
+## 4. Geração de saída - `packages/core/src/generator/index.ts`
 
 `generateExport(dump, options, format)` é o orquestrador:
 
@@ -239,7 +239,7 @@ SQL na ordem de restauração: cabeçalho comentado, preamble, `CREATE DATABASE`
 `postDataStatements`, e por fim o postamble. Cada statement sai exatamente como
 estava no dump.
 
-### `csv` — `toCsv(TabularTable)`
+### `csv` - `toCsv(TabularTable)`
 
 Um arquivo por tabela dentro do ZIP, com nomes deduplicados
 (`tabela.csv`, `tabela_2.csv`).
@@ -249,9 +249,9 @@ Um arquivo por tabela dentro do ZIP, com nomes deduplicados
 - **Neutralização de fórmula**: valor começando com `=`, `+`, `-`, `@`, tab ou CR
   recebe prefixo `'`. Conteúdo de dump é não confiável e o Excel/Sheets
   interpretaria como fórmula ao abrir (CSV injection).
-- Terminações `\r\n` e BOM UTF-8 no início — sem o BOM o Excel lê UTF-8 errado.
+- Terminações `\r\n` e BOM UTF-8 no início - sem o BOM o Excel lê UTF-8 errado.
 
-### `xlsx` — `toXlsx(TabularTable[])`
+### `xlsx` - `toXlsx(TabularTable[])`
 
 Escreve um `.xlsx` do zero (nenhuma dependência de spreadsheet; só `fflate` para
 zipar). Uma aba por tabela.
@@ -262,7 +262,7 @@ zipar). Uma aba por tabela.
   workbook (`sheetName`).
 - Escape XML, incluindo remoção dos caracteres de controle que XML 1.0 proíbe.
 - Tipagem de célula: só vira número se casar com `NUMERIC` **e** não tiver zero à
-  esquerda — códigos postais e IDs com zero à frente permanecem texto. O resto
+  esquerda - códigos postais e IDs com zero à frente permanecem texto. O resto
   vai como `inlineStr` com `xml:space="preserve"`.
 
 Nomes de arquivo passam por `safeFileName`: só `A-Za-z0-9._-`, sem ponto inicial,
@@ -272,13 +272,13 @@ máximo 100 caracteres, fallback `unnamed`.
 
 ## Como os apps usam isso
 
-### CLI — `apps/cli/src/commands/extract.ts`
+### CLI - `apps/cli/src/commands/extract.ts`
 
 `resolveFormat(--format)`, `readSqlFile`, `parseDump`, prompts para escolher
 database e tabelas, `extractDatabase`, `writeOutputFile`. O CLI hoje exporta
 SQL; CSV/XLSX são o caminho do app web.
 
-### Web — `apps/web/hooks/use-sql-dump.ts`
+### Web - `apps/web/hooks/use-sql-dump.ts`
 
 Roda inteiramente no navegador (nenhum upload ao servidor). `loadFile` chama
 `detectFormat` uma vez e passa a resposta para `parseDump`, guardando a

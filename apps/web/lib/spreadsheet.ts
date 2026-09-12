@@ -89,7 +89,7 @@ export function toFileName(sheetName: string): string {
  * and not blank.
  *
  * Excel enforces these when you type a name, but a file written by something
- * else need not have gone through Excel — and handing such a name back to the
+ * else need not have gone through Excel - and handing such a name back to the
  * writer throws, which would fail the whole split over one sheet. The file
  * name keeps the original; only the tab inside the new workbook is adjusted.
  */
@@ -109,14 +109,14 @@ const CELL_REF = /^([A-Z]+)(\d+)$/
  * What a sheet actually holds.
  *
  * The used range (`!ref`) is not the answer. Excel grows it to cover anything
- * that was ever touched — a fill colour dragged down a column, a deleted block,
- * a stray border — so a sheet with fifty rows of data routinely reports a range
+ * that was ever touched - a fill colour dragged down a column, a deleted block,
+ * a stray border - so a sheet with fifty rows of data routinely reports a range
  * of ten thousand. Reading the range gave a count that matched nothing: not the
  * preview, not the exported file, not what the user sees in Excel.
  *
  * So the cells are walked instead. A row counts when it holds at least one cell
  * with a value, which is the same rule the export applies when it drops blank
- * rows — the number here and the number of rows in the file that comes out are
+ * rows - the number here and the number of rows in the file that comes out are
  * now the same number, by construction.
  */
 function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
@@ -147,7 +147,7 @@ function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
     if (column > columns) columns = column
   }
 
-  // The first row that holds anything is the header — it names the columns in
+  // The first row that holds anything is the header - it names the columns in
   // the preview and in the CSV. Counting data rows rather than every row is
   // what makes "5 rows" here mean what it means in the SQL tool, and agree
   // with the five numbered rows the preview shows.
@@ -167,7 +167,7 @@ function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
  *
  * SheetJS reads almost anything as a text table, so two cheap checks refuse
  * what is plainly not one. A NUL character means the file is binary, and an
- * odd number of quotes means one never closed — SheetJS would otherwise
+ * odd number of quotes means one never closed - SheetJS would otherwise
  * swallow the rest of the file into a single cell.
  */
 function readTextTable(XLSX: SheetJS, text: string, name: string): WorkBook {
@@ -254,7 +254,7 @@ export async function readSheetRows(
  * downloads of a burst, so ten sheets would silently arrive as one file.
  *
  * The archive is written by the same ZIP writer the SQL tool uses, and CSV by
- * the same CSV writer — so a spreadsheet split and a dump extraction produce
+ * the same CSV writer - so a spreadsheet split and a dump extraction produce
  * files of the same shape, including the escaping that keeps a cell beginning
  * with `=` from being read back as a formula by whatever opens it next.
  */

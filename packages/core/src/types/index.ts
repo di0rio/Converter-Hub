@@ -35,8 +35,8 @@ export interface Database {
  * The three statement lists are what every engine needs and no more: setup that
  * has to run before the rows, the rows themselves, and the constraints and
  * indexes that are cheaper to add afterwards. Each engine fills them with its
- * own SQL — LOCK/UNLOCK TABLES for MySQL, sequences and deferred constraints
- * for PostgreSQL — without the model naming any of it.
+ * own SQL - LOCK/UNLOCK TABLES for MySQL, sequences and deferred constraints
+ * for PostgreSQL - without the model naming any of it.
  */
 export interface Table {
   name: string

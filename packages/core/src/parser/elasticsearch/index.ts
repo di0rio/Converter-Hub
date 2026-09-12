@@ -9,7 +9,7 @@ import {
 import { readJsonObjects, tableFromDocuments } from '../shared/documents.js'
 
 /**
- * Read an `elasticdump` export — one JSON object per line, each naming the
+ * Read an `elasticdump` export - one JSON object per line, each naming the
  * index it came from.
  *
  * That `_index` is what makes this readable at all: an export that only

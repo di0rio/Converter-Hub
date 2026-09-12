@@ -146,7 +146,7 @@ describe('parseDump: PostgreSQL', () => {
 
     it('undoubles a quote in a standard-conforming string', () => {
       const rows = toTabular(table(dump, 'inventory', 'parts')).rows
-      expect(rows[1][1]).toBe("Washer, 8 mm — O'Brien pattern")
+      expect(rows[1][1]).toBe("Washer, 8 mm - O'Brien pattern")
     })
 
     it('reads a value that spans several lines', () => {

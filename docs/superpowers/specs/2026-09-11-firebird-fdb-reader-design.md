@@ -1,4 +1,4 @@
-# Firebird database reader (.fdb) — design
+# Firebird database reader (.fdb) - design
 
 Date: 2026-09-11. Status: approved direction, awaiting spec review.
 
@@ -16,20 +16,20 @@ The file's header (first 96 bytes, read on the user's machine):
 | Page type | 0x00 | `01` | header page |
 | Page size | 0x10 | `00 40` | 16384 |
 | ODS major | 0x12 | `0b 80` | 11, with the Firebird flag `0x8000` |
-| ODS minor | 0x3e | `02 00` | 2 — ODS 11.2, Firebird 2.5 |
+| ODS minor | 0x3e | `02 00` | 2 - ODS 11.2, Firebird 2.5 |
 | RDB$PAGES pointer page | 0x14 | `03 00 00 00` | page 3 |
 | Next transaction | 0x24 | `16 0b 2b 00` | 2 821 910 |
 
 ## Decision
 
 Read the file natively, in TypeScript, with no Firebird engine and no
-dependency, the way the SQLite reader reads a `.db` — but by parsing the
+dependency, the way the SQLite reader reads a `.db` - but by parsing the
 on-disk structure directly, since there is no Firebird build for the browser.
 
 Only ODS 11 (Firebird 2.0, 2.1 and 2.5) is supported. It is the version the
 official *Firebird Internals* document describes, and the one the user has.
-Every other ODS — 10 (Firebird 1.x, InterBase), 12 (Firebird 3), 13 (4 and 5)
-— is refused with a message that names the version found. The project's rule
+Every other ODS - 10 (Firebird 1.x, InterBase), 12 (Firebird 3), 13 (4 and 5)
+- is refused with a message that names the version found. The project's rule
 holds: refuse rather than guess.
 
 ## Scope
@@ -91,7 +91,7 @@ the CLI, split so each file holds one layer of the format:
 
 ### Output shape
 
-`readFdbDatabase` returns the same shape the SQLite reader returns —
+`readFdbDatabase` returns the same shape the SQLite reader returns -
 `{ tables, unreadable }`, where a table has `name`, `columns`
 (`name`, `declaredType`, `primaryKey`, `notNull`), `rows`, `rowCount`,
 `createStatement` and `indexStatements` (always empty). So the table picker,
@@ -137,7 +137,7 @@ copied, which is what the user would see after a clean restart.
 
 Each column's character set comes from RDB$FIELDS. NONE means "whatever the
 client sent", so it falls back to the database default in RDB$DATABASE, and
-if that is NONE too, to WIN1252 — the usual encoding of Brazilian legacy
+if that is NONE too, to WIN1252 - the usual encoding of Brazilian legacy
 systems. The fallback is stated in the README. Decoding uses `TextDecoder`,
 with no table of our own. A column in a character set outside the supported
 list makes its table unreadable, rather than showing mojibake.

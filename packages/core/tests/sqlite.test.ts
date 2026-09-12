@@ -5,7 +5,7 @@ import { sqliteParser } from '../src/parser/sqlite/index.js'
 import type { SqlDump, Table } from '../src/types/index.js'
 
 // The registry that wires formats into parseDump() does not know about
-// 'sqlite' yet — that wiring is done separately — so the parser is imported
+// 'sqlite' yet - that wiring is done separately - so the parser is imported
 // and exercised directly, exactly as the mysql/postgresql readers are tested
 // before being registered.
 
@@ -134,7 +134,7 @@ describe('sqliteParser', () => {
     })
 
     it('keeps a semicolon inside a string value from ending the statement', () => {
-      // The value above contains a literal ';' — if it had split the
+      // The value above contains a literal ';' - if it had split the
       // statement early, 'archived_authors' would show up truncated or the
       // parse would have produced a stray malformed table.
       expect(rowsOf(table(dump, 'authors')).length).toBe(3)

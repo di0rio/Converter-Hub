@@ -16,19 +16,19 @@ Always check `node_modules/next/dist/docs/` for the latest documentation before 
 ```
 apps/web/  (or client/)
   app/
-    layout.tsx       — Root layout
-    page.tsx         — Home page
-    globals.css      — Global styles
-  components/        — React components
-  hooks/             — Custom React hooks
-  lib/               — Utilities and helpers
-  public/            — Static assets
+    layout.tsx       - Root layout
+    page.tsx         - Home page
+    globals.css      - Global styles
+  components/        - React components
+  hooks/             - Custom React hooks
+  lib/               - Utilities and helpers
+  public/            - Static assets
 ```
 
 ## App Router Conventions
 
 - Use App Router (not Pages Router)
-- Server Components by default — add `'use client'` only when needed
+- Server Components by default - add `'use client'` only when needed
 - Client components for interactive UI (file upload, form handling)
 - Server Components for static content and data fetching
 
@@ -47,13 +47,13 @@ For SQL file upload:
 - Validate file type client-side before upload
 - Show upload progress
 - Handle errors gracefully
-- Process files locally — no server upload
+- Process files locally - no server upload
 
 ## State Management
 
 - Use React state for local component state
 - Use URL state for shareable state
-- Avoid global state libraries — keep it simple
+- Avoid global state libraries - keep it simple
 - Use `useState` and `useReducer` for complex local state
 
 ## Performance

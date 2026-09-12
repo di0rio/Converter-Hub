@@ -4,7 +4,7 @@
  *
  * These products are not registered formats yet (no entry in
  * `parser/index.ts`'s PARSERS map), so `parseDump`/`getParser` cannot be used
- * for them — the fixtures are fed straight to `postgresParser` /
+ * for them - the fixtures are fed straight to `postgresParser` /
  * `createMysqlParser('mysql')`, bypassing format detection entirely. Every
  * table these parsers produce is stamped with `format: 'postgresql'` (or
  * `'mysql'`) regardless of which product wrote the dump; that stamping is a
@@ -12,7 +12,7 @@
  *
  * Each product gets one synthetic, `pg_dump`/`mysqldump`-shaped fixture under
  * `examples/<id>/sample.sql`, built the way the real tool actually writes
- * dumps — including the one clause that makes that product different from
+ * dumps - including the one clause that makes that product different from
  * plain PostgreSQL/MySQL. Where that clause trips up the parser, the fixture
  * is kept as written by the real tool and the behaviour is asserted as it
  * actually is, rather than bent until it passes.
@@ -47,7 +47,7 @@ function table(dump: SqlDump, groupName: string, tableName: string): Table {
 }
 
 // ==================================================================
-// CockroachDB — `cockroach dump` output read by postgresParser
+// CockroachDB - `cockroach dump` output read by postgresParser
 // ==================================================================
 //
 // Verdict: works with gaps. Schema/table detection, statement placement and
@@ -59,7 +59,7 @@ function table(dump: SqlDump, groupName: string, tableName: string): Table {
 // regex and adds a bogus "FAMILY" column. That corrupts any consumer that
 // cross-references CREATE TABLE columns against row data (toTabular).
 // INSERT statements name their own columns explicitly, so decoding a
-// statement in isolation (readDataBlock) is unaffected — only the
+// statement in isolation (readDataBlock) is unaffected - only the
 // CREATE-TABLE-derived column list is wrong.
 describe('family profile: CockroachDB (via postgresParser)', () => {
   let dump: SqlDump
@@ -113,7 +113,7 @@ describe('family profile: CockroachDB (via postgresParser)', () => {
 
   it('decodes row values correctly when read from the INSERT statement directly', () => {
     // readDataBlock takes its column list from the INSERT statement's own
-    // explicit column list, not from the CREATE TABLE — so it sidesteps the
+    // explicit column list, not from the CREATE TABLE - so it sidesteps the
     // FAMILY bug entirely and proves the row *values* are fine.
     const stmt = table(dump, 'public', 'customers').dataStatements[0]
     const block = postgresParser.readDataBlock(stmt)
@@ -146,7 +146,7 @@ describe('family profile: CockroachDB (via postgresParser)', () => {
 })
 
 // ==================================================================
-// YugabyteDB — `ysql_dump` output read by postgresParser
+// YugabyteDB - `ysql_dump` output read by postgresParser
 // ==================================================================
 //
 // Verdict: works unmodified. ysql_dump is close enough to pg_dump that this
@@ -223,7 +223,7 @@ describe('family profile: YugabyteDB (via postgresParser)', () => {
 })
 
 // ==================================================================
-// Greenplum — pg_dump output plus DISTRIBUTED BY/RANDOMLY, read by
+// Greenplum - pg_dump output plus DISTRIBUTED BY/RANDOMLY, read by
 // postgresParser
 // ==================================================================
 //
@@ -279,7 +279,7 @@ describe('family profile: Greenplum (via postgresParser)', () => {
 })
 
 // ==================================================================
-// Amazon Redshift — DDL with DISTKEY/SORTKEY/DISTSTYLE/ENCODE, read by
+// Amazon Redshift - DDL with DISTKEY/SORTKEY/DISTSTYLE/ENCODE, read by
 // postgresParser
 // ==================================================================
 //
@@ -340,13 +340,13 @@ describe('family profile: Amazon Redshift (via postgresParser)', () => {
 })
 
 // ==================================================================
-// TimescaleDB — pg_dump output plus SELECT create_hypertable(...), read by
+// TimescaleDB - pg_dump output plus SELECT create_hypertable(...), read by
 // postgresParser
 // ==================================================================
 //
 // Verdict: works unmodified. create_hypertable is a plain SELECT statement,
 // not DDL, so classifyStatement falls through to 'unknown' and it is parked
-// in preamble/postamble verbatim — it never touches column reading.
+// in preamble/postamble verbatim - it never touches column reading.
 describe('family profile: TimescaleDB (via postgresParser)', () => {
   let dump: SqlDump
 
@@ -389,12 +389,12 @@ describe('family profile: TimescaleDB (via postgresParser)', () => {
   it('reads UTF-8 values from the plain INSERT-backed table', () => {
     expect(countRows(table(dump, 'public', 'sensors'))).toBe(2)
     const rows = toTabular(table(dump, 'public', 'sensors')).rows
-    expect(rows[1][1]).toBe('Renée Example lab — sensor B')
+    expect(rows[1][1]).toBe('Renée Example lab - sensor B')
   })
 })
 
 // ==================================================================
-// Citus — pg_dump output plus SELECT create_distributed_table(...) /
+// Citus - pg_dump output plus SELECT create_distributed_table(...) /
 // create_reference_table(...), read by postgresParser
 // ==================================================================
 //
@@ -451,7 +451,7 @@ describe('family profile: Citus (via postgresParser)', () => {
 })
 
 // ==================================================================
-// TiDB — Dumpling output, read by createMysqlParser('mysql')
+// TiDB - Dumpling output, read by createMysqlParser('mysql')
 // ==================================================================
 //
 // Verdict: works unmodified. The TiDB-specific `/*T![feature] ... */`

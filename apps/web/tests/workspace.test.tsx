@@ -6,7 +6,7 @@ import { Workspace, PREVIEW_DRAG_TYPE } from '@/components/workspace'
 import { TableViewer } from '@/components/table-viewer'
 import type { PreviewWindow } from '@/hooks/use-preview-windows'
 
-// Synthetic fixture — no real data.
+// Synthetic fixture - no real data.
 const DUMP = [
   'CREATE DATABASE `shop`;',
   'USE `shop`;',

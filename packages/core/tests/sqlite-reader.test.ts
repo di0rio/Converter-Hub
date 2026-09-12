@@ -40,7 +40,7 @@ beforeAll(() => {
  *
  * `walOnly` runs after a checkpoint, so everything it writes stays in the -wal
  * until something reads it back. The connection is left open while the files are
- * copied — closing it would checkpoint and defeat the fixture.
+ * copied - closing it would checkpoint and defeat the fixture.
  */
 function build(
   name: string,

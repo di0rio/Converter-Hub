@@ -11,7 +11,7 @@ import { SqliteConverter } from '@/components/sqlite-converter'
 /**
  * The whole tool against the real reader and a real SQLite engine: pick the
  * files, see the tables, choose a format, convert, take the ZIP. Only the
- * browser APIs jsdom lacks are stood in for — the fetch of the WebAssembly
+ * browser APIs jsdom lacks are stood in for - the fetch of the WebAssembly
  * binary and the object URL the download goes through.
  *
  * The fixture is built at test time and holds invented data. Its last row is

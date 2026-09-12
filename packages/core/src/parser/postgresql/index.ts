@@ -115,7 +115,7 @@ function readSequenceOwners(statements: string[]): Map<string, string> {
   return owners
 }
 
-/** `SET search_path = app, public;` — the first entry is where tables land. */
+/** `SET search_path = app, public;` - the first entry is where tables land. */
 function searchPathSchema(sql: string): string | null {
   const match = stripLeadingComments(sql).match(
     /SET\s+search_path\s*(?:=|TO)\s*([^;]+)/i,

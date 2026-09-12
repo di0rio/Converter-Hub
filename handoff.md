@@ -1,6 +1,6 @@
-# Converter Hub — expansão v2: concluída
+# Converter Hub - expansão v2: concluída
 
-Continuação da task "Converter Hub — Implementação da expansão v2" (FASE 0 a
+Continuação da task "Converter Hub - Implementação da expansão v2" (FASE 0 a
 FASE 7, Grupos A a E). Tudo foi feito na `master`.
 
 ## Estado
@@ -19,12 +19,12 @@ ver os commits locais e `git push` para publicar.
 
 | Grupo | Rota | Commits |
 |-------|------|---------|
-| Infraestrutura | — | `17a6671`, `e55367a` |
-| A — Dados | `/data` | `75f51b9` |
-| B — Estrutura | XML no `/data`, `/markdown` | `f803576`, `361e0c2` |
-| C — Utilidades de texto | `/encoding`, `/case`, `/timestamp`, `/color`, `/json-to-typescript` | `317b583`, `5879567`, `05e0204`, `7a030d5` |
-| D — Imagens | `/image` | `c630885`, `4aadf4d` |
-| E — SQLite | JSON Lines no `/sql` | `6e03d9d` |
+| Infraestrutura | - | `17a6671`, `e55367a` |
+| A - Dados | `/data` | `75f51b9` |
+| B - Estrutura | XML no `/data`, `/markdown` | `f803576`, `361e0c2` |
+| C - Utilidades de texto | `/encoding`, `/case`, `/timestamp`, `/color`, `/json-to-typescript` | `317b583`, `5879567`, `05e0204`, `7a030d5` |
+| D - Imagens | `/image` | `c630885`, `4aadf4d` |
+| E - SQLite | JSON Lines no `/sql` | `6e03d9d` |
 
 Correções desta rodada:
 

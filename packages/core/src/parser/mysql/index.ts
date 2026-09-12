@@ -35,7 +35,7 @@ function splitStatements(sql: string): string[] {
     const ch = sql[i]
     const next = i + 1 < sql.length ? sql[i + 1] : undefined
 
-    // Inside a line comment — consume until newline
+    // Inside a line comment - consume until newline
     if (inLineComment) {
       if (ch === '\n') {
         inLineComment = false
@@ -47,7 +47,7 @@ function splitStatements(sql: string): string[] {
       continue
     }
 
-    // Inside a block comment — consume until */
+    // Inside a block comment - consume until */
     if (inBlockComment) {
       if (ch === '*' && next === '/') {
         current += '*/'
@@ -72,7 +72,7 @@ function splitStatements(sql: string): string[] {
         inSingleQuote = false
         i++
       } else if (ch === '\\') {
-        // Backslash escape — consume next char
+        // Backslash escape - consume next char
         if (next !== undefined) {
           current += next
           i += 2
@@ -123,7 +123,7 @@ function splitStatements(sql: string): string[] {
       continue
     }
 
-    // Normal state — detect transitions
+    // Normal state - detect transitions
 
     // Check for single-line comment start: -- or #
     if (ch === '-' && next === '-') {
@@ -415,7 +415,7 @@ export function parseMysqlDump(
       }
 
       case 'drop_table': {
-        // Drop table is informational — we note it but keep going to CREATE TABLE
+        // Drop table is informational - we note it but keep going to CREATE TABLE
         // If there's a drop_table without a create_table following, it's still valid
         break
       }
@@ -424,7 +424,7 @@ export function parseMysqlDump(
         if (currentTable) {
           currentTable.dataStatements.push(stmt)
         } else {
-          // Insert without a preceding CREATE TABLE — try to find or create a table entry
+          // Insert without a preceding CREATE TABLE - try to find or create a table entry
           const tableName = tableNameFromInsert(stmt)
           if (tableName) {
             const currentDatabase = ensureDatabase()

@@ -40,7 +40,7 @@ const SCRIPT_DIRECTIVE = /^(REM|PROMPT)(\s|$)/i
  * included.
  *
  * Those lines travel attached to the statement that follows them, so treating
- * one as the whole statement would silently drop the table it introduces —
+ * one as the whole statement would silently drop the table it introduces -
  * which is exactly what an Oracle script does before every CREATE TABLE.
  */
 function statementHead(sql: string): string {
@@ -85,7 +85,7 @@ function classifyStatement(sql: string): StatementType {
 /**
  * Parse an Oracle SQL script into a normalised SqlDump.
  *
- * Oracle groups tables by schema — a schema is a user — so each `Database`
+ * Oracle groups tables by schema - a schema is a user - so each `Database`
  * here is a schema. A lone `/` closing a PL/SQL block is handled by
  * `splitScript` before any of this runs, as are `REM` and `PROMPT` lines.
  *

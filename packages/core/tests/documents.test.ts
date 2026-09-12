@@ -153,7 +153,7 @@ describe('parseNeo4jDump', () => {
   // to follow its size. These two shapes each used to cost time proportional
   // to the square of the input: half a megabyte took just under three minutes,
   // which is a denial of service reachable from an ordinary file. The
-  // assertion is a wall clock on purpose — the defect is spent time, and no
+  // assertion is a wall clock on purpose - the defect is spent time, and no
   // assertion about the parsed result would have caught it.
   it('reads an unterminated relationship bracket in time with its size', () => {
     const text = 'CREATE (n:Person {id: 1});\n-[' + 'a'.repeat(512 * 1024)

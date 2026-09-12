@@ -6,8 +6,8 @@ import { unquoteIdentifier } from '../shared/syntax.js'
  *
  * Firebird uses standard double-quoted identifiers only (`"Full Name"`); an
  * unquoted identifier is case-insensitive at the engine, folded to upper case
- * internally. This project never folds a name for display — a script that
- * writes `Authors` keeps reading `Authors` — but matching an unquoted name
+ * internally. This project never folds a name for display - a script that
+ * writes `Authors` keeps reading `Authors` - but matching an unquoted name
  * against another spelling (a trigger's `FOR authors` against a `CREATE TABLE
  * AUTHORS`) has to compare case-insensitively to behave the way the engine
  * does. `normalizeKey` is that comparison; `displayName` is what a reader

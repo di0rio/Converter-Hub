@@ -9,7 +9,7 @@ interface DataGridProps {
   height?: number
   /**
    * Drop the grid's own border and radius and fill the parent instead. For a
-   * parent that already draws the frame — a preview window, a preview pane —
+   * parent that already draws the frame - a preview window, a preview pane -
    * so the two do not double up.
    */
   bare?: boolean
@@ -28,8 +28,8 @@ const OVERSCAN = 8
  * Every tool in the hub shows tabular data at some point, and a spreadsheet
  * sheet and a dump table are the same thing by the time they reach here:
  * column names and rows of text. Sharing the grid is what makes a preview look
- * the same in both tools, and it means the virtualisation — without which a
- * hundred thousand rows would lock the tab — was only written once.
+ * the same in both tools, and it means the virtualisation - without which a
+ * hundred thousand rows would lock the tab - was only written once.
  */
 export function DataGrid({
   columns,
@@ -44,8 +44,8 @@ export function DataGrid({
 
   const total = rows.length
 
-  // A bare grid stretches to whatever frame it was dropped into — a resized
-  // window, a tile in a grid — so it measures itself rather than trusting a
+  // A bare grid stretches to whatever frame it was dropped into - a resized
+  // window, a tile in a grid - so it measures itself rather than trusting a
   // pixel height threaded down from a parent that may not know it yet.
   useEffect(() => {
     const el = scrollRef.current

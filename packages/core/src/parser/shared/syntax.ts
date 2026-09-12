@@ -2,7 +2,7 @@
  * Lexical rules that differ between SQL dialects.
  *
  * Only the handful of rules this project's parsers actually need are modelled
- * here — this is not a general SQL grammar.
+ * here - this is not a general SQL grammar.
  */
 
 /**
@@ -25,7 +25,7 @@ export interface SqlSyntax {
    * (`map<text, frozen<list<int>>>`). A comma inside such a type belongs to
    * the type, not to the column list.
    *
-   * Only for dialects where the pair cannot also be a comparison operator —
+   * Only for dialects where the pair cannot also be a comparison operator -
    * everywhere else this stays off, so `CHECK (a < b)` is left alone.
    */
   angleBracketTypes?: boolean

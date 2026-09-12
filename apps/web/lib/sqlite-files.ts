@@ -30,7 +30,7 @@ export async function readSelection(
 
 /**
  * What the SQL tool accepts. A dump and a database both arrive under these
- * names, and the file's content — not the name — decides which one it is.
+ * names, and the file's content - not the name - decides which one it is.
  */
 export const SQL_TOOL_EXTENSIONS = [
   '.sql',
@@ -44,7 +44,7 @@ export const SQL_TOOL_EXTENSIONS = [
 ]
 
 /**
- * Whether a selection is a database file — SQLite or Firebird — rather than
+ * Whether a selection is a database file - SQLite or Firebird - rather than
  * a dump.
  *
  * A `-wal` or `-shm` only ever sits beside a SQLite database, and a database

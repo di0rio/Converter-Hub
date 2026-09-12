@@ -7,7 +7,7 @@ import type {
 /**
  * The single source of truth for which database formats exist and how far each
  * one got. The UI list, the CLI's `--format` choices, the README table and the
- * compatibility matrix are all derived from here — nothing repeats these names
+ * compatibility matrix are all derived from here - nothing repeats these names
  * by hand.
  *
  * Detection works in two steps, which is what lets near-identical products stay
@@ -472,7 +472,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     note:
       'Only nodes are extracted. Nodes sharing a label become a table and ' +
       'their properties become its columns, but relationships are not ' +
-      'represented — a table has nowhere to put an edge. The export counts ' +
+      'represented - a table has nowhere to put an edge. The export counts ' +
       'the relationships it skipped and says so in the SQL it writes.',
   },
 

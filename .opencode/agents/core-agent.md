@@ -24,7 +24,7 @@ Implement and maintain the shared core library that handles SQL dump parsing, ex
 - Language: TypeScript
 - Location: `packages/core/`
 - Target: MySQL and MariaDB SQL dumps only
-- No web UI, no CLI — pure library code
+- No web UI, no CLI - pure library code
 
 ## Key Principles
 
@@ -33,13 +33,13 @@ Implement and maintain the shared core library that handles SQL dump parsing, ex
 - Preserve encoding and character sets
 - Output valid, executable SQL
 - Never log or expose SQL contents, INSERT values, or sensitive data
-- Use synthetic test data only — never real production dumps
+- Use synthetic test data only - never real production dumps
 
 ## Skills to Load
 
-- `sql-parser` — SQL parsing patterns and MySQL/MariaDB specifics
-- `typescript` — TypeScript conventions and patterns
-- `testing` — Test strategy and patterns
+- `sql-parser` - SQL parsing patterns and MySQL/MariaDB specifics
+- `typescript` - TypeScript conventions and patterns
+- `testing` - Test strategy and patterns
 
 Do NOT load UI/design skills.
 
@@ -49,4 +49,4 @@ Do NOT load UI/design skills.
 - Do NOT introduce dependencies without clear justification
 - Do NOT implement CLI or web interfaces
 - Keep the API surface small and focused
-- Follow separation of concerns — core has no I/O side effects
+- Follow separation of concerns - core has no I/O side effects

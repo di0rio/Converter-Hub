@@ -44,8 +44,8 @@ export function listExtensions(accept: string[]): string {
  *
  * One quiet row, not a large dashed target: this step is passed through once
  * and then sits at the top of a column of steps for the rest of the session, so
- * it should not outweigh the choices that follow it. It still accepts a drop —
- * the affordance costs nothing here — and it is a real button, so the keyboard
+ * it should not outweigh the choices that follow it. It still accepts a drop -
+ * the affordance costs nothing here - and it is a real button, so the keyboard
  * and a screen reader get the same path as the mouse.
  */
 export function FileSelect({

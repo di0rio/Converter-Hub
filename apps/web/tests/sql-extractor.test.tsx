@@ -447,7 +447,7 @@ describe('SqlExtractor: source formats', () => {
     render(<SqlExtractor />)
 
     expect(
-      screen.getByText(/No engine markers found — read as MySQL\./),
+      screen.getByText(/No engine markers found - read as MySQL\./),
     ).toBeInTheDocument()
   })
 

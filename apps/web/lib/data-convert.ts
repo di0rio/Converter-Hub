@@ -20,7 +20,7 @@ import { DATA_INPUTS, DATA_OUTPUTS, FILE_FORMATS } from '@/lib/formats'
 /**
  * The data tool: one structured file in, one file out.
  *
- * Every input becomes a plain value — a CSV becomes a list of records — and
+ * Every input becomes a plain value - a CSV becomes a list of records - and
  * every output is written from that value. JSON, JSON Lines and YAML take any
  * shape; the table outputs go through `recordsToTable`, which refuses a shape
  * that is not a table rather than flattening it.

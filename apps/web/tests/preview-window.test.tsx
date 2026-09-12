@@ -5,7 +5,7 @@ import { TableViewer } from '@/components/table-viewer'
 import { PreviewWindow } from '@/components/preview-window'
 import type { PreviewWindow as PreviewWindowState } from '@/hooks/use-preview-windows'
 
-// Synthetic fixture — no real data.
+// Synthetic fixture - no real data.
 const DUMP = [
   'CREATE TABLE `users` (`id` int NOT NULL, `name` varchar(50));',
   "INSERT INTO `users` VALUES (1,'Ana'),(2,'Bruno');",

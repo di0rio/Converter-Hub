@@ -9,8 +9,8 @@ import {
  * Image conversion with nothing but the browser: decode through an `Image`,
  * draw onto a canvas, encode with `canvas.toBlob`.
  *
- * An SVG is checked by content — parsed with `DOMParser`, which runs nothing,
- * and required to have an `<svg>` root in the SVG namespace — then loaded
+ * An SVG is checked by content - parsed with `DOMParser`, which runs nothing,
+ * and required to have an `<svg>` root in the SVG namespace - then loaded
  * through `<img>` from a Blob URL. In that mode the browser runs no script
  * and fetches no external resource, and the SVG is never put into the page.
  */

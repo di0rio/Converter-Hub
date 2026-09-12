@@ -14,7 +14,7 @@ import {
  * The lexical shape of one SQL dialect, as data.
  *
  * Splitting a dump into statements is the part every format needs and the part
- * that is easy to get wrong — a semicolon inside a string, a comment, or a
+ * that is easy to get wrong - a semicolon inside a string, a comment, or a
  * procedure body must not end a statement. Describing the differences as data
  * means a new format supplies a dialect rather than another hand-written
  * splitter, which is what keeps the fiftieth format cheaper than the fifth.
@@ -34,7 +34,7 @@ export interface SqlDialect {
   /**
    * A word that turns the rest of its line into a comment: Oracle's `REM` and
    * `PROMPT`. Unlike `--` these are keywords, so they only count at the start
-   * of a line — and they carry no terminator, so without this the line would
+   * of a line - and they carry no terminator, so without this the line would
    * merge into whatever statement follows it.
    */
   lineCommentKeyword: RegExp | null
@@ -50,7 +50,7 @@ export interface SqlDialect {
    *
    * Inside such a body every `;` belongs to the body, not to the script: only
    * a terminator directly after `END` closes the statement. Dialects that keep
-   * bodies apart some other way — Firebird's `SET TERM`, Oracle's `/` — do not
+   * bodies apart some other way - Firebird's `SET TERM`, Oracle's `/` - do not
    * need this and leave it null.
    *
    * Bodies are assumed not to nest, which holds for the triggers this covers.
@@ -59,8 +59,8 @@ export interface SqlDialect {
   /**
    * A statement head after which only the batch separator ends the statement.
    *
-   * Oracle's PL/SQL blocks are full of semicolons — every inner statement ends
-   * with one, and so does the `END` — and nothing but the lone `/` line closes
+   * Oracle's PL/SQL blocks are full of semicolons - every inner statement ends
+   * with one, and so does the `END` - and nothing but the lone `/` line closes
    * the block. `compoundBody` cannot express that, because there is no single
    * `END;` to stop at: blocks nest.
    */
@@ -183,7 +183,7 @@ function escapeForRegExp(value: string): string {
 }
 
 /**
- * `SET TERM <new> <current>` — Firebird's terminator swap.
+ * `SET TERM <new> <current>` - Firebird's terminator swap.
  *
  * The line always ends with the terminator in force at the time it is read,
  * and that is what marks where the new one stops. Assuming it ends with a
@@ -227,7 +227,7 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
   let depth = 0
 
   /**
-   * The statement text with leading comment lines removed — including the
+   * The statement text with leading comment lines removed - including the
    * keyword comments (`REM`, `PROMPT`) that sit in front of a statement and
    * would otherwise hide the keyword that opens a block.
    */

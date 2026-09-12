@@ -37,7 +37,7 @@ interface SheetViewerProps {
 /**
  * One sheet, drawn in the grid the SQL tool draws its tables in.
  *
- * Unlike a dump table — already parsed by the time the SQL tool shows it — a
+ * Unlike a dump table - already parsed by the time the SQL tool shows it - a
  * sheet has to be read on demand, so this owns the read and the cache. What it
  * hands to the grid is the same shape either tool produces: a header row and
  * rows of text.

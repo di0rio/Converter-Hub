@@ -1,4 +1,4 @@
-# SQL Database Extractor — Implementation Plan
+# SQL Database Extractor - Implementation Plan
 
 > **For agentic workers:** Use the appropriate specialized agent for each task. Follow the development order strictly.
 
@@ -12,17 +12,17 @@
 
 All implementation phases are **complete and green**:
 
-- **Core** — 71 tests passing; parse, extract, generation implemented; build + typecheck pass
+- **Core** - 71 tests passing; parse, extract, generation implemented; build + typecheck pass
   (`packages/core/src/{types,parser,extractor,index}.ts`, `packages/core/dist/`)
-- **CLI** — 8 tests passing; interactive + `--database/--all/--tables/--output` flags
+- **CLI** - 8 tests passing; interactive + `--database/--all/--tables/--output` flags
   (`apps/cli/src/{index.ts,commands,utils}`)
-- **Web** — 20 tests passing; `useSqlDump` hook + components, client-side processing only
+- **Web** - 20 tests passing; `useSqlDump` hook + components, client-side processing only
   (`apps/web/{hooks,components}`)
-- **Integration** — `bun run typecheck`, `bun run test`, `bun run build` all pass from root.
+- **Integration** - `bun run typecheck`, `bun run test`, `bun run build` all pass from root.
   Both CLI and Web import `@sql-extractor/core` (no duplicated logic).
-- **Open source** — `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `LICENSE`,
+- **Open source** - `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `LICENSE`,
   `.github/` (issue templates, PR template, `ci.yml`).
-- **Security/privacy** — local-only processing, no telemetry/analytics/external APIs; synthetic
+- **Security/privacy** - local-only processing, no telemetry/analytics/external APIs; synthetic
   fixtures only (`example.com`); no `.env`/secrets/credentials in tree.
 
 **Remaining / known caveats (require user action, not automated):**
@@ -37,10 +37,10 @@ All implementation phases are **complete and green**:
 
 ## Global Constraints
 
-- MySQL and MariaDB ONLY — no PostgreSQL, SQLite, generic SQL
+- MySQL and MariaDB ONLY - no PostgreSQL, SQLite, generic SQL
 - TypeScript strict mode
-- All processing local — no external APIs, no telemetry
-- Synthetic test data only — never real production dumps
+- All processing local - no external APIs, no telemetry
+- Synthetic test data only - never real production dumps
 - All public documentation in English
 - KISS, YAGNI, DRY
 - COSS UI for web components
@@ -255,7 +255,7 @@ export interface ExtractionResult {
 
 - [ ] Create `packages/core/src/types/index.ts` with all interfaces
 - [ ] Create `packages/core/src/index.ts` exporting types
-- [ ] Run `bun run --filter core typecheck` — should pass
+- [ ] Run `bun run --filter core typecheck` - should pass
 - [ ] Commit
 
 ---
@@ -326,8 +326,8 @@ export interface ExtractionResult {
 - [ ] Implement database detection
 - [ ] Implement table detection
 - [ ] Implement full `parseSqlDump()` function
-- [ ] Run tests — all pass
-- [ ] Run typecheck — passes
+- [ ] Run tests - all pass
+- [ ] Run typecheck - passes
 - [ ] Commit
 
 ---
@@ -385,8 +385,8 @@ UNLOCK TABLES;
 - [ ] Write test for table with no INSERTs
 - [ ] Implement `extractDatabase()` function
 - [ ] Implement SQL generation (output formatting)
-- [ ] Run tests — all pass
-- [ ] Run typecheck — passes
+- [ ] Run tests - all pass
+- [ ] Run typecheck - passes
 - [ ] Commit
 
 ---
@@ -408,8 +408,8 @@ export type { SqlDump, Database, Table, ExtractionOptions, ExtractionResult } fr
 
 - [ ] Update `packages/core/src/index.ts` with public exports
 - [ ] Create `packages/core/tests/integration.test.ts` with end-to-end test (parse → extract → verify output)
-- [ ] Run all core tests — pass
-- [ ] Run typecheck — passes
+- [ ] Run all core tests - pass
+- [ ] Run typecheck - passes
 - [ ] Build core: `bun run --filter core build`
 - [ ] Commit
 
@@ -443,9 +443,9 @@ sql-extractor dump.sql --database mydb --tables users,orders --output result.sql
 ```
 
 **Commands:**
-- `sql-extractor <file>` — interactive extraction
-- `sql-extractor <file> --database <name> --all --output <file>` — non-interactive all tables
-- `sql-extractor <file> --database <name> --tables <list> --output <file>` — non-interactive specific tables
+- `sql-extractor <file>` - interactive extraction
+- `sql-extractor <file> --database <name> --all --output <file>` - non-interactive all tables
+- `sql-extractor <file> --database <name> --tables <list> --output <file>` - non-interactive specific tables
 
 **Error messages (English, safe):**
 - `Error: File not found: <path>`
@@ -463,8 +463,8 @@ sql-extractor dump.sql --database mydb --tables users,orders --output result.sql
 - [ ] Implement extraction workflow
 - [ ] Implement file output
 - [ ] Add shebang and make executable
-- [ ] Run tests — pass
-- [ ] Run typecheck — passes
+- [ ] Run tests - pass
+- [ ] Run typecheck - passes
 - [ ] Commit
 
 ---
@@ -484,14 +484,14 @@ sql-extractor dump.sql --database mydb --tables users,orders --output result.sql
 
 **Web must implement the 5-step workflow:**
 
-1. **File Upload** — Select SQL file
-2. **Database Select** — Radio selection of detected databases
-3. **Table Select** — Checkbox selection of tables (with "Select all")
-4. **Summary** — Show selected database and table count
-5. **Download** — Generate and download extracted SQL
+1. **File Upload** - Select SQL file
+2. **Database Select** - Radio selection of detected databases
+3. **Table Select** - Checkbox selection of tables (with "Select all")
+4. **Summary** - Show selected database and table count
+5. **Download** - Generate and download extracted SQL
 
 **UI must be:**
-- Minimal — no sidebar, no dashboard, no unnecessary navigation
+- Minimal - no sidebar, no dashboard, no unnecessary navigation
 - COSS UI components
 - Lucide React icons
 - Accessible (keyboard nav, screen reader support)
@@ -515,10 +515,10 @@ sql-extractor dump.sql --database mydb --tables users,orders --output result.sql
 - [ ] Implement main `SqlExtractor` component (orchestrates flow)
 - [ ] Update `page.tsx` to use SqlExtractor
 - [ ] Update `layout.tsx` metadata
-- [ ] Test in browser — full workflow
+- [ ] Test in browser - full workflow
 - [ ] Verify accessibility
-- [ ] Run typecheck — passes
-- [ ] Run lint — passes
+- [ ] Run typecheck - passes
+- [ ] Run lint - passes
 - [ ] Commit
 
 ---

@@ -45,7 +45,7 @@ interface DownloadStepProps {
  * The last step of every tool: run the conversion, then take the ZIP.
  *
  * Both tools end the same way, so this is one component rather than two that
- * drift apart — the wording and the summary lines are what differ, and they
+ * drift apart - the wording and the summary lines are what differ, and they
  * are passed in.
  */
 export function DownloadStep({

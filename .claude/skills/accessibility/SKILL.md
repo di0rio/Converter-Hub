@@ -11,10 +11,10 @@ Target WCAG 2.1 AA compliance minimum.
 
 ## Key Principles
 
-1. **Perceivable** — All content must be perceivable by all users
-2. **Operable** — All functionality must be operable via keyboard
-3. **Understandable** — Information and UI must be understandable
-4. **Robust** — Content must be robust enough for assistive technologies
+1. **Perceivable** - All content must be perceivable by all users
+2. **Operable** - All functionality must be operable via keyboard
+3. **Understandable** - Information and UI must be understandable
+4. **Robust** - Content must be robust enough for assistive technologies
 
 ## Keyboard Navigation
 

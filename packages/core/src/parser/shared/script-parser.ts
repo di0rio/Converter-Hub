@@ -11,7 +11,7 @@ import {
  * Reading columns and rows out of ordinary DDL and INSERT statements, driven
  * by a dialect rather than written once per format.
  *
- * A format only needs its own reader for something genuinely different —
+ * A format only needs its own reader for something genuinely different -
  * PostgreSQL's COPY blocks, say. Plain `CREATE TABLE` and `INSERT` look close
  * enough across engines that the differences are all lexical, and lexical
  * differences live in the dialect.
@@ -61,7 +61,7 @@ export function readColumns(
     const part = rawPart.trim()
     if (part.length === 0) continue
 
-    // A quoted first token is a name whatever it spells — including a word
+    // A quoted first token is a name whatever it spells - including a word
     // that would otherwise read as a constraint keyword.
     const quoted = readQuotedHead(part, dialect)
     if (quoted !== null) {
@@ -114,8 +114,8 @@ const ESCAPES: Record<string, string> = {
 /**
  * Decode one SQL literal into the string a spreadsheet cell should hold.
  *
- * Values that are not string literals — numbers, keywords, hex and function
- * calls — are handed back as written. Nothing is evaluated: a value that looks
+ * Values that are not string literals - numbers, keywords, hex and function
+ * calls - are handed back as written. Nothing is evaluated: a value that looks
  * like a call stays the text of that call rather than becoming its result.
  */
 export function decodeLiteral(raw: string, dialect: SqlDialect): string | null {

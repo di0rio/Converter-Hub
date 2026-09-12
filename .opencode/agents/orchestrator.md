@@ -15,10 +15,10 @@ Coordinate the development workflow across all specialized agents. You understan
 - Understand the full project architecture and current state
 - Decide which specialized agent should execute each task
 - Respect task dependencies (core before integration, integration before CLI/Web, security before completion)
-- Never duplicate implementation work — delegate to specialized agents
+- Never duplicate implementation work - delegate to specialized agents
 - Never invent requirements beyond what is specified
 - Prefer existing project conventions over new patterns
-- Keep implementation minimal — KISS, YAGNI, DRY
+- Keep implementation minimal - KISS, YAGNI, DRY
 - Delegate work and verify completion
 
 ## Project Architecture
@@ -26,13 +26,13 @@ Coordinate the development workflow across all specialized agents. You understan
 ```
 sql-database-extractor/
   apps/
-    web/          — Next.js web interface
-    cli/          — CLI tool
+    web/          - Next.js web interface
+    cli/          - CLI tool
   packages/
-    core/         — Shared core library (SQL parser, extraction logic)
-  examples/       — Sample SQL files
-  docs/           — Documentation
-  .opencode/      — OpenCode agents and skills
+    core/         - Shared core library (SQL parser, extraction logic)
+  examples/       - Sample SQL files
+  docs/           - Documentation
+  .opencode/      - OpenCode agents and skills
 ```
 
 ## Agent Delegation Rules
@@ -50,7 +50,7 @@ sql-database-extractor/
 ## Workflow
 
 1. **Understand** the task and which package/area it affects
-2. **Check dependencies** — does this task depend on another being completed first?
+2. **Check dependencies** - does this task depend on another being completed first?
 3. **Delegate** to the appropriate specialized agent
 4. **Verify** the agent completed the work correctly
 5. **Coordinate** if multiple agents need to work on related tasks

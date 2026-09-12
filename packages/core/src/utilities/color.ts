@@ -4,7 +4,7 @@ import { DataFormatError } from '../records/index.js'
  * One sRGB color, written as HEX, rgb() and hsl().
  *
  * Reads `#rgb`, `#rrggbb`, `rgb(r, g, b)` with 0–255 channels, and
- * `hsl(h, s%, l%)` with a 0–360 hue — each with commas or spaces. A value out
+ * `hsl(h, s%, l%)` with a 0–360 hue - each with commas or spaces. A value out
  * of range is refused rather than clamped: clamping would hand back a
  * different color than the one asked about. HSL is rounded to whole numbers,
  * so a HEX color converted to HSL and back can move by one step per channel.
@@ -54,8 +54,7 @@ function rgbToHsl([r, g, b]: Rgb): string {
   const min = Math.min(red, green, blue)
   const lightness = (max + min) / 2
   const delta = max - min
-  const saturation =
-    delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1))
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1))
 
   let hue = 0
   if (delta !== 0) {

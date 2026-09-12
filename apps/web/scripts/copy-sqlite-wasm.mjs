@@ -3,7 +3,7 @@
 // The SQLite build is fetched over HTTP at runtime rather than inlined, so the
 // binary has to be reachable from the browser. Copying it out of node_modules
 // at build and dev time keeps it out of version control while guaranteeing the
-// served copy always matches the installed version — a committed copy silently
+// served copy always matches the installed version - a committed copy silently
 // goes stale the first time wa-sqlite is upgraded.
 //
 // A missing copy fails only in a browser, at the moment someone opens a

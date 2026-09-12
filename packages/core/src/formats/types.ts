@@ -1,5 +1,5 @@
 /**
- * Every database format the project knows about — including the ones it
+ * Every database format the project knows about - including the ones it
  * deliberately does not read.
  *
  * Being listed here is not a claim of support. `FormatDescriptor.status` is,
@@ -49,10 +49,10 @@ export type DatabaseFormat =
 /**
  * How far a format actually got.
  *
- * - `supported`      — parser, detection, fixture and tests all pass. Advertised.
- * - `experimental`   — parses real dumps, but with known gaps. Not advertised.
- * - `planned`        — declared so detection can name it; no parser yet.
- * - `not_applicable` — the product has no local SQL dump this tool could read.
+ * - `supported`      - parser, detection, fixture and tests all pass. Advertised.
+ * - `experimental`   - parses real dumps, but with known gaps. Not advertised.
+ * - `planned`        - declared so detection can name it; no parser yet.
+ * - `not_applicable` - the product has no local SQL dump this tool could read.
  *
  * Anything below `supported` stays out of the UI's format list. The status is
  * what keeps the advertised list and the implementation from drifting apart.
@@ -67,7 +67,7 @@ export type SupportStatus =
  * What a format calls the grouping a user picks from.
  *
  * MySQL and MariaDB group tables by database; PostgreSQL by schema inside a
- * database. SQLite has exactly one, and calls it `main` — that is SQLite's own
+ * database. SQLite has exactly one, and calls it `main` - that is SQLite's own
  * word, not a name invented here, so it is a `database` like any other.
  */
 export type NamespaceKind = 'database' | 'schema'
@@ -116,7 +116,7 @@ export interface FormatDescriptor {
   note?: string
   /**
    * True when reading this format cannot represent part of what the source
-   * holds — a graph's relationships have nowhere to go in a table.
+   * holds - a graph's relationships have nowhere to go in a table.
    *
    * The app warns before anyone exports, and `note` is the text it shows. This
    * is narrower than `note` on purpose: plenty of formats have something worth

@@ -10,13 +10,13 @@ description: "Use when designing or reviewing monorepo structure, package bounda
 ```
 sql-database-extractor/
   apps/
-    web/          — Next.js web interface
-    cli/          — CLI tool
+    web/          - Next.js web interface
+    cli/          - CLI tool
   packages/
-    core/         — Shared core library
-  examples/       — Sample SQL files
-  docs/           — Documentation
-  .opencode/      — OpenCode configuration
+    core/         - Shared core library
+  examples/       - Sample SQL files
+  docs/           - Documentation
+  .opencode/      - OpenCode configuration
 ```
 
 ## Package Boundaries
@@ -67,9 +67,9 @@ sql-database-extractor/
 
 ## Build Order
 
-1. `packages/core/` — Built first (no dependencies)
-2. `apps/cli/` — Built after core
-3. `apps/web/` — Built after core
+1. `packages/core/` - Built first (no dependencies)
+2. `apps/cli/` - Built after core
+3. `apps/web/` - Built after core
 
 ## Adding New Packages
 

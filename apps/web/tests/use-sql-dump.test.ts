@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useSqlDump } from '@/hooks/use-sql-dump'
 
-// Synthetic SQL dump fixture — no real production data
+// Synthetic SQL dump fixture - no real production data
 const SAMPLE_SQL = `-- MySQL dump
 CREATE DATABASE IF NOT EXISTS \`shop_db\` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
 USE \`shop_db\`;

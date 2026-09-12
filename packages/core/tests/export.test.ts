@@ -9,7 +9,7 @@ import {
   generateExport,
 } from '../src/generator/index.js'
 
-// Synthetic fixture — no real data.
+// Synthetic fixture - no real data.
 const DUMP = [
   '-- MySQL dump 10.13',
   '-- Host: localhost    Database: shop',
@@ -95,7 +95,7 @@ describe('csv', () => {
   })
 
   it('neutralises leading = + - @ so Excel/Sheets cannot read them as formulas', () => {
-    // Dump content is untrusted — a table value can carry a formula payload.
+    // Dump content is untrusted - a table value can carry a formula payload.
     const table = {
       name: 'notes',
       columns: ['id', 'note'],
