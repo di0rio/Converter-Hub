@@ -16,7 +16,7 @@ This tool processes untrusted SQL dump files that may contain:
 
 ## SQL Injection Prevention
 
-- Never execute SQL from untrusted input — parse only
+- Never execute SQL from untrusted input - parse only
 - Sanitize all output generated from parsed input
 - Use parameterized queries if database interaction is needed
 - Validate SQL structure before processing
@@ -41,17 +41,17 @@ This tool processes untrusted SQL dump files that may contain:
 - Never log SQL contents, INSERT values, or table data
 - Never log passwords, tokens, API keys, or credentials
 - Never store uploaded files permanently
-- Process and discard — no persistent storage
+- Process and discard - no persistent storage
 - Strip sensitive data from error messages
 
 ## Logging Safety
 
 ```typescript
-// BAD — logs sensitive data
+// BAD - logs sensitive data
 console.log(`Processing SQL: ${sqlContent}`)
 console.log(`Found password: ${row.password}`)
 
-// GOOD — logs only safe metadata
+// GOOD - logs only safe metadata
 console.log(`Processing file: ${fileName} (${fileSize} bytes)`)
 console.log(`Found ${rowCount} rows in table: ${tableName}`)
 ```

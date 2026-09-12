@@ -7,8 +7,8 @@ import type { DatabaseFormat } from '../../formats/index.js'
  *
  * A document store has no DDL to read and no SQL statements to preserve, so
  * this writes both: a `CREATE TABLE` naming the columns the records actually
- * used, and one `INSERT` carrying their values. Everything above the parser —
- * the column reader, the row reader, the extractor, the generators — then
+ * used, and one `INSERT` carrying their values. Everything above the parser -
+ * the column reader, the row reader, the extractor, the generators - then
  * works unchanged, which is why supporting a document source needs no
  * capability flag and no special case in the export path.
  *
@@ -36,7 +36,7 @@ export function quoteIdentifier(name: string): string {
  * Columns are the union of every key the records use, in first-seen order: a
  * later record routinely carries fields the first never had, and taking the
  * first one's shape would drop them silently. A record missing a key gets null
- * — read as an own property, since a record may legitimately carry a key named
+ * - read as an own property, since a record may legitimately carry a key named
  * after something on `Object.prototype` (`toString`, `constructor`), and a
  * plain lookup on a record without it would return the inherited function.
  *
@@ -105,8 +105,8 @@ export function tableFromDocuments(
 /**
  * Parse one JSON value, returning the objects in it.
  *
- * `JSON.parse` is the whole parser. Anything that is not JSON — a hand-written
- * script with unquoted keys, an `ObjectId(...)` call — is skipped rather than
+ * `JSON.parse` is the whole parser. Anything that is not JSON - a hand-written
+ * script with unquoted keys, an `ObjectId(...)` call - is skipped rather than
  * half-read, because half-reading it would invent values.
  */
 export function readJsonObjects(text: string): Record<string, unknown>[] {

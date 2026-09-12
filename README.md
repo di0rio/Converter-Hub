@@ -6,7 +6,7 @@ uploaded, and there is no server behind any of it.
 
 No SQL from your files is ever executed. A dump is parsed as text and never
 replayed. A SQLite database is opened read-only by a SQLite engine running in
-your browser, which reads its tables and nothing else — no triggers fire, no
+your browser, which reads its tables and nothing else - no triggers fire, no
 extensions load, and the file you selected is never written to.
 
 ## Tools
@@ -14,7 +14,7 @@ extensions load, and the file you selected is never written to.
 `apps/web/lib/tools.ts` is the single source of truth for this table. It feeds
 the hub cards, the page titles, the breadcrumbs and the route metadata, so a
 tool is described in one place and appears everywhere. Only tools that have a
-route behind them are listed there — the hub never advertises something that
+route behind them are listed there - the hub never advertises something that
 does not exist yet.
 
 | Tool | Route | Reads | Writes | What it does |
@@ -31,8 +31,8 @@ a ZIP writer, a CSV writer and a file dropzone. Adding another means an entry in
 the registry and a route; the hub needs no changes.
 
 The Data tool reads any of its inputs into a plain value and writes any output
-from it. JSON, JSON Lines and YAML take any shape. The table outputs — CSV,
-TSV, Markdown, SQL, XLSX — need a list of flat records (or an object holding
+from it. JSON, JSON Lines and YAML take any shape. The table outputs - CSV,
+TSV, Markdown, SQL, XLSX - need a list of flat records (or an object holding
 exactly one such list); a nested document is refused rather than flattened,
 because flattening would pick one of several shapes on your behalf. A CSV's
 delimiter is detected from its header line, and its values stay text. YAML is
@@ -44,8 +44,8 @@ XML is read with the browser's own `DOMParser`, which runs nothing and never
 fetches an external entity or DTD, into one fixed shape: the root element as
 `{ "root": … }`, attributes as `"@name"`, a repeated element as a list in
 document order, a text-only element as its text, and text beside attributes or
-children under `"#text"`. A list wrapped in single-property layers —
-`<people><person>…` — reaches the table outputs as that list. A malformed file
+children under `"#text"`. A list wrapped in single-property layers -
+`<people><person>…` - reaches the table outputs as that list. A malformed file
 is refused without quoting the parser's message, which would quote the file.
 
 The Markdown tool asks which way to convert, Markdown to HTML or HTML to
@@ -64,8 +64,8 @@ A Firebird database file (`.fdb` or `.gdb`) is read by the SQL tool too, with
 no Firebird engine: the core parses the file itself, following Firebird 2.5's
 own source for the on-disk structure. Only Firebird 2.0, 2.1 and 2.5 files
 (ODS 11) are read; any other version is refused with its version named. Only
-committed rows are shown — a row changed by a transaction that never
-committed is shown as it was before — and NUMERIC and DECIMAL values stay
+committed rows are shown - a row changed by a transaction that never
+committed is shown as it was before - and NUMERIC and DECIMAL values stay
 exact. Text is decoded in each column's character set; a column in NONE is
 read in the database's default, and in WIN1252 when that is NONE too. A table
 with an ARRAY column, an external file, temporary rows or a character set the
@@ -86,8 +86,8 @@ pages wait in `apps/web/app/_parked`, which the router ignores.
 
 The Images tool uses no library: the browser decodes the file through an
 `Image`, draws it onto a canvas and encodes it with `canvas.toBlob`. An SVG is
-recognised by its content — `DOMParser` must find an `<svg>` root in the SVG
-namespace — and is then loaded through `<img>` from a Blob URL, where the
+recognised by its content - `DOMParser` must find an `<svg>` root in the SVG
+namespace - and is then loaded through `<img>` from a Blob URL, where the
 browser runs none of its scripts and fetches none of its external resources;
 it is never put into the page. JPEG output is painted onto white, since JPEG
 has no transparency. AVIF is read where the browser can decode it but is not
@@ -96,8 +96,8 @@ browser that cannot write the chosen format is reported rather than handed a
 PNG in disguise. An SVG with neither an absolute width nor height is drawn at
 its viewBox size rather than the browser's default 300×150.
 
-The SQL tool takes two kinds of input through one picker. A *dump* is a script —
-the text `mysqldump` or `sqlite3 .dump` produces — and is parsed as text. A
+The SQL tool takes two kinds of input through one picker. A *dump* is a script -
+the text `mysqldump` or `sqlite3 .dump` produces - and is parsed as text. A
 *SQLite database* is the binary SQLite itself writes, and is opened by a SQLite
 engine. The tool tells them apart by content, not by name: a file that starts
 with the SQLite header, or comes with a `-wal` or `-shm`, is a database, and
@@ -111,7 +111,7 @@ anything else is read as a dump.
 |------|------------|
 | `.db`, `.sqlite`, `.sqlite3`, `.db3`, or any other name | The database, if its header says `SQLite format 3` |
 | `name-wal` | The write-ahead log for `name`. Read, so recent rows are not lost |
-| `name-shm` | Accepted and ignored — it holds no data |
+| `name-shm` | Accepted and ignored - it holds no data |
 
 Detection reads the file header, never the extension. SQLite mandates no
 extension, and a text file renamed to `.db` is still text.
@@ -153,7 +153,7 @@ SQLite stores five classes and no dates. Nothing is guessed at on the way out:
 |--------|---------------------------|-----|
 | NULL | empty cell, distinct from `""` | `NULL` |
 | INTEGER, REAL | the number as stored, 64-bit integers exact | unquoted |
-| TEXT | unchanged — `007` stays `007` | quoted, quotes doubled |
+| TEXT | unchanged - `007` stays `007` | quoted, quotes doubled |
 | BLOB | base64 | `X'hex'`, which SQLite reads back |
 
 An INTEGER that looks like a Unix timestamp and a TEXT that looks like a date are
@@ -164,8 +164,8 @@ constraints, collations and declared types survive rather than being flattened.
 
 CSV goes through the same writer the other tools use: the delimiter you pick
 (comma, semicolon or tab), a byte order mark, and a leading `=`, `+`, `-` or
-`@` neutralised. Table names become file names the same way sheet names do —
-path separators and control characters removed — and two tables whose names
+`@` neutralised. Table names become file names the same way sheet names do -
+path separators and control characters removed - and two tables whose names
 collide once cleaned, or differ only by case, get separate files.
 
 ### Limits and gaps
@@ -179,7 +179,7 @@ collide once cleaned, or differ only by case, get separate files.
   them.
 - **Views** are not exported. Only tables are.
 - **Generated columns** are left out. Their values are derived from the other
-  columns, and leaving them out keeps the SQL export replayable — SQLite refuses
+  columns, and leaving them out keeps the SQL export replayable - SQLite refuses
   an `INSERT` that names one.
 - **SQLite's own tables** (`sqlite_*`, such as `sqlite_sequence`) are not
   listed. The SQL export therefore does not carry `AUTOINCREMENT` counters; a
@@ -237,11 +237,11 @@ every one of them through detection, parsing and all three exports on each run.
 | MongoDB | `insertMany` | database | mongosh seed scripts; columns are the union of document keys |
 | Elasticsearch | JSONL | index | `elasticdump` output; each line names its index |
 
-**Experimental — readable, not advertised in the app:**
+**Experimental - readable, not advertised in the app:**
 
 | Format | Gap |
 |--------|-----|
-| Neo4j | Only nodes are extracted. Nodes sharing a label become a table and their properties its columns, but **relationships are not represented** — a table has nowhere to put an edge. The export counts the relationships it skipped and says so in the SQL it writes. |
+| Neo4j | Only nodes are extracted. Nodes sharing a label become a table and their properties its columns, but **relationships are not represented** - a table has nowhere to put an edge. The export counts the relationships it skipped and says so in the SQL it writes. |
 | CockroachDB | A column family written with an unquoted name (`FAMILY fam_0 (id)`) cannot be told apart from a column named `family`, so it stays in the column list and shows up as an extra empty column. The quoted form `cockroach dump` normally writes is handled. |
 
 **Not applicable.** These have no local SQL dump this tool could read, so they
@@ -259,13 +259,13 @@ are recorded with the reason rather than left to look like an oversight:
 A product is listed only when it is a distinct database engine *and* its dumps
 carry a marker identifying it. Hosting a another engine does not qualify, so
 Supabase, Neon, AlloyDB, Aurora PostgreSQL and Azure SQL Database are read as
-PostgreSQL or SQL Server rather than listed separately — they parse fine, they
+PostgreSQL or SQL Server rather than listed separately - they parse fine, they
 just are not different engines.
 
 Cassandra, MongoDB, Elasticsearch and Neo4j are read because what they export is still tabular
 enough for this model. A CQL keyspace holds tables with typed columns. A
 mongosh seed script names its database and its collections, and a collection's
-columns are the union of the keys its documents use — a document missing one
+columns are the union of the keys its documents use - a document missing one
 gets null for it, and a nested object or array is carried as its JSON text
 rather than flattened into more columns.
 
@@ -273,7 +273,7 @@ What is *not* read, and why:
 
 | Product | Why not |
 |---------|---------|
-| `mongoexport` output | Carries neither a database nor a collection name. It could only be given invented ones, and picking a database and tables — the whole point of this tool — would collapse to one anonymous table. |
+| `mongoexport` output | Carries neither a database nor a collection name. It could only be given invented ones, and picking a database and tables - the whole point of this tool - would collapse to one anonymous table. |
 | DynamoDB | Same: a `scan` export is `{"Items": [...]}` with no table name in the file. |
 | Redis | Key/value, plus a binary RDB. There is no table to select. |
 
@@ -300,15 +300,15 @@ Detection resolves a *family* from markers the whole family shares, then the
 *member* within it from markers only that product writes. That is what lets
 Greenplum and PostgreSQL stay distinguishable without duplicating a parser, and
 what stops a CockroachDB dump being relabelled PostgreSQL. A product's own
-markers also count towards its family, since some — Redshift DDL, for one —
+markers also count towards its family, since some - Redshift DDL, for one -
 never write a family-wide banner at all.
 
 Detection stays deliberately conservative:
 
 - Markers from two families that are not clearly apart produce no answer rather
   than a guess.
-- SQL carrying no engine markers at all — a hand-written `CREATE TABLE` plus
-  `INSERT`s — is read as MySQL, and the app says it *assumed* rather than
+- SQL carrying no engine markers at all - a hand-written `CREATE TABLE` plus
+  `INSERT`s - is read as MySQL, and the app says it *assumed* rather than
   *detected* the format.
 - A file with nothing recognisable in it is refused as *Unsupported database
   format*.
@@ -316,7 +316,7 @@ Detection stays deliberately conservative:
 Detection can be overruled from the CLI with `--format`, and from the core with
 `parseDump(sql, { format })`. The web app has no such control: it reports what
 it read the file as and nothing more. A file whose markers contradict each other
-is refused there rather than forced — use the CLI for that case.
+is refused there rather than forced - use the CLI for that case.
 
 ### Databases and schemas
 
@@ -324,7 +324,7 @@ Engines disagree about what a grouping of tables is called, and the tool uses
 each engine's own word rather than flattening them. MySQL, MariaDB and TiDB
 group by database. The PostgreSQL family and SQL Server group by schema, and
 when a dump names the owning database that name is kept alongside the schema.
-SQLite has exactly one database and calls it `main` — that is SQLite's own name,
+SQLite has exactly one database and calls it `main` - that is SQLite's own name,
 not one invented here, so it is offered as an ordinary selection.
 
 ### When the source does not fit
@@ -335,8 +335,8 @@ exported, and the warning text is the catalog's own note, so it cannot drift
 from this document. Today that is Neo4j (relationships) and CockroachDB (an
 extra empty column from an unquoted column family).
 
-A format with a caveat worth reading but nothing actually lost — Cassandra's
-CSV bulk path, MongoDB's `mongoexport` — does **not** warn. Warning about
+A format with a caveat worth reading but nothing actually lost - Cassandra's
+CSV bulk path, MongoDB's `mongoexport` - does **not** warn. Warning about
 those would teach people to dismiss the warning that matters.
 
 ### Known limitations
@@ -352,7 +352,7 @@ those would teach people to dismiss the warning that matters.
   which covers what SSMS writes. Procedure bodies are not parsed.
 - **Redshift:** Redshift moves table data through `UNLOAD`/`COPY FROM s3://`,
   which is not a local SQL dump. What is supported is DDL plus `INSERT`
-  statements — the closest thing to a portable local export.
+  statements - the closest thing to a portable local export.
 - **Binary and custom-format dumps are not supported** for any engine. Only
   plain-text SQL is read.
 - **MongoDB's SQL export is generated, not preserved.** Every other source
@@ -376,7 +376,7 @@ The spreadsheet tool reads `.xlsx`, `.xlsm`, `.xls`, `.xlsb`, `.ods`, `.csv`
 and `.tsv` through
 [SheetJS](https://sheetjs.com) and writes one file per sheet into a ZIP. A ZIP
 rather than separate downloads, because a browser blocks the second and later
-downloads of a burst — ten sheets would otherwise arrive silently as one file.
+downloads of a burst - ten sheets would otherwise arrive silently as one file.
 
 - **CSV and TSV are read as UTF-8 text, as one sheet named after the file.**
   The separator is detected, a byte order mark is ignored, and every value is
@@ -393,14 +393,14 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
   produce a file with nothing in it, so they appear in the list, marked
   `empty`, and cannot be selected.
 - **Row counts are read from the cells, not from the used range.** Excel grows
-  the used range to cover anything that was ever touched — a fill colour
-  dragged down a column, a deleted block, a stray border — so a sheet with
+  the used range to cover anything that was ever touched - a fill colour
+  dragged down a column, a deleted block, a stray border - so a sheet with
   fifty rows of data routinely reports a range of ten thousand. A row is
   counted when it holds at least one cell with a value, which is the rule the
   export applies when it drops blank rows, so the number on screen and the
   number of rows in the file that comes out are the same number.
 - **Row counts mean data rows.** The first row holding anything names the
-  columns, so a sheet showing "5 rows" has five rows under a header — the same
+  columns, so a sheet showing "5 rows" has five rows under a header - the same
   thing "5 rows" means on the SQL side.
 - **File names are treated as untrusted.** A sheet name comes out of the user's
   file, and it names an entry in an archive: path separators are replaced,
@@ -434,7 +434,7 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
   or `@` gets the same prefix the CSV applies.
 - **SQL output is one script per sheet**: a `CREATE TABLE` followed by
   `INSERT`s batched 500 rows at a time. Every column is declared `TEXT`,
-  because a spreadsheet has no schema — a column of digits may be a quantity,
+  because a spreadsheet has no schema - a column of digits may be a quantity,
   an order number or a phone number, and guessing wrong silently drops a
   leading zero or rounds an identifier. An empty cell becomes `NULL`.
   Identifiers are double-quoted and strings single-quoted, both escaped by
@@ -449,19 +449,19 @@ downloads of a burst — ten sheets would otherwise arrive silently as one file.
 
   MySQL and MariaDB depart from the standard in two ways that matter here.
   They read `"` as a string delimiter rather than as an identifier quote, and
-  they treat a backslash as an escape inside a string — so a cell ending in a
+  they treat a backslash as an escape inside a string - so a cell ending in a
   backslash would escape the closing quote and let the next value be read as
   SQL. Those two settings turn both off, which is what makes the same file mean
   the same thing everywhere.
 - **Headers are made usable for JSON, Markdown and SQL**: an empty header is
-  named after its position (`column_3`), and a repeated one — compared ignoring
-  case — is suffixed (`name_2`). CSV and XLSX keep the header exactly as it is.
+  named after its position (`column_3`), and a repeated one - compared ignoring
+  case - is suffixed (`name_2`). CSV and XLSX keep the header exactly as it is.
 
 Note that SheetJS is installed from the vendor's own CDN
 (`https://cdn.sheetjs.com/...`), which is the installation route
 [their documentation prescribes](https://docs.sheetjs.com/docs/getting-started/installation/nodejs).
 The copy on the public npm registry stops at 0.18.5 and carries known
-prototype-pollution and ReDoS advisories that are fixed in the current release —
+prototype-pollution and ReDoS advisories that are fixed in the current release -
 which matters here, because the file being parsed is untrusted by definition.
 
 ## Privacy Model
@@ -499,7 +499,7 @@ This project processes untrusted input (your dump and spreadsheet files). While 
 - **Memory-bound, with a ceiling.** Reading is not streaming: a dump becomes one
   JavaScript string, and the parser holds the statement list and the parsed
   model alongside it, so peak memory is a multiple of the file. Files larger
-  than **250 MB** are refused up front, by size, before a byte is read — in the
+  than **250 MB** are refused up front, by size, before a byte is read - in the
   CLI and in the web app both. That turns what used to be an out-of-memory
   crash partway through into a message saying what happened. The ceiling lives
   in `packages/core/src/limits/index.ts`.
@@ -527,7 +527,7 @@ cd converter-hub
 bun install
 ```
 
-`bun install` does not run any project lifecycle script — installing this
+`bun install` does not run any project lifecycle script - installing this
 repository never executes its code. See [CONTRIBUTING.md](./CONTRIBUTING.md)
 for the setup model and for how to review contributor branches safely.
 
@@ -626,12 +626,12 @@ packages/core/src/
 
 Dialect-specific SQL lives only under `parser/<format>/`. Everything above it
 works on the normalised model, so adding an engine means writing one
-`FormatParser` and registering it — no changes to the extractor, the generators
+`FormatParser` and registering it - no changes to the extractor, the generators
 or the UI.
 
-- `packages/core` — No I/O, no UI. Pure parsing and extraction logic.
-- `apps/cli` — CLI interface. Imports from core. No UI code.
-- `apps/web` — Next.js web interface. Imports from core. No CLI code.
+- `packages/core` - No I/O, no UI. Pure parsing and extraction logic.
+- `apps/cli` - CLI interface. Imports from core. No UI code.
+- `apps/web` - Next.js web interface. Imports from core. No CLI code.
 
 ### Commands
 
@@ -655,7 +655,7 @@ semicolons, trailing commas. The settings describe the style the codebase
 already had rather than replacing it, so `bun run format` is a no-op on code
 written in the surrounding idiom.
 
-Two exclusions are deliberate. Biome's **linter is off** — `bun run lint` is
+Two exclusions are deliberate. Biome's **linter is off** - `bun run lint` is
 still ESLint with `eslint-config-next`, which understands the framework's rules;
 Biome is here to format, not to judge. And `globals.css` is excluded, because
 Tailwind 4's at-rules (`@theme`, `@custom-variant`, `@apply`) are not CSS that
@@ -679,11 +679,11 @@ bun run --filter @sql-extractor/core test:watch
 
 Before considering any change complete:
 
-1. `bun run typecheck` — passes
-2. `bun run lint` — passes
-3. `bun run format:check` — reports nothing
-4. `bun run test` — passes
-5. `bun run build` — succeeds
+1. `bun run typecheck` - passes
+2. `bun run lint` - passes
+3. `bun run format:check` - reports nothing
+4. `bun run test` - passes
+5. `bun run build` - succeeds
 
 ## Tech Stack
 
@@ -701,11 +701,11 @@ Before considering any change complete:
 | Archives | fflate |
 | Source formats | See [Supported Formats](#supported-formats) |
 
-**Explicitly out of scope:** dialect conversion, generic SQL abstractions, Redux, MUI, server-side database connections. Non-SQL engines are in scope when they export a script this tool can read — MongoDB, Cassandra, Elasticsearch and Neo4j all do — and out of it when they do not, which is recorded per product above.
+**Explicitly out of scope:** dialect conversion, generic SQL abstractions, Redux, MUI, server-side database connections. Non-SQL engines are in scope when they export a script this tool can read - MongoDB, Cassandra, Elasticsearch and Neo4j all do - and out of it when they do not, which is recorded per product above.
 
 ## Sample Data
 
-The `examples/` directory holds one synthetic dump per supported source format, plus `examples/spreadsheet/sample.xlsx` — a four-sheet workbook, one of whose sheets is deliberately empty so the spreadsheet tool's handling of that case can be seen. Every name, address and value in them is invented. They are safe to use in examples and tests — they contain no real personal or production data, and no credentials.
+The `examples/` directory holds one synthetic dump per supported source format, plus `examples/spreadsheet/sample.xlsx` - a four-sheet workbook, one of whose sheets is deliberately empty so the spreadsheet tool's handling of that case can be seen. Every name, address and value in them is invented. They are safe to use in examples and tests - they contain no real personal or production data, and no credentials.
 
 ## Contributing
 

@@ -26,8 +26,8 @@ CREATE TABLE public.sensors (
     label text NOT NULL
 );
 
-INSERT INTO public.sensors (id, label) VALUES (1, 'Alice Example lab — sensor A');
-INSERT INTO public.sensors (id, label) VALUES (2, 'Renée Example lab — sensor B');
+INSERT INTO public.sensors (id, label) VALUES (1, 'Alice Example lab - sensor A');
+INSERT INTO public.sensors (id, label) VALUES (2, 'Renée Example lab - sensor B');
 
 --
 -- Name: sensor_readings; Type: TABLE; Schema: public; Owner: -

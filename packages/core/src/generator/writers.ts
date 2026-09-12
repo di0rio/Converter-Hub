@@ -20,13 +20,13 @@ const CONTROL = /[\x00-\x1F\x7F]/g
 const EDGES = /^[.\-\s]+|[.\-\s]+$/g
 
 /**
- * A name taken from the user's file — a sheet, a table, a database — made safe
+ * A name taken from the user's file - a sheet, a table, a database - made safe
  * to name a saved file or a ZIP entry.
  *
  * The name is untrusted input for the archive it is about to name: the
  * separators that would let an entry escape its folder are replaced, leading
  * dots cannot produce a `..` entry or a hidden file, control characters are
- * stripped, and the length is capped. What survives is left alone — accents and
+ * stripped, and the length is capped. What survives is left alone - accents and
  * non-Latin scripts are legal in file names, and mangling them would only make
  * the output harder to recognise.
  */
@@ -152,7 +152,7 @@ function sheetXml(table: TabularTable): string {
       .map((value, colIndex) => {
         if (value === null || value === '') return ''
         const ref = columnLetter(colIndex) + (rowIndex + 1)
-        // Leading zeros carry meaning in dumps (postcodes, ids) — keep them text.
+        // Leading zeros carry meaning in dumps (postcodes, ids) - keep them text.
         if (NUMERIC.test(value) && !/^-?0[0-9]/.test(value)) {
           return '<c r="' + ref + '"><v>' + value + '</v></c>'
         }

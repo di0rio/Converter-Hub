@@ -4,7 +4,7 @@ import { DataFormatError } from '../records/index.js'
  * Text encodings: Base64, hex, URL encoding and HTML entities.
  *
  * Base64 and hex describe bytes, so text goes through UTF-8 on the way in and
- * must be valid UTF-8 on the way out — `btoa` on its own only handles Latin-1
+ * must be valid UTF-8 on the way out - `btoa` on its own only handles Latin-1
  * and would corrupt anything else. Nothing here depends on `Buffer` or `btoa`,
  * which the browser, Bun and Node do not all have.
  */

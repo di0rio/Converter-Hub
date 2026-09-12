@@ -206,7 +206,7 @@ INSERT INTO \`test\` VALUES (1, 'hello;world');
       const sql = `
 CREATE DATABASE IF NOT EXISTS \`my\`db\`;
 `
-      // This is tricky — escaped backticks in identifiers
+      // This is tricky - escaped backticks in identifiers
       // The parser should handle basic backtick identifiers
       const dump = parseDump(sql)
       // At minimum it shouldn't crash

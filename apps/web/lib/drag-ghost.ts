@@ -4,7 +4,7 @@
  *
  * It must be in the document to be rasterised, but a plain `appendChild` puts a
  * block-level div in normal flow, where `width: auto` resolves to the full body
- * width — that is what made the drag image span the viewport. Taking it out of
+ * width - that is what made the drag image span the viewport. Taking it out of
  * flow and shrink-wrapping it keeps the snapshot the size of its own content.
  *
  * Both tools drag rows into the same workspace, so both draw the same ghost.

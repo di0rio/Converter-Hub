@@ -63,7 +63,7 @@ describe('splitScript', () => {
      * SSMS scripts table data as bare INSERT lines with no semicolons at all,
      * stacked many per GO batch. Merging them yields one statement whose VALUES
      * scan walks into the next INSERT's column list, so the rows decode as
-     * nonsense — this is data corruption, not just untidy splitting.
+     * nonsense - this is data corruption, not just untidy splitting.
      */
     it('separates semicolon-less INSERT lines the way SSMS writes them', () => {
       const sql = [

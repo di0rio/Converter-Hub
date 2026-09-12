@@ -57,10 +57,10 @@ coverage/
 - Use imperative mood ("Add feature" not "Added feature")
 
 ### Branch Naming
-- `main` — production-ready code
-- `feat/*` — feature branches
-- `fix/*` — bug fix branches
-- `docs/*` — documentation changes
+- `main` - production-ready code
+- `feat/*` - feature branches
+- `fix/*` - bug fix branches
+- `docs/*` - documentation changes
 
 ## Sensitive Data Audit
 

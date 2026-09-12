@@ -7,7 +7,7 @@ import { SQLSERVER_SYNTAX, unquoteIdentifier } from '../shared/syntax.js'
  * inside the name) and also accepts the standard double-quoted form. Both are
  * handled generically by `unquoteIdentifier` against `SQLSERVER_SYNTAX`; this
  * module only adds the bit that is specific to reading names out of
- * statement text — schema-qualified `[schema].[table]` references.
+ * statement text - schema-qualified `[schema].[table]` references.
  */
 
 const IDENTIFIER = String.raw`(?:\[(?:[^\]]|\]\])+\]|"(?:[^"]|"")+"|[A-Za-z_#@][A-Za-z0-9_$#@]*)`

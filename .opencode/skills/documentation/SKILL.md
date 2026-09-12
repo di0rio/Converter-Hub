@@ -8,27 +8,27 @@ description: "Use when writing, reviewing, or maintaining project documentation.
 ## Documentation Types
 
 ### User Documentation
-- README — Project overview and quick start
-- USAGE — Detailed usage instructions
-- EXAMPLES — Common use cases with examples
+- README - Project overview and quick start
+- USAGE - Detailed usage instructions
+- EXAMPLES - Common use cases with examples
 
 ### Developer Documentation
-- CONTRIBUTING — How to contribute
-- ARCHITECTURE — System design and structure
-- API — Library API reference
+- CONTRIBUTING - How to contribute
+- ARCHITECTURE - System design and structure
+- API - Library API reference
 
 ### Operational Documentation
-- SECURITY — Security policy
-- CHANGELOG — Version history
-- LICENSE — Legal terms
+- SECURITY - Security policy
+- CHANGELOG - Version history
+- LICENSE - Legal terms
 
 ## Writing Principles
 
-- Be concise — developers don't read walls of text
-- Use code examples — show, don't just tell
-- Keep it current — outdated docs are worse than no docs
-- Use clear headings — scannable structure
-- Include prerequisites — don't assume knowledge
+- Be concise - developers don't read walls of text
+- Use code examples - show, don't just tell
+- Keep it current - outdated docs are worse than no docs
+- Use clear headings - scannable structure
+- Include prerequisites - don't assume knowledge
 
 ## Code Examples
 

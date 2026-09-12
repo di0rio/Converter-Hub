@@ -44,22 +44,22 @@ UNLOCK TABLES;
 
 ## Key Parsing Challenges
 
-1. **Conditional comments** — `/*!40101 ... */` syntax for version-specific SQL
-2. **Multi-line INSERT** — VALUES spanning multiple lines
-3. **Binary data** — INSERT with `_binary` prefix and hex literals
-4. **Encoding declarations** — `CHARACTER SET`, `COLLATE` at multiple levels
-5. **Foreign key constraints** — `CONSTRAINT`, `REFERENCES` in CREATE TABLE
-6. **Stored procedures/triggers** — Delimiter-separated blocks
-7. **Comments** — `--`, `#`, `/* */` at various positions
+1. **Conditional comments** - `/*!40101 ... */` syntax for version-specific SQL
+2. **Multi-line INSERT** - VALUES spanning multiple lines
+3. **Binary data** - INSERT with `_binary` prefix and hex literals
+4. **Encoding declarations** - `CHARACTER SET`, `COLLATE` at multiple levels
+5. **Foreign key constraints** - `CONSTRAINT`, `REFERENCES` in CREATE TABLE
+6. **Stored procedures/triggers** - Delimiter-separated blocks
+7. **Comments** - `--`, `#`, `/* */` at various positions
 
 ## Parser Architecture
 
 Recommended approach:
 
-1. **Tokenize** — Split SQL into meaningful tokens
-2. **Identify statements** — Separate CREATE TABLE, INSERT, etc.
-3. **Parse structure** — Extract database names, table definitions, data
-4. **Validate** — Ensure output is valid, executable SQL
+1. **Tokenize** - Split SQL into meaningful tokens
+2. **Identify statements** - Separate CREATE TABLE, INSERT, etc.
+3. **Parse structure** - Extract database names, table definitions, data
+4. **Validate** - Ensure output is valid, executable SQL
 
 ## Output Requirements
 

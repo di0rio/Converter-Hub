@@ -90,7 +90,7 @@ function describeSource(
   if (!sourceFormat) return SUPPORTED_SUMMARY
 
   return confidence === 'assumed'
-    ? `No engine markers found — read as ${sourceFormat.label}.`
+    ? `No engine markers found - read as ${sourceFormat.label}.`
     : `Read as a ${sourceFormat.label} dump.`
 }
 

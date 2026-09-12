@@ -66,7 +66,7 @@ export function isReadable(format: DatabaseFormat): boolean {
  *
  * `detected` means dialect-specific markers were found. `assumed` means the
  * file is recognisable SQL but carries nothing that identifies an engine, so
- * a format was picked rather than recognised — callers should say so rather
+ * a format was picked rather than recognised - callers should say so rather
  * than claim a detection.
  */
 export type FormatConfidence = 'detected' | 'assumed'
@@ -83,7 +83,7 @@ const GENERIC_SQL = /\b(CREATE\s+TABLE|INSERT\s+INTO)\b/i
  * How far ahead one family must be before its markers outweigh another's.
  *
  * A stray backtick inside a PostgreSQL value, or the word GO inside a comment,
- * should not flip the answer — but neither should a genuine majority be
+ * should not flip the answer - but neither should a genuine majority be
  * discarded. Two clear markers is the margin.
  */
 const DECISIVE_LEAD = 2
@@ -131,8 +131,8 @@ function memberOf(
  *
  * Deliberately conservative: a family is only named when its markers clearly
  * outweigh every other family's, so contradictory evidence yields no answer
- * instead of a guess. Generic SQL that no dump tool would have written — a
- * hand-authored CREATE TABLE plus INSERTs — is reported as `assumed`, never as
+ * instead of a guess. Generic SQL that no dump tool would have written - a
+ * hand-authored CREATE TABLE plus INSERTs - is reported as `assumed`, never as
  * a detection.
  *
  * A format that is merely `planned` can still be named here. That is the point:
@@ -145,8 +145,8 @@ export function detectFormat(sql: string): FormatDetection {
     .map((family) => {
       const member = memberOf(family, sql)
       // A product's own markers are evidence for its family too. Without this,
-      // a dump that names no family-wide signal — Redshift DDL says DISTKEY and
-      // SORTKEY but never writes a pg_dump banner — scores zero for the family
+      // a dump that names no family-wide signal - Redshift DDL says DISTKEY and
+      // SORTKEY but never writes a pg_dump banner - scores zero for the family
       // that can actually read it.
       return {
         family,

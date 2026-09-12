@@ -20,7 +20,7 @@ description: "Use when creating, reviewing, or maintaining tests in this project
 - Verify build outputs
 
 ### Test Fixtures
-- Use synthetic SQL data only — never real production dumps
+- Use synthetic SQL data only - never real production dumps
 - Create minimal fixtures that exercise specific edge cases
 - Cover MySQL and MariaDB specific syntax differences
 - Include encoding variants (UTF-8, latin1, binary)
@@ -40,18 +40,18 @@ Before marking work complete:
 ```
 packages/core/
   src/
-    __tests__/        — Unit tests colocated with source
+    __tests__/        - Unit tests colocated with source
   tests/
-    fixtures/         — Test SQL files (synthetic only)
-    integration/      — Integration tests
+    fixtures/         - Test SQL files (synthetic only)
+    integration/      - Integration tests
 
 apps/cli/
   src/
-    __tests__/        — CLI unit tests
+    __tests__/        - CLI unit tests
 
 apps/web/
   src/
-    __tests__/        — Web component tests
+    __tests__/        - Web component tests
 ```
 
 ## Mocking Patterns

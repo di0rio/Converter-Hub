@@ -6,7 +6,7 @@
  * the generated archive on top of that. Peak memory is a multiple of the file,
  * so the useful ceiling sits well below the runtime's own string limit.
  *
- * Refusing up front — from the file's size, before a byte is read — turns what
+ * Refusing up front - from the file's size, before a byte is read - turns what
  * would be an out-of-memory crash partway through into a message that says
  * what happened.
  */
@@ -43,7 +43,7 @@ export function isOversizedDump(
  * What to tell someone whose file is too large.
  *
  * Names both sizes so the gap is obvious, and carries nothing from the file
- * itself — no path, no contents.
+ * itself - no path, no contents.
  */
 export function oversizedDumpMessage(
   bytes: number,

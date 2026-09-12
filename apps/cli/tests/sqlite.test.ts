@@ -35,7 +35,7 @@ function capture() {
 /**
  * Connections left open on purpose. Closing the last one checkpoints the log
  * away, and the garbage collector would close an unreferenced one whenever it
- * ran — so without this list the fixture loses its WAL at random.
+ * ran - so without this list the fixture loses its WAL at random.
  */
 const open: DatabaseSync[] = []
 

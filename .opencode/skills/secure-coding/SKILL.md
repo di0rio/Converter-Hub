@@ -34,18 +34,18 @@ if (!allowedExtensions.includes(ext)) {
 - Don't expose internal details in error messages
 - Use typed errors for different failure modes
 - Log errors with sufficient context for debugging
-- Fail securely — deny by default on errors
+- Fail securely - deny by default on errors
 - Clean up resources in error paths
 
 ```typescript
-// GOOD — typed, safe error
+// GOOD - typed, safe error
 class ParseError extends Error {
   constructor(message: string, public readonly fileName: string) {
     super(`Parse error in ${fileName}: ${message}`)
   }
 }
 
-// BAD — exposes internals
+// BAD - exposes internals
 throw new Error(`Failed at position ${pos} in buffer: ${buf.toString()}`)
 ```
 

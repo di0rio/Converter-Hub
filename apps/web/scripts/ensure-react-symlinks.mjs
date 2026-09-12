@@ -7,7 +7,7 @@
 //
 // Bun stores react/react-dom in node_modules/.bun and hard-links mirrors into
 // apps/web/node_modules. react-dom (CommonJS) resolves react to its .bun scope while
-// Vite-inlined source (lucide-react, components) resolves to the app's node_modules — same
+// Vite-inlined source (lucide-react, components) resolves to the app's node_modules - same
 // physical files, different resolved paths => two React module instances => React 19 hooks
 // throw "Cannot read properties of null (reading 'useContext')".
 //
@@ -16,7 +16,7 @@
 // renaming the repository does not leave them dangling; they still resolve to the same realpath.
 //
 // Windows makes a symlink a privilege (Developer Mode or an administrator), so there the
-// link is a directory junction, which is not — but a junction takes an absolute target.
+// link is a directory junction, which is not - but a junction takes an absolute target.
 // Moving the repository then leaves it pointing at the old path, and the next run relinks it.
 //
 // The new link is made beside the old one and renamed over it, so a failure leaves the

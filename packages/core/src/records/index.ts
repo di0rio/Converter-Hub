@@ -1,7 +1,7 @@
 import { normalizeColumns, type TabularTable } from '../tabular/columns.js'
 
 /**
- * Structured data — JSON, JSON Lines — and the one gate that decides whether
+ * Structured data - JSON, JSON Lines - and the one gate that decides whether
  * it can become a table.
  *
  * Every tabular writer takes a `TabularTable`, so this is where JSON joins
@@ -14,7 +14,7 @@ import { normalizeColumns, type TabularTable } from '../tabular/columns.js'
  * Thrown when a file is not the data it claims to be.
  *
  * The message is safe to show. It names the problem and, for JSON Lines, the
- * line — never the content, which can be anything the user's file held.
+ * line - never the content, which can be anything the user's file held.
  */
 export class DataFormatError extends Error {}
 
@@ -66,7 +66,7 @@ const MAX_WRAPPERS = 32
 
 /**
  * The records a value holds: the value itself when it is a list, or the list
- * reached by stepping through objects that each hold exactly one property —
+ * reached by stepping through objects that each hold exactly one property -
  * `{ "items": [...] }`, or XML's `<people><person>…`. An object with more than
  * one property on the way is not a collection: which list would it mean?
  */

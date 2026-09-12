@@ -52,8 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file downloads: `downloadFile` in `apps/web/lib/download.ts` replaces
   `downloadZip`, and `DownloadStep` names the button after the file's format.
 - **SQLite databases in the SQL tool.** `/sql` now reads a SQLite database
-  file directly — `.db`, `.sqlite`, `.sqlite3`, `.db3` or any other name,
-  recognised by its header rather than its extension — as well as dumps, and
+  file directly - `.db`, `.sqlite`, `.sqlite3`, `.db3` or any other name,
+  recognised by its header rather than its extension - as well as dumps, and
   converts the tables you pick. One picker takes both: the tool reads the file's
   first bytes and hands a database to the SQLite reader and anything else to the
   dump parser, switching when the next file is the other kind.
@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   export carries the schema SQLite already stored, so keys and constraints
   survive.
 - A database that fails its integrity check, or that is truncated, encrypted or
-  not SQLite at all, is refused with a message that names no file contents —
+  not SQLite at all, is refused with a message that names no file contents -
   never partially exported.
 - Generated columns are left out of every export. Reading `SELECT *` against
   the column list `table_info` reports had shifted every value after one such
@@ -141,7 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FileSelect` can accept a whole selection, for tools whose input is more than
   one file.
 - The README no longer says "no SQL is ever executed" without qualification. No
-  SQL from your files is executed — a dump is never replayed — but reading a
+  SQL from your files is executed - a dump is never replayed - but reading a
   SQLite database does mean a SQLite engine reads its tables, read-only, in your
   browser.
 
@@ -166,8 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sheet named after the file, with values kept as text, and a binary file or
   an unclosed quote is refused. A ZIP-based file that is not a ZIP is refused
   too. Every refusal uses the same neutral message.
-- **SQL output in the spreadsheet tool:** one `.sql` script per sheet — a
-  `CREATE TABLE` of `TEXT` columns and `INSERT`s batched 500 rows at a time —
+- **SQL output in the spreadsheet tool:** one `.sql` script per sheet - a
+  `CREATE TABLE` of `TEXT` columns and `INSERT`s batched 500 rows at a time -
   so a spreadsheet can be loaded into a database without a schema being guessed
   from its cells. Values are escaped by doubling quotes, the only escape
   standard SQL defines, and the script opens with a MySQL-only mode line
@@ -183,7 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   optional `{ delimiter }`; its default output is unchanged byte for byte, so
   the SQL tool's CSV is exactly what it was.
 - **Spreadsheet tool:** split a multi-sheet `.xlsx`, `.xlsm` or `.xls` workbook
-  into one file per sheet — XLSX or CSV — packaged as a ZIP. Sheets with no
+  into one file per sheet - XLSX or CSV - packaged as a ZIP. Sheets with no
   content are listed but cannot be exported, sheet names are sanitised before
   they name an archive entry, and the split reports real per-sheet progress.
 - A file dropzone shared by both tools, giving the SQL tool drag-and-drop it did
@@ -200,7 +200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the value Excel cached for them; formulas that read only their own sheet stay
   formulas, and the loaded workbook is never modified.
 - The Preview control on a table or sheet row was revealed on hover only, so on
-  a touch screen — which has no hover — there was no way to open a preview at
+  a touch screen - which has no hover - there was no way to open a preview at
   all. It is now always visible below the desktop breakpoint.
 - Splitting a workbook whose sheet name contains `:` `\` `/` `?` `*` `[` or `]`
   threw and failed the whole export; the tab name is now sanitised for the file
@@ -209,14 +209,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - The spreadsheet tool refuses workbooks over 100 MB up front, by size, before
-  reading — a workbook inflates well past its size on disk once every cell is an
+  reading - a workbook inflates well past its size on disk once every cell is an
   object
 - Spreadsheet CSV output goes through the same writer the SQL tool uses, so a
   cell starting with `=`, `+`, `-` or `@` is neutralised rather than read back
   as a formula
 - SheetJS is installed from the vendor's own CDN, which is the route their
   documentation prescribes. The copy on the public npm registry stops at 0.18.5
-  and carries known prototype-pollution and ReDoS advisories — which matters
+  and carries known prototype-pollution and ReDoS advisories - which matters
   here, because the file being parsed is untrusted by definition.
 
 ### Added
@@ -238,8 +238,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   actually implemented. Products with no local SQL dump (Snowflake, BigQuery,
   Databricks, Trino, Presto, Hive, Impala) are recorded with the reason
 - A dialect model describing what differs between engines when splitting a
-  script — terminator, batch separator, comment styles, string prefixes,
-  identifier quoting including T-SQL brackets — so a new format supplies a
+  script - terminator, batch separator, comment styles, string prefixes,
+  identifier quoting including T-SQL brackets - so a new format supplies a
   dialect rather than another hand-written splitter
 - A source format override in the web app, for the cases detection is
   deliberately unwilling to guess at
@@ -281,5 +281,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `parseSqlDump(sql)` becomes `parseDump(sql, options?)`, which detects the
   source engine and refuses a file it cannot place
 - The web app names the engine a dump was read as, and uses that engine's word
-  for a grouping of tables — schemas for PostgreSQL, databases for MySQL and
-  MariaDB — instead of always saying "database"
+  for a grouping of tables - schemas for PostgreSQL, databases for MySQL and
+  MariaDB - instead of always saying "database"

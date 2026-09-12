@@ -2,7 +2,7 @@ import { STANDARD_SYNTAX, unquoteIdentifier } from './syntax.js'
 
 /**
  * Reading schema-qualified names out of statements written in standard SQL
- * identifier syntax — `"Quoted Name"` or a bare word.
+ * identifier syntax - `"Quoted Name"` or a bare word.
  *
  * Oracle, Db2 and Cassandra all quote identifiers the same way, so the three
  * share this rather than each carrying its own copy. MySQL (backticks) and

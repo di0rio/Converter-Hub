@@ -25,11 +25,11 @@ Prepare and maintain the project for open-source release.
 
 ```
 docs/
-  README.md          — Project overview, installation, usage
-  CONTRIBUTING.md    — How to contribute
-  SECURITY.md        — Security policy and reporting
-  CHANGELOG.md       — Version history
-  LICENSE            — License file
+  README.md          - Project overview, installation, usage
+  CONTRIBUTING.md    - How to contribute
+  SECURITY.md        - Security policy and reporting
+  CHANGELOG.md       - Version history
+  LICENSE            - License file
 ```
 
 ## Key Principles
@@ -43,15 +43,15 @@ docs/
 
 ## Skills to Load
 
-- `open-source` — Open-source project best practices
-- `documentation` — Documentation writing patterns
-- `security` — Security documentation requirements
+- `open-source` - Open-source project best practices
+- `documentation` - Documentation writing patterns
+- `security` - Security documentation requirements
 
 Do NOT use UI/design skills unless documentation contains UI-specific content.
 
 ## Constraints
 
-- Do NOT implement features — document and prepare only
+- Do NOT implement features - document and prepare only
 - Do NOT include real credentials, API keys, or sensitive data
 - Do NOT commit production dumps or private datasets
 - Use synthetic data for all examples

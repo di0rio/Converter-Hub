@@ -4,7 +4,7 @@ import type { SqlDump } from '../../types/index.js'
 /**
  * One row-carrying statement, decoded.
  *
- * `columns` is the column list the statement names — `INSERT INTO t (a, b)` or
+ * `columns` is the column list the statement names - `INSERT INTO t (a, b)` or
  * `COPY t (a, b)`. It is `null` when the statement gives every column of the
  * table in declaration order and names none of them.
  */

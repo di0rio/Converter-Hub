@@ -9,14 +9,14 @@ import type { NextConfig } from 'next'
  *
  * `script-src` allows inline scripts, and deliberately. Next hydrates through
  * an inline bootstrap script, and the only way to allow it without the keyword
- * is a per-request nonce — which requires every page to render dynamically,
+ * is a per-request nonce - which requires every page to render dynamically,
  * giving up the static prerender that lets this app be served as files from a
  * CDN with no server at all. The exchange is worth making here because the
  * injection this would defend against has nowhere to enter: the app renders no
  * user-supplied HTML (no `dangerouslySetInnerHTML`, no `innerHTML`), takes
  * nothing from the URL, and has no server or database behind it. The
- * directives that carry this threat model — keeping a user's dump from leaving
- * the browser — are unaffected either way.
+ * directives that carry this threat model - keeping a user's dump from leaving
+ * the browser - are unaffected either way.
  */
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -24,7 +24,7 @@ const csp = [
   "default-src 'self'",
   // 'wasm-unsafe-eval' lets the browser compile the SQLite engine, which is
   // WebAssembly; it allows no JavaScript eval. 'unsafe-eval' is React Refresh
-  // in development only — it also covers WebAssembly, which is why a missing
+  // in development only - it also covers WebAssembly, which is why a missing
   // 'wasm-unsafe-eval' breaks SQLite in production and nowhere else.
   `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
   // Tailwind and Next inject styles through <style> tags.

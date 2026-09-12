@@ -33,15 +33,15 @@ SQL dumps may contain:
 
 The tool processes these files locally. The key risks are:
 
-1. **Data leakage** — sensitive data appearing in logs, error messages, or UI
-2. **Injection** — malicious SQL in dumps affecting the parser or output
-3. **Path traversal** — file operations escaping intended directories
-4. **Unsafe deserialization** — parsing untrusted SQL content
-5. **Dependency vulnerabilities** — compromised npm packages
+1. **Data leakage** - sensitive data appearing in logs, error messages, or UI
+2. **Injection** - malicious SQL in dumps affecting the parser or output
+3. **Path traversal** - file operations escaping intended directories
+4. **Unsafe deserialization** - parsing untrusted SQL content
+5. **Dependency vulnerabilities** - compromised npm packages
 
 ## Privacy Rules
 
-- Never use real production dumps as fixtures — synthetic data only
+- Never use real production dumps as fixtures - synthetic data only
 - Never log SQL contents, INSERT values, passwords, tokens, API keys, or personal data
 - Do not add analytics, telemetry, cloud storage, or external APIs
 - Process everything locally
@@ -49,15 +49,15 @@ The tool processes these files locally. The key risks are:
 
 ## Skills to Load
 
-- `security` — Security review patterns and common vulnerabilities
-- `privacy` — Privacy compliance and data protection patterns
-- `secure-coding` — Secure coding practices
+- `security` - Security review patterns and common vulnerabilities
+- `privacy` - Privacy compliance and data protection patterns
+- `secure-coding` - Secure coding practices
 
 Do NOT load UI/design skills.
 
 ## Constraints
 
-- Do NOT implement features — review and advise only
+- Do NOT implement features - review and advise only
 - Do NOT relax security rules for convenience
 - Flag any code that logs sensitive data
 - Flag any dependency that introduces security risk

@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import { parseDump } from '@sql-extractor/core'
 import { TableViewer } from '@/components/table-viewer'
 
-// Synthetic fixture — no real data.
+// Synthetic fixture - no real data.
 const DUMP = [
   'CREATE TABLE `users` (',
   '  `id` int NOT NULL,',

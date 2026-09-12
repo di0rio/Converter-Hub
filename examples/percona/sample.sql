@@ -33,7 +33,7 @@ LOCK TABLES `machines` WRITE;
 INSERT INTO `machines` VALUES
 (1,'Lathe Alpha','SN-0001','Serviced; runs quiet'),
 (2,'Press Beta','SN-0002',NULL),
-(3,'Grinder Gamma','SN-0003','Café-side bay — operator Zoë');
+(3,'Grinder Gamma','SN-0003','Café-side bay - operator Zoë');
 UNLOCK TABLES;
 
 --

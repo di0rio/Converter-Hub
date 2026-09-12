@@ -6,7 +6,7 @@
 -- output of SHOW CREATE TABLE, which is where the /*T![...] */ TiDB-specific
 -- comments come from) and one `<db>.<table>.sql` file of plain INSERT
 -- statements; Dumpling does not emit LOCK/UNLOCK TABLES or a "-- Dumpling"
--- banner comment the way mysqldump does — build metadata goes to a separate
+-- banner comment the way mysqldump does - build metadata goes to a separate
 -- `metadata` file instead.
 
 /*!40101 SET NAMES utf8mb4*/;

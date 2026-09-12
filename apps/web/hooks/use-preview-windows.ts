@@ -35,7 +35,7 @@ export interface PreviewWindow extends Rect {
    *
    * Stacking lives in a number rather than in array order because array order
    * is also DOM order, and re-inserting a node restarts its CSS animation and
-   * drops focus — raising a window used to make it flicker and lose the
+   * drops focus - raising a window used to make it flicker and lose the
    * keyboard. The array now keeps insertion order for good.
    */
   z: number

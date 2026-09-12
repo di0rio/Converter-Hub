@@ -30,7 +30,7 @@ This project uses TypeScript with strict mode enabled.
 - Use `type` imports for type-only imports: `import type { Foo } from './bar'`
 - Prefer `interface` for object shapes that may be extended
 - Use `type` for unions, intersections, and computed types
-- Avoid `any` — use `unknown` and narrow with type guards
+- Avoid `any` - use `unknown` and narrow with type guards
 - Use `as const` for literal types where appropriate
 - Prefix internal types with `I` only if the codebase already uses this pattern
 
@@ -39,7 +39,7 @@ This project uses TypeScript with strict mode enabled.
 - Use ES modules (`import`/`export`)
 - Avoid CommonJS (`require`/`module.exports`)
 - Use barrel exports (`index.ts`) only for public API surfaces
-- Keep internal modules private — don't export everything
+- Keep internal modules private - don't export everything
 
 ## Error Handling
 
@@ -53,7 +53,7 @@ This project uses TypeScript with strict mode enabled.
 - `camelCase` for variables, functions, parameters
 - `PascalCase` for types, interfaces, classes, components
 - `UPPER_SNAKE_CASE` for constants
-- Descriptive names over abbreviated — `filePath` not `fp`
+- Descriptive names over abbreviated - `filePath` not `fp`
 
 ## Testing
 

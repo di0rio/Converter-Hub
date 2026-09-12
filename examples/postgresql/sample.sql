@@ -125,7 +125,7 @@ COPY public.audit_log (id, message) FROM stdin;
 --
 
 INSERT INTO inventory.parts (sku, description, quantity) VALUES ('BLT-8', 'Bolt, 8 mm; galvanised', 240);
-INSERT INTO inventory.parts (sku, description, quantity) VALUES ('WSH-8', 'Washer, 8 mm — O''Brien pattern', 1150);
+INSERT INTO inventory.parts (sku, description, quantity) VALUES ('WSH-8', 'Washer, 8 mm - O''Brien pattern', 1150);
 INSERT INTO inventory.parts (sku, description, quantity) VALUES ('NUT-8', 'Nut, 8 mm
 (two-line description)', 0);
 

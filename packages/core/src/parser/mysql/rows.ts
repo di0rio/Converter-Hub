@@ -19,7 +19,7 @@ const CONSTRAINT_KEYWORDS = [
   'CHECK',
 ]
 
-/** `SHARD KEY (...)`, `SORT KEY (...)` — SingleStore's distribution clauses. */
+/** `SHARD KEY (...)`, `SORT KEY (...)` - SingleStore's distribution clauses. */
 const VENDOR_INDEX_CLAUSE = /^(SHARD|SORT|CLUSTERED)\s+KEY\b/i
 
 /**

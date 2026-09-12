@@ -3,7 +3,7 @@
  *
  * Neither direction renders anything in the app: the result is a file to
  * download. It is still a file someone will open, so what could run where it
- * is opened does not survive — raw HTML in Markdown is written as text, and a
+ * is opened does not survive - raw HTML in Markdown is written as text, and a
  * link or image whose address could run code keeps its text and loses the
  * address.
  */
@@ -19,8 +19,8 @@ function escapeHtml(text: string): string {
 
 /**
  * An address a converted document may keep: the web, mail, and the document's
- * own relative links and fragments. Any other scheme — `javascript:`, `data:`,
- * `vbscript:` — is dropped. Whitespace and control characters are removed
+ * own relative links and fragments. Any other scheme - `javascript:`, `data:`,
+ * `vbscript:` - is dropped. Whitespace and control characters are removed
  * before the scheme is read, because browsers ignore them inside one.
  */
 function safeUrl(href: string): string | null {
@@ -284,7 +284,7 @@ function blocks(parent: Element): string[] {
  * code, emphasis and strong text. Anything else keeps its text. Scripts,
  * styles and the document's head are left out.
  *
- * `DOMParser` builds an inert document — no script runs and no image loads.
+ * `DOMParser` builds an inert document - no script runs and no image loads.
  */
 export function htmlToMarkdown(html: string): string {
   const document = new DOMParser().parseFromString(html, 'text/html')

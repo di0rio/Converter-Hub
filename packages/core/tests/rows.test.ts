@@ -99,7 +99,7 @@ describe('vendor index clauses in CREATE TABLE', () => {
   /**
    * SingleStore declares how rows spread across the cluster inside the column
    * list. Skipping those clauses must not cost a column that happens to be
-   * named `sort` or `shard` — hence the two-word match rather than a keyword.
+   * named `sort` or `shard` - hence the two-word match rather than a keyword.
    */
   const SINGLESTORE = [
     'CREATE DATABASE `s`;',

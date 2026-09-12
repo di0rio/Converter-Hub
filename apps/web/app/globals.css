@@ -311,8 +311,8 @@
    shorthand would otherwise drop it.
 
    A step that appears mid-flow rises a few pixels as it fades in. The steps are
-   revealed one at a time as the user works — pick a file, and the list appears;
-   pick from it, and the format and download steps appear — so without this they
+   revealed one at a time as the user works - pick a file, and the list appears;
+   pick from it, and the format and download steps appear - so without this they
    pop into a column the user is already reading. 220ms is long enough to be
    read as movement and short enough not to be waited on.
 

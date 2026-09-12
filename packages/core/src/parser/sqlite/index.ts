@@ -16,7 +16,7 @@ import {
 /**
  * Parse the output of `sqlite3 mydb.db .dump`.
  *
- * SQLite has exactly one database and calls it `main` — that is SQLite's own
+ * SQLite has exactly one database and calls it `main` - that is SQLite's own
  * word, not a name invented here. There is never a CREATE DATABASE or USE
  * statement to read a name from, so this parser always produces exactly one
  * `Database` named `main`, whether or not the dump declares any tables.
@@ -101,7 +101,7 @@ function classifyStatement(clean: string): StatementType {
  * `sqlite_sequence` (AUTOINCREMENT bookkeeping) and any other `sqlite_*`
  * table are SQLite's own internal state, not something a user asked to
  * export. They are excluded from the selectable table list, but their
- * statements are kept — verbatim, in the dump's postamble — so a full SQL
+ * statements are kept - verbatim, in the dump's postamble - so a full SQL
  * export still restores cleanly.
  */
 function isInternalTable(name: string): boolean {
@@ -194,7 +194,7 @@ export function parseSqliteDump(
         if (name !== null && isInternalTable(name)) {
           park(stmt)
         } else if (name !== null && tables.has(name)) {
-          // A DELETE with no WHERE clears a table before it is repopulated —
+          // A DELETE with no WHERE clears a table before it is repopulated -
           // that runs before the rows, alongside the rest of the setup.
           ;(tables.get(name) as Table).preDataStatements.push(stmt)
         } else {
@@ -209,7 +209,7 @@ export function parseSqliteDump(
       // notion of "batch" to protect (SQLite's dialect declares no
       // batchSeparator, dollarQuoting, or settableTerminator). A trigger
       // with a compound body will therefore be split into fragments at each
-      // internal semicolon rather than kept as one statement — a known gap,
+      // internal semicolon rather than kept as one statement - a known gap,
       // not exercised by the fixture or tests for this format.
       case 'create_index':
       case 'create_trigger': {

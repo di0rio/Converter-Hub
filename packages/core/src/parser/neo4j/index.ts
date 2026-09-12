@@ -9,21 +9,21 @@ import {
 import { tableFromDocuments } from '../shared/documents.js'
 
 /**
- * Read a Cypher script's nodes — `CREATE (n:Label {key: value, ...})`.
+ * Read a Cypher script's nodes - `CREATE (n:Label {key: value, ...})`.
  *
  * Nodes sharing a label become a table and their properties become its
  * columns, which is a real mapping: a `:Person` node set is a table of people.
  *
  * Relationships are not. A graph's edges are the part this model has nowhere
- * to put — database, table, row has no place for "this node points at that
- * one" — so they are counted and reported, never invented into a table. That
+ * to put - database, table, row has no place for "this node points at that
+ * one" - so they are counted and reported, never invented into a table. That
  * loss is what keeps this format `experimental`, and the catalog note and the
  * app both say so before anyone exports.
  */
 
 const DEFAULT_DATABASE = 'neo4j'
 
-/** `CREATE (n:Label {` or `MERGE (n:Label {` — a node with properties. */
+/** `CREATE (n:Label {` or `MERGE (n:Label {` - a node with properties. */
 const NODE =
   /\b(?:CREATE|MERGE)\s*\(\s*[A-Za-z_][\w]*\s*:\s*([A-Za-z_][\w]*)\s*(?:{|\))/g
 
@@ -171,7 +171,7 @@ export function parseNeo4jDump(text: string): SqlDump {
 /**
  * The body of a `{...}` starting at `open`, respecting nesting and quotes.
  *
- * `null` means the brace never closes, which is different from `{}` — an empty
+ * `null` means the brace never closes, which is different from `{}` - an empty
  * body is a node with no properties, an unterminated one is a truncated file.
  * The caller needs to tell them apart: scanning to the end of the text once
  * per node is quadratic, and only stopping avoids it.

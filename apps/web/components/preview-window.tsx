@@ -50,7 +50,7 @@ type Gesture =
  *
  * Positioned absolutely against the workspace, never the viewport, so it cannot
  * drift over the selection panel or off the page. Gestures use native Pointer
- * Events with pointer capture — no drag-and-drop dependency is shipped.
+ * Events with pointer capture - no drag-and-drop dependency is shipped.
  */
 export function PreviewWindow({
   window: win,

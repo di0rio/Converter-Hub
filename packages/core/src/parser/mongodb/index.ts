@@ -10,12 +10,12 @@ import {
 import { readJsonObjects, tableFromDocuments } from '../shared/documents.js'
 
 /**
- * Read a mongosh seed script — `use <db>` plus `db.<collection>.insertMany([…])`.
+ * Read a mongosh seed script - `use <db>` plus `db.<collection>.insertMany([…])`.
  *
  * This is the one MongoDB text format that names what it holds. `mongoexport`
  * writes documents and nothing else: no database name, no collection name, so
  * a file of it could only be given invented names, and the whole point of this
- * tool — pick a database, then pick tables out of it — would collapse to one
+ * tool - pick a database, then pick tables out of it - would collapse to one
  * anonymous table. That is why only the script form is read.
  *
  * Documents have no fixed columns, so the column set is the union of the keys
@@ -23,11 +23,11 @@ import { readJsonObjects, tableFromDocuments } from '../shared/documents.js'
  * one of them gets null for it, which is what a spreadsheet needs.
  *
  * Nested objects and arrays are kept as their JSON text rather than flattened
- * into more columns — the same rule already applied to binary literals: carry
+ * into more columns - the same rule already applied to binary literals: carry
  * the value as written instead of inventing a shape for it.
  */
 
-/** `db.<collection>.insertMany(` or `.insertOne(` — the call that carries rows. */
+/** `db.<collection>.insertMany(` or `.insertOne(` - the call that carries rows. */
 const INSERT_CALL =
   /\bdb\s*\.\s*(?:getCollection\s*\(\s*["']([^"']+)["']\s*\)|([A-Za-z_][\w$]*))\s*\.\s*(insertMany|insertOne|save)\s*\(/g
 

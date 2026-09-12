@@ -67,7 +67,7 @@ export async function browseForFile(
     const response = await prompts({
       type: 'select',
       name: 'choice',
-      message: `Select a .sql file — ${dir}`,
+      message: `Select a .sql file - ${dir}`,
       choices: choices.map((c) => ({ title: c.title, value: c.value })),
     })
 

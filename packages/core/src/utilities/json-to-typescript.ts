@@ -6,7 +6,7 @@ import { parseJson } from '../records/index.js'
  * Every value in the sample is folded into one shape per position: a field
  * seen as a number and as a string becomes `number | string`, the objects of
  * a list merge into one interface, and a field some of those objects lack
- * becomes optional. A list with nothing in it gives `unknown[]` — the sample
+ * becomes optional. A list with nothing in it gives `unknown[]` - the sample
  * says nothing about it, and `any` would claim more than that.
  *
  * Interfaces are named after the key they sit under (`user` → `User`, a list
@@ -82,7 +82,8 @@ class Writer {
     if (shape.kinds.length === 0) return 'unknown'
     return shape.kinds
       .map((kind) => {
-        if (kind === 'object') return this.interface(shape.object as ObjectShape, hint)
+        if (kind === 'object')
+          return this.interface(shape.object as ObjectShape, hint)
         if (kind === 'array') return this.array(shape.items as Shape, hint)
         return kind
       })
@@ -104,7 +105,8 @@ class Writer {
       const optional = field.count < object.seen ? '?' : ''
       return `  ${property}${optional}: ${this.type(field.shape, key)}`
     })
-    this.declarations[slot] = `export interface ${name} {\n${lines.join('\n')}\n}\n`
+    this.declarations[slot] =
+      `export interface ${name} {\n${lines.join('\n')}\n}\n`
     return name
   }
 }

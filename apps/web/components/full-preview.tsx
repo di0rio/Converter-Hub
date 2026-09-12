@@ -28,7 +28,7 @@ const rowLabel = (rows: number) =>
 /**
  * The default preview: a table given the whole workspace.
  *
- * Three ways to share that space, none of which overlap — overlapping is what
+ * Three ways to share that space, none of which overlap - overlapping is what
  * the windowed mode is for. `tabs` keeps every open table one click away,
  * `single` shows exactly one, `split` tiles them for comparison.
  */

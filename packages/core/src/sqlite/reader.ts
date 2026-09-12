@@ -18,7 +18,7 @@ import type {
  * applied, so the reader sees the database's latest committed state rather than
  * whatever happened to be folded into the main file.
  *
- * The alternative — parsing the WAL by hand — was rejected: it risks reading a
+ * The alternative - parsing the WAL by hand - was rejected: it risks reading a
  * partially-written frame as data and reporting a corrupt row as a real one.
  *
  * Nothing is written back. The files live in memory, the connection is opened
@@ -65,7 +65,7 @@ export function isWalFile(head: Uint8Array): boolean {
  * Whether a write-ahead log's header is one SQLite will honour.
  *
  * SQLite treats a log whose header checksum does not match as empty and opens
- * the main file alone, without an error — which would export the database
+ * the main file alone, without an error - which would export the database
  * minus its newest rows. So the header is verified first, the way SQLite's
  * wal.c does: two running sums over the first 24 bytes, read in the byte order
  * the magic number names, compared with the two stored big-endian after them.

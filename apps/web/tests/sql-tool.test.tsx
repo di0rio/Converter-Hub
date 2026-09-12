@@ -10,7 +10,7 @@ import { SqlTool } from '@/components/sql-tool'
 /**
  * One tool, two kinds of input. A dump is a script and a SQLite file is a
  * database, and the tool tells them apart by what the file holds rather than
- * by its name — then hands it to the flow that reads it.
+ * by its name - then hands it to the flow that reads it.
  *
  * Fixtures are built here and hold invented data.
  */

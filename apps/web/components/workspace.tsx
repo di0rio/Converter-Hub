@@ -86,7 +86,7 @@ const LAYOUT_OPTIONS = [
  * The visualisation half of every tool: the surface that accepts dropped
  * items and decides how the open ones share the space.
  *
- * It knows nothing about what it is showing — a dump table and a spreadsheet
+ * It knows nothing about what it is showing - a dump table and a spreadsheet
  * sheet both arrive as a name and a node to draw.
  *
  * It owns its own size (measured, not assumed) because every window position is

@@ -33,7 +33,7 @@ function identifier(name: string): string {
  * A single-quoted string literal.
  *
  * Doubling the embedded quote is the only escape standard SQL defines, and it
- * is the only one used here — no backslash sequences, which is what lets the
+ * is the only one used here - no backslash sequences, which is what lets the
  * same file mean the same thing in every engine (see the header this writer
  * emits). A value carrying `'); DROP TABLE t; --` therefore survives as text.
  */
@@ -44,8 +44,8 @@ function literal(value: string): string {
 /**
  * An empty cell becomes NULL rather than an empty string.
  *
- * A spreadsheet does not distinguish the two — a blank cell and a cell holding
- * "" look the same and read the same — so the one that survives a round trip
+ * A spreadsheet does not distinguish the two - a blank cell and a cell holding
+ * "" look the same and read the same - so the one that survives a round trip
  * through more engines is the better answer.
  */
 function value(cell: string | null): string {
@@ -61,7 +61,7 @@ function tableIdentifier(name: string): string {
 /**
  * Write a table as a SQL script: one CREATE TABLE and batched INSERTs.
  *
- * Every column is declared TEXT. A spreadsheet has no schema — a column of
+ * Every column is declared TEXT. A spreadsheet has no schema - a column of
  * digits may be a quantity, an order number or a phone number, and guessing
  * wrong silently drops a leading zero or rounds an identifier. TEXT keeps
  * exactly what was in the cell and leaves the typing to whoever loads it, who
@@ -70,7 +70,7 @@ function tableIdentifier(name: string): string {
  * The script opens with a MySQL-only mode line. MySQL and MariaDB depart from
  * the standard in two ways that matter here: they read `"` as a string
  * delimiter rather than as an identifier quote, and they treat a backslash as
- * an escape inside a string. The second is the dangerous one — a cell ending
+ * an escape inside a string. The second is the dangerous one - a cell ending
  * in a backslash would escape the closing quote and let the next value be read
  * as SQL. `ANSI_QUOTES` and `NO_BACKSLASH_ESCAPES` turn both off, so this file
  * is plain standard SQL in MySQL too. It is wrapped in a versioned comment, so

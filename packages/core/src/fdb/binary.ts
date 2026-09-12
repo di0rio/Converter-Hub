@@ -3,10 +3,10 @@ import { SqliteReadError } from '../sqlite/index.js'
 /**
  * The on-disk structure of a Firebird 2.x database (ODS 11), read directly.
  *
- * Every layout and constant here is taken from Firebird 2.5's own source —
+ * Every layout and constant here is taken from Firebird 2.5's own source -
  * `ods.h` for the structures, `sqz.cpp` for record compression, `dpm.epp` for
  * record and fragment access, `tpc.cpp` for transaction states, `blb.cpp` for
- * blobs — and every read is bounds-checked, because the file is untrusted.
+ * blobs - and every read is bounds-checked, because the file is untrusted.
  */
 
 /**
