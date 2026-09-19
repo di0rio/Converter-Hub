@@ -25,13 +25,5 @@
 # Scripts that run outside the test sandbox.
 /apps/web/scripts/          @di0rio
 
-# AI agent instructions and permissions. These are policy a maintainer's
-# tooling loads automatically; treat them as code, not documentation.
-/AGENTS.md                  @di0rio
-/apps/web/AGENTS.md         @di0rio
-/opencode.json              @di0rio
-/.claude/                   @di0rio
-/.opencode/                 @di0rio
-
 # Security policy.
 /SECURITY.md                @di0rio

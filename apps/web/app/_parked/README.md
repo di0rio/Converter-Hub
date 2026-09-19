@@ -14,5 +14,4 @@ To bring one back, for example `case`:
    import.
 3. Add its id to the list in `tests/tools.test.ts`, and a test for it in
    `tests/text-tool.test.tsx`.
-4. Add it back to the tool tables in `README.md`, `AGENTS.md` and
-   `apps/web/README.md`.
+4. Add it back to the tool tables in `README.md` and `apps/web/README.md`.

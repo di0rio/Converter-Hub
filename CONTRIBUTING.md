@@ -132,9 +132,9 @@ When reviewing a branch you did not write:
 
 ```bash
 # Read the diff before running anything. Pay attention to package.json,
-# bun.lock, .github/, apps/web/scripts/, and the agent instruction files.
+# bun.lock, .github/ and apps/web/scripts/.
 git diff master...<branch> -- package.json '**/package.json' '**/bun.lock' \
-  .github/ apps/web/scripts/ AGENTS.md opencode.json .claude/ .opencode/
+  .github/ apps/web/scripts/
 
 # Install without running any lifecycle script.
 bun install --frozen-lockfile --ignore-scripts

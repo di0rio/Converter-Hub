@@ -12,7 +12,6 @@
       "!**/dist",
       "!**/.next",
       "!**/bun.lock",
-      "!.claude",
       "!**/*.css"
     ]
   },
