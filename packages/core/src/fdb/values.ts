@@ -1,11 +1,6 @@
 import type { SqliteValue } from '../sqlite/index.js'
 import { damaged, type Blob } from './binary.js'
 
-/**
- * Field values in a Firebird record, from the descriptor of the record's
- * format. Dtype codes are Firebird's own (`dsc.h`).
- */
-
 export const DTYPE = {
   text: 1,
   cstring: 2,
@@ -32,7 +27,6 @@ export interface Descriptor {
   offset: number
 }
 
-/** Firebird's character set ids (`charsets.h`), by the names RDB$ uses. */
 export const CHARSET_IDS: Record<string, number> = {
   NONE: 0,
   OCTETS: 1,
@@ -76,7 +70,6 @@ export const CHARSET_IDS: Record<string, number> = {
 
 export const WIN1252 = 53
 
-/** The `TextDecoder` label for each character set it can decode. */
 const LABELS: Record<number, string> = {
   2: 'windows-1252',
   3: 'utf-8',
@@ -113,7 +106,6 @@ const LABELS: Record<number, string> = {
   69: 'gb18030',
 }
 
-/** Whether text in this character set can be read; OCTETS is kept as bytes. */
 export function readableCharset(id: number): boolean {
   return id === 1 || LABELS[id] !== undefined
 }
@@ -133,20 +125,16 @@ function decodeText(bytes: Uint8Array, charset: number): SqliteValue {
 }
 
 export interface DecodeContext {
-  /** The character set a column in NONE is read as. */
   defaultCharset: number
-  /** Whether blob headers carry their character set (ODS 11.1 and later). */
   blobCharsetInHeader: boolean
   blob(relation: number, number: number): Blob
 }
 
-/** Whether a field is NULL: its bit is set in the record's leading bitmap. */
 export function isNull(record: Uint8Array, index: number): boolean {
   const byte = record[index >> 3]
   return byte === undefined || (byte & (1 << (index & 7))) !== 0
 }
 
-/** An exact decimal string for an integer with a negative scale. */
 export function scaled(value: bigint, scale: number): SqliteValue {
   if (scale === 0) {
     return value >= BigInt(Number.MIN_SAFE_INTEGER) &&
@@ -164,19 +152,16 @@ export function scaled(value: bigint, scale: number): SqliteValue {
 const DAY_MS = 86_400_000
 const MJD_EPOCH = Date.UTC(1858, 10, 17)
 
-/** A Firebird DATE: days since 17 November 1858. */
 export function formatDate(days: number): string {
   return new Date(MJD_EPOCH + days * DAY_MS).toISOString().slice(0, 10)
 }
 
-/** A Firebird TIME: ten-thousandths of a second since midnight. */
 export function formatTime(units: number): string {
   const pad = (n: number, width = 2) => String(n).padStart(width, '0')
   const seconds = Math.floor(units / 10_000)
   return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}.${pad(units % 10_000, 4)}`
 }
 
-/** One field's value. The caller has already checked it is not NULL. */
 export function decodeValue(
   record: Uint8Array,
   desc: Descriptor,
@@ -243,7 +228,6 @@ export function decodeValue(
   }
 }
 
-/** CHAR is padded with spaces to its length; the padding is not the value. */
 function trimPad(value: SqliteValue): SqliteValue {
   return typeof value === 'string' ? value.replace(/ +$/, '') : value
 }

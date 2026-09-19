@@ -33,7 +33,6 @@ describe('Hub', () => {
   it('keeps what a tool reads apart from what it writes', () => {
     render(<Hub />)
 
-    // Anchored: the spreadsheet card names SQL among its outputs too.
     const sql = screen.getByRole('link', { name: /^SQL/ })
     expect(sql).toHaveTextContent('SQL dumps, SQLite databases')
     expect(sql).toHaveTextContent('SQL, CSV, XLSX, JSON, JSON Lines, Markdown')
@@ -45,7 +44,6 @@ describe('Hub', () => {
   it('makes the whole card the target, so there is one stop per tool', () => {
     render(<Hub />)
 
-    // A button inside a link would leave one tab stop that does nothing.
     expect(
       within(screen.getByRole('region', { name: 'Tools' })).queryAllByRole(
         'button',

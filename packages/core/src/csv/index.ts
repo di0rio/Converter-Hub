@@ -5,17 +5,6 @@ export type CsvParseOptions = {
   delimiter?: CsvDelimiter
 }
 
-/**
- * Rows of fields from CSV text, per RFC 4180 as far as a converter needs it.
- *
- * A quoted field may hold the delimiter, a doubled quote and line breaks. A
- * byte order mark is ignored. Lines may end in CRLF, LF or a lone CR, blank
- * lines are skipped, and the last line needs no terminator. A quote that
- * never closes is refused: reading on would swallow the rest of the file into
- * one field.
- *
- * Every field is text. Nothing is guessed at: "007" stays "007".
- */
 export function parseCsv(
   text: string,
   { delimiter = ',' }: CsvParseOptions = {},
@@ -61,13 +50,6 @@ export function parseCsv(
   return rows
 }
 
-/**
- * The delimiter a CSV's header line uses most: comma, semicolon or tab.
- *
- * Excel in decimal-comma locales writes semicolons, and a TSV uses tabs, so
- * guessing from the first line saves asking. Delimiters inside quotes do not
- * count, and a single column falls back to a comma.
- */
 export function detectDelimiter(text: string): CsvDelimiter {
   const counts: Record<CsvDelimiter, number> = { ',': 0, ';': 0, '\t': 0 }
   let quoted = false

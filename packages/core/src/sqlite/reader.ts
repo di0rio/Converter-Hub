@@ -9,35 +9,10 @@ import type {
   UnreadableTable,
 } from './index.js'
 
-/**
- * Reading a SQLite database, WAL included, without writing to the user's files.
- *
- * The database is handed to a real SQLite build compiled to WebAssembly, backed
- * by an in-memory filesystem holding the bytes the user selected. SQLite then
- * does what SQLite does: if a `-wal` sits beside the main file, its frames are
- * applied, so the reader sees the database's latest committed state rather than
- * whatever happened to be folded into the main file.
- *
- * The alternative - parsing the WAL by hand - was rejected: it risks reading a
- * partially-written frame as data and reporting a corrupt row as a real one.
- *
- * Nothing is written back. The files live in memory, the connection is opened
- * read-only, and the originals are never touched.
- */
-
-/** The 16-byte header every SQLite database file opens with. */
 const MAGIC = 'SQLite format 3\0'
 
-/** Bytes needed to recognise a database. */
 export const SQLITE_HEADER_BYTES = MAGIC.length
 
-/**
- * Whether these bytes begin a SQLite database.
- *
- * Read from the header rather than the extension: SQLite mandates no extension,
- * files arrive as `.db`, `.sqlite`, `.sqlite3`, `.db3` and plenty of
- * application-specific names, and a text file renamed to `.db` is still text.
- */
 export function isSqliteFile(head: Uint8Array): boolean {
   if (head.length < MAGIC.length) return false
   for (let i = 0; i < MAGIC.length; i++) {
@@ -46,10 +21,8 @@ export function isSqliteFile(head: Uint8Array): boolean {
   return true
 }
 
-/** SQLite's write-ahead log header, in both byte orders the format allows. */
 const WAL_MAGIC = new Set([0x377f0682, 0x377f0683])
 
-/** Whether these bytes begin a SQLite write-ahead log. */
 export function isWalFile(head: Uint8Array): boolean {
   if (head.length < 4) return false
   const magic =
@@ -61,15 +34,8 @@ export function isWalFile(head: Uint8Array): boolean {
   return WAL_MAGIC.has(magic)
 }
 
-/**
- * Whether a write-ahead log's header is one SQLite will honour.
- *
- * SQLite treats a log whose header checksum does not match as empty and opens
- * the main file alone, without an error - which would export the database
- * minus its newest rows. So the header is verified first, the way SQLite's
- * wal.c does: two running sums over the first 24 bytes, read in the byte order
- * the magic number names, compared with the two stored big-endian after them.
- */
+// SQLite silently ignores a WAL whose header checksum is wrong, which would
+// drop its rows. Check it the way wal.c does.
 function isIntactWal(wal: Uint8Array): boolean {
   if (wal.length < 32 || !isWalFile(wal.subarray(0, 4))) return false
   const view = new DataView(wal.buffer, wal.byteOffset, 32)
@@ -85,23 +51,14 @@ function isIntactWal(wal: Uint8Array): boolean {
 
 export { SqliteReadError }
 
-/** The bytes of one database, and of its write-ahead log when supplied. */
 export interface SqliteFileSet {
   main: Uint8Array
-  /** The `-wal` companion. Its rows are included when present. */
   wal?: Uint8Array | undefined
 }
 
-/**
- * Supplies the WebAssembly binary.
- *
- * The browser fetches it as a static asset and the CLI reads it from disk, so
- * the caller provides it rather than this module guessing at the host.
- */
 export type WasmSupplier = () => Promise<Uint8Array | ArrayBuffer>
 
 export interface ReadOptions {
-  /** Rows to read per table. Omit for every row. */
   rowLimit?: number | undefined
 }
 
@@ -110,7 +67,6 @@ interface Runtime {
   vfs: MemoryVFS
 }
 
-/** Names SQLite reserves for its own bookkeeping. */
 function isInternalName(name: string): boolean {
   return /^sqlite_/i.test(name)
 }
@@ -123,10 +79,6 @@ async function openRuntime(
   const module = await factory({ wasmBinary: await wasm() })
   const sqlite3 = SQLite.Factory(module)
   const vfs = new MemoryVFS()
-  // wa-sqlite ships its VFS examples as JavaScript, and their hand-written
-  // declarations describe xRead's buffer differently from the interface the
-  // registrar expects. The implementation is the one the library's own tests
-  // run against; only the two declarations disagree.
   sqlite3.vfs_register(
     vfs as unknown as Parameters<typeof sqlite3.vfs_register>[0],
     false,
@@ -141,17 +93,15 @@ async function openRuntime(
   if (files.wal) put('db-wal', files.wal)
 
   const db = await sqlite3.open_v2('db', SQLite.SQLITE_OPEN_READONLY, 'memory')
-  // Without a -shm file SQLite keeps the WAL index in heap memory, which it
-  // only does while holding an exclusive lock. The -shm carries no data of its
-  // own, so nothing is lost by not having one.
+  // Without a -shm file SQLite only keeps the WAL index in memory under an
+  // exclusive lock.
   await sqlite3.exec(db, 'PRAGMA locking_mode=EXCLUSIVE')
-  // Views and triggers in the file are the database's own code. Distrusting the
-  // schema stops them calling functions with side effects while it is read.
+  // Stops the file's own views and triggers from calling functions with side
+  // effects while it is read.
   await sqlite3.exec(db, 'PRAGMA trusted_schema=OFF')
   return { runtime: { sqlite3, vfs }, db }
 }
 
-/** Every row a statement yields, as stored values. */
 async function queryAll(
   sqlite3: Runtime['sqlite3'],
   db: number,
@@ -166,7 +116,6 @@ async function queryAll(
         const type = sqlite3.column_type(stmt, i)
         if (type === SQLite.SQLITE_NULL) row.push(null)
         else if (type === SQLite.SQLITE_BLOB) {
-          // The view points into WASM memory and is reused by the next step.
           row.push(Uint8Array.from(sqlite3.column_blob(stmt, i)))
         } else if (type === SQLite.SQLITE_INTEGER) {
           row.push(sqlite3.column_int64(stmt, i) as unknown as bigint)
@@ -181,7 +130,6 @@ async function queryAll(
   return rows
 }
 
-/** A 64-bit integer narrowed to a number when that loses nothing. */
 function narrow(value: SqliteValue): SqliteValue {
   if (typeof value === 'bigint') {
     return value >= BigInt(Number.MIN_SAFE_INTEGER) &&
@@ -192,19 +140,10 @@ function narrow(value: SqliteValue): SqliteValue {
   return value
 }
 
-/** A double-quoted identifier, safe to interpolate into a query. */
 function identifier(name: string): string {
   return '"' + name.replace(/"/g, '""') + '"'
 }
 
-/**
- * Read a SQLite database into the shape the writers take.
- *
- * Virtual tables are reported as unreadable rather than skipped silently: their
- * contents live in shadow tables an ordinary `SELECT` cannot reassemble, and
- * reading extensions is out of scope. Saying so is the difference between a
- * documented gap and quietly missing data.
- */
 export async function readSqliteDatabase(
   files: SqliteFileSet,
   wasm: WasmSupplier,
@@ -231,10 +170,6 @@ export async function readSqliteDatabase(
   const { runtime, db } = opened
   const { sqlite3 } = runtime
   try {
-    // A corrupt database is refused rather than half-read. This runs through
-    // `exec` rather than the statement iterator on purpose: a malformed page
-    // makes SQLite throw during prepare, and the iterator reports that as an
-    // empty result, which would read a damaged database as one with no tables.
     let verdict = ''
     try {
       await sqlite3.exec(db, 'PRAGMA quick_check(1)', (row) => {
@@ -280,8 +215,6 @@ export async function readSqliteDatabase(
       }
     }
 
-    // A virtual table's shadow tables are real tables with a derived name.
-    // Exporting them would leak an implementation detail as if it were data.
     for (const owner of shadowOwners) {
       for (const name of [...tableRows.keys()]) {
         if (name.startsWith(owner + '_')) tableRows.delete(name)
@@ -310,10 +243,6 @@ export async function readSqliteDatabase(
       )
       const rowCount = Number(narrow(counted[0]?.[0] ?? 0))
 
-      // The columns are named rather than `*`: `table_info` leaves generated
-      // columns out and `SELECT *` does not, so rows would stop lining up with
-      // their header. A generated value is derived, and SQLite rebuilds it when
-      // the SQL export is replayed.
       const list = columns.map((c) => identifier(c.name)).join(', ')
       const rows = (
         await queryAll(
@@ -344,9 +273,7 @@ export async function readSqliteDatabase(
   } finally {
     try {
       await sqlite3.close(db)
-    } catch {
-      // Closing a database that failed to open cleanly is not worth reporting.
-    }
+    } catch {}
     runtime.vfs.mapNameToFile.clear()
   }
 }

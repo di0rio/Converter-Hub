@@ -12,7 +12,6 @@ import {
   unquote,
 } from './lexer.js'
 
-/** Clauses inside CREATE TABLE that declare something other than a column. */
 const CONSTRAINT_KEYWORDS = [
   'CONSTRAINT',
   'PRIMARY',
@@ -23,16 +22,8 @@ const CONSTRAINT_KEYWORDS = [
   'LIKE',
 ]
 
-/** A CockroachDB column-family clause, in the forms that cannot be a column. */
 const COLUMN_FAMILY = /^FAMILY\s*(?:"(?:[^"]|"")*"\s*)?\(/i
 
-/**
- * Column names from a CREATE TABLE statement, in declaration order.
- *
- * PostgreSQL writes types as several words (`character varying(255)`,
- * `timestamp without time zone`) and quotes identifiers with double quotes,
- * so only the first token of each clause is a name.
- */
 export function readColumns(createStatement: string): string[] {
   const openIndex = createStatement.indexOf('(')
   if (openIndex === -1) return []
@@ -50,14 +41,6 @@ export function readColumns(createStatement: string): string[] {
       continue
     }
 
-    // CockroachDB writes column families inside CREATE TABLE:
-    //   FAMILY "primary" (id, full_name)
-    // FAMILY is not reserved, so `family text` is a perfectly good PostgreSQL
-    // column and must survive. Only the forms that cannot be a column
-    // definition are skipped: a quoted family name, or none at all. An
-    // unquoted family name (`FAMILY fam_0 (id)`) is indistinguishable from
-    // `family varchar(10)` at this level and is left alone deliberately -
-    // dropping a real column is far worse than keeping a spurious one.
     if (COLUMN_FAMILY.test(part)) continue
 
     const firstWord = part.split(/\s+/)[0]?.toUpperCase() ?? ''
@@ -70,9 +53,6 @@ export function readColumns(createStatement: string): string[] {
   return columns
 }
 
-// ------------------------------------------------------------------- COPY
-
-/** Backslash escapes psql writes inside COPY text data. */
 const COPY_ESCAPES: Record<string, string> = {
   n: '\n',
   t: '\t',
@@ -83,7 +63,6 @@ const COPY_ESCAPES: Record<string, string> = {
   '\\': '\\',
 }
 
-/** Decode one tab-separated COPY field. `\N` is the null marker. */
 function decodeCopyField(field: string): string | null {
   if (field === '\\N') return null
   if (!field.includes('\\')) return field
@@ -104,7 +83,6 @@ function decodeCopyField(field: string): string | null {
   return out
 }
 
-/** The data lines of a COPY block, without its header or `\.` terminator. */
 function copyDataLines(statement: string): string[] {
   const stripped = stripLeadingComments(statement)
   const header = COPY_FROM_STDIN.exec(stripped)
@@ -123,18 +101,11 @@ function copyDataLines(statement: string): string[] {
   return lines
 }
 
-// ----------------------------------------------------------------- INSERT
-
-/**
- * Decode one SQL literal. PostgreSQL dumps use standard-conforming strings,
- * where only a doubled quote escapes; `E'...'` opts back into backslashes.
- */
 function decodeLiteral(raw: string): string | null {
   let value = raw.trim()
   if (value.length === 0) return null
   if (value.toUpperCase() === 'NULL') return null
 
-  // A trailing cast (`'{}'::jsonb`) is type information, not part of the value.
   const cast = value.match(/^([\s\S]*?)::[A-Za-z_][\w\s."[\]]*$/)
   if (cast && /['"]\s*$/.test(cast[1])) value = cast[1].trim()
 
@@ -167,7 +138,6 @@ function decodeLiteral(raw: string): string | null {
   return out
 }
 
-/** Value tuples from a single INSERT statement. */
 function readTuples(statement: string): string[][] {
   const valuesIndex = statement.search(/\bVALUES\b/i)
   if (valuesIndex === -1) return []
@@ -187,7 +157,6 @@ function readTuples(statement: string): string[][] {
   return tuples
 }
 
-/** Explicit column list from `INSERT INTO t (a, b) VALUES ...`, if present. */
 function readInsertColumns(statement: string): string[] | null {
   const valuesIndex = statement.search(/\bVALUES\b/i)
   const openIndex = statement.indexOf('(')
@@ -197,15 +166,6 @@ function readInsertColumns(statement: string): string[] | null {
   return columnListAfter(statement, openIndex)
 }
 
-// ------------------------------------------------------------- dispatch
-
-/**
- * Decode one row-carrying statement.
- *
- * A PostgreSQL dump carries rows either as COPY blocks (the `pg_dump` default)
- * or as INSERT statements (`pg_dump --inserts`). Both reach the same shape here,
- * so nothing downstream has to know which one the dump used.
- */
 export function readDataBlock(statement: string): DataBlock {
   if (isCopyStatement(statement)) {
     const header =
@@ -224,7 +184,6 @@ export function readDataBlock(statement: string): DataBlock {
   }
 }
 
-/** Rows in one statement, counted without decoding any value. */
 export function countDataRows(statement: string): number {
   return isCopyStatement(statement)
     ? copyDataLines(statement).length

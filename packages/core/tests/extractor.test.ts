@@ -211,7 +211,6 @@ describe('extractDatabase', () => {
 
       expect(result.database).toBe('store_db')
       expect(result.tableCount).toBe(0)
-      // Still produces a valid dump with the database and preamble, just no tables
       expect(result.sql).toContain('Extracted from MySQL dump')
       expect(result.sql).toContain('CREATE DATABASE')
       expect(result.sql).toContain('store_db')
@@ -238,7 +237,6 @@ USE \`empty_db\`;
       const originalSql = readFileSync(samplePath, 'utf-8')
       const originalDump = parseDump(originalSql)
 
-      // Deep clone for comparison
       const originalDatabases = JSON.parse(
         JSON.stringify(originalDump.databases),
       )
@@ -289,7 +287,6 @@ USE \`empty_db\`;
       expect(result.tableCount).toBe(1)
       expect(result.sql).toContain('CREATE TABLE')
       expect(result.sql).toContain('`categories`')
-      // categories has no INSERT data in the sample
       expect(result.sql).not.toMatch(/INSERT INTO\s+`categories`/)
     })
   })

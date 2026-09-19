@@ -4,11 +4,6 @@ import { resolve } from 'node:path'
 import { sqliteParser } from '../src/parser/sqlite/index.js'
 import type { SqlDump, Table } from '../src/types/index.js'
 
-// The registry that wires formats into parseDump() does not know about
-// 'sqlite' yet - that wiring is done separately - so the parser is imported
-// and exercised directly, exactly as the mysql/postgresql readers are tested
-// before being registered.
-
 const samplePath = resolve(
   import.meta.dirname,
   '../../../examples/sqlite/sample.sql',
@@ -20,7 +15,6 @@ function table(dump: SqlDump, name: string): Table {
   return found
 }
 
-/** Every row of a table, decoded, in declaration column order. */
 function rowsOf(t: Table): (string | null)[][] {
   const rows: (string | null)[][] = []
   for (const statement of t.dataStatements) {
@@ -56,8 +50,6 @@ describe('sqliteParser', () => {
     })
 
     it('never invents a name from the source file', () => {
-      // Nothing in the fixture names the database; 'main' is SQLite's own
-      // word for it, not derived from the filename "sample.sql".
       expect(dump.databases[0].name).not.toBe('sample')
     })
 
@@ -134,9 +126,6 @@ describe('sqliteParser', () => {
     })
 
     it('keeps a semicolon inside a string value from ending the statement', () => {
-      // The value above contains a literal ';' - if it had split the
-      // statement early, 'archived_authors' would show up truncated or the
-      // parse would have produced a stray malformed table.
       expect(rowsOf(table(dump, 'authors')).length).toBe(3)
       expect(dump.databases[0].tables.map((t) => t.name)).toContain('authors')
     })

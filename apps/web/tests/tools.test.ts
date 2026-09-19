@@ -13,8 +13,6 @@ import { DATA_INPUTS, DATA_OUTPUTS } from '@/lib/data-convert'
 
 describe('tool registry', () => {
   it('lists every tool the hub advertises', () => {
-    // The hub must never show a tool that has no page behind it. Every entry
-    // here is implemented; a new one should not be added until its route is.
     expect(TOOLS.map((tool) => tool.id)).toEqual([
       'spreadsheet',
       'sql',
@@ -29,7 +27,6 @@ describe('tool registry', () => {
     const image = findTool('image')
     expect(image.source).toEqual(formatLabels(IMAGE_INPUTS))
     expect(image.output).toEqual(formatLabels(IMAGE_OUTPUTS))
-    // Read where the browser decodes it; canvas cannot write it.
     expect(image.output).not.toContain('AVIF')
   })
 
@@ -46,16 +43,12 @@ describe('tool registry', () => {
     }
   })
 
-  // The card cannot promise a format the tool does not read or write: both
-  // lists come from the same constants the converter itself uses.
   it('advertises exactly the formats the data tool converts', () => {
     const data = findTool('data')
     expect(data.source).toEqual(formatLabels(DATA_INPUTS))
     expect(data.output).toEqual(formatLabels(DATA_OUTPUTS))
   })
 
-  // One tool for both kinds of database input: a dump is a script, a SQLite
-  // file is a database, and the tool tells them apart by content.
   it('reads SQL dumps and database files in the one SQL tool', () => {
     const sql = findTool('sql')
     expect(sql.source).toEqual([
@@ -127,8 +120,6 @@ describe('tool registry', () => {
   })
 
   it('fails loudly on an id that has no tool', () => {
-    // A miss is a wiring mistake in this repo, never a user input, so it must
-    // not quietly render an empty page.
     expect(() => findTool('pdf')).toThrow(/Unknown tool/)
   })
 

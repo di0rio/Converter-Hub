@@ -16,10 +16,6 @@ function fixture(name: string): string {
   )
 }
 
-/**
- * One case per supported source format, each naming a table whose rows are
- * known, so the same assertions can run against all of them.
- */
 const CASES: {
   fixture: string
   format: DatabaseFormat
@@ -27,7 +23,6 @@ const CASES: {
   table: string
   rows: number
   columns: string[]
-  /** A value in the table that a naive splitter would break on. */
   awkwardValue: string
 }[] = [
   {
@@ -109,7 +104,6 @@ describe('the same pipeline runs for every source format', () => {
         const entry = unzipSync(result.bytes)[result.files[0]]
         const lines = strFromU8(entry).trimEnd().split('\r\n')
 
-        // Header plus one line per row, unless a value carries its own newline.
         expect(lines.length).toBeGreaterThanOrEqual(testCase.rows + 1)
         expect(lines[0]).toContain(testCase.columns[1])
       })
@@ -122,9 +116,6 @@ describe('the same pipeline runs for every source format', () => {
 
         expect(sql).toContain(testCase.table)
 
-        // Re-reading the extraction has to land on the same engine and the
-        // same rows: the extractor reproduces statements, it does not
-        // translate them.
         const round = parseDump(sql)
         expect(round.format).toBe(testCase.format)
 

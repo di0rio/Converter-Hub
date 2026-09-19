@@ -27,18 +27,6 @@ import {
 
 export { FdbReadError, isFdbFile, FDB_HEADER_BYTES } from './binary.js'
 
-/**
- * A Firebird 2.x database file (ODS 11) read without a Firebird engine.
- *
- * The catalog is read the way the engine bootstraps it: RDB$PAGES from the
- * header, then RDB$FORMATS, RDB$DATABASE, RDB$FIELDS, RDB$RELATION_FIELDS and
- * RDB$RELATIONS with their built-in layouts, then each user table with the
- * formats RDB$FORMATS stores. Only committed row versions are returned: the
- * database as a clean restart would show it.
- */
-
-// --------------------------------------------------- system relations
-
 type Field = readonly [dtype: number, length: number]
 
 const TEXT: Field = [DTYPE.text, 31]
@@ -54,7 +42,6 @@ const RDB_RELATION_FIELDS = 5
 const RDB_RELATIONS = 6
 const RDB_FORMATS = 8
 
-/** Field layouts of the system relations read here, from `relations.h`. */
 const SYSTEM: Record<number, readonly Field[]> = {
   [RDB_PAGES]: [LONG, SHORT, LONG, SHORT],
   [RDB_DATABASE]: [BLOB, SHORT, TEXT, TEXT],
@@ -133,11 +120,6 @@ const SYSTEM: Record<number, readonly Field[]> = {
 
 const UNICODE_FSS = 3
 
-/**
- * Format 0 of a system relation, computed as INI_init2 does: the null bitmap,
- * then each field aligned (text 1, varchar 2, anything else its length up to
- * 8). Before ODS 11.2 a VARCHAR occupied its declared length, prefix included.
- */
 export function systemFormat(
   fields: readonly Field[],
   odsMinorOriginal: number,
@@ -165,8 +147,6 @@ export function systemFormat(
     return desc
   })
 }
-
-// ------------------------------------------------------------- reader
 
 interface Row {
   data: Uint8Array
@@ -204,7 +184,6 @@ interface RelationInfo {
 }
 
 export interface FdbReadOptions {
-  /** Rows to keep per table. Omit for every row. */
   rowLimit?: number | undefined
 }
 
@@ -226,7 +205,6 @@ class Reader {
     }
   }
 
-  /** The descriptors of one record format of one relation. */
   format(relation: number, number: number): Descriptor[] {
     const key = `${relation}:${number}`
     const cached = this.formats.get(key)
@@ -259,12 +237,6 @@ class Reader {
     return format
   }
 
-  /**
-   * The committed version of a record, or null if its newest committed
-   * version is a deletion or it has none. Uncommitted versions are passed
-   * over by following back pointers; a back version flagged as a delta is
-   * rebuilt from the newer one.
-   */
   private visible(
     primary: RawRecord,
   ): { data: Uint8Array; format: number } | null {
@@ -291,7 +263,6 @@ class Reader {
     }
   }
 
-  /** Every visible row of a relation, in storage order. */
   *rows(relation: number): Generator<Row> {
     for (const pointer of this.pointers.get(relation) ?? []) {
       for (const page of this.file.dataPages(pointer)) {
@@ -314,7 +285,6 @@ class Reader {
     }
   }
 
-  /** Read RDB$PAGES, RDB$FORMATS and RDB$DATABASE. */
   bootstrap(): void {
     const { header } = this.file
     this.pointers.set(
@@ -415,7 +385,6 @@ class Reader {
     for (const relation of relations.sort((a, b) =>
       a.name.localeCompare(b.name),
     )) {
-      // Views and the monitoring tables hold no rows of their own.
       if (relation.system !== 0 || relation.view) continue
       if (relation.type === 1 || relation.type === 3) continue
       const skip = (reason: UnreadableTable['reason'], detail?: string) =>
@@ -487,7 +456,6 @@ class Reader {
       rows.push(
         stored.map(({ column }) => {
           const desc = row.format[column.id]
-          // A column added after this row was written has no place in it.
           if (!desc || desc.dtype === 0 || isNull(row.data, column.id))
             return null
           return decodeValue(row.data, desc, this.context)
@@ -517,13 +485,10 @@ class Reader {
   }
 }
 
-// ------------------------------------------------------------ helpers
-
 function nullAt(row: Row, index: number): boolean {
   return index >= row.format.length || isNull(row.data, index)
 }
 
-/** A catalog integer, or null when NULL or absent in this format. */
 function number(row: Row, index: number): number | null {
   if (nullAt(row, index)) return null
   const desc = row.format[index] as Descriptor
@@ -539,7 +504,6 @@ function number(row: Row, index: number): number | null {
     : v.getInt16(desc.offset, true)
 }
 
-/** A catalog name: CHAR or VARCHAR in UNICODE_FSS, trailing spaces removed. */
 function text(row: Row, index: number): string | null {
   if (nullAt(row, index)) return null
   const desc = row.format[index] as Descriptor
@@ -571,7 +535,6 @@ function quote(name: string): string {
   return `"${name.replace(/"/g, '""')}"`
 }
 
-/** The column's type as DDL would name it, from RDB$FIELDS. */
 function declaredType(field: FieldInfo): string {
   const { type, scale, subType, precision } = field
   const chars = field.charLength ?? field.length
@@ -610,13 +573,6 @@ function declaredType(field: FieldInfo): string {
   }
 }
 
-// --------------------------------------------------------------- entry
-
-/**
- * Read a Firebird 2.x database file. Throws `FdbReadError`, with a message
- * safe to show, for a file this tool cannot read; a table that cannot be
- * read is listed in `unreadable` rather than failing the whole database.
- */
 export function readFdbDatabase(
   bytes: Uint8Array,
   options: FdbReadOptions = {},
@@ -625,7 +581,6 @@ export function readFdbDatabase(
     return new Reader(new FdbFile(bytes, readHeader(bytes))).read(options)
   } catch (cause) {
     if (cause instanceof FdbReadError) throw cause
-    // A RangeError from a DataView is a structure pointing outside the file.
     throw damaged(cause instanceof Error ? cause.name : 'unknown')
   }
 }

@@ -18,18 +18,11 @@ import {
 export type LoadStatus = 'idle' | 'reading' | 'ready'
 export type ExportStatus = 'idle' | 'building' | 'done'
 
-/** How far the split has got, so the button can count rather than just spin. */
 export interface Progress {
   done: number
   total: number
 }
 
-/**
- * The whole flow of the tool: read a file, choose sheets, write the archive.
- *
- * The parsed workbook is kept here rather than in the components so that
- * changing the export format never re-reads the file.
- */
 export function useWorkbook() {
   const [loaded, setLoaded] = useState<LoadedWorkbook | null>(null)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('idle')
@@ -42,8 +35,6 @@ export function useWorkbook() {
   const [error, setError] = useState<string | null>(null)
 
   const sheets: SheetInfo[] = useMemo(() => loaded?.sheets ?? [], [loaded])
-  // Empty tabs are listed so the user can see they exist, but they are never
-  // exported: a workbook of zero bytes helps nobody.
   const exportable = useMemo(() => sheets.filter((s) => !s.empty), [sheets])
 
   const reportError = useCallback((message: string) => {
@@ -52,8 +43,6 @@ export function useWorkbook() {
   }, [])
 
   const loadFile = useCallback(async (file: File) => {
-    // Reject on the size the browser already knows, before reading. Past the
-    // ceiling the tab runs out of memory partway through instead of saying so.
     if (isOversizedWorkbook(file.size)) {
       setError(oversizedWorkbookMessage(file.size))
       return
@@ -75,7 +64,6 @@ export function useWorkbook() {
         setError('This file has no sheets in it.')
       }
     } catch {
-      // The thrown error can carry fragments of the file, so it is never shown.
       setLoaded(null)
       setSelected([])
       setLoadStatus('idle')
@@ -85,7 +73,6 @@ export function useWorkbook() {
     }
   }, [])
 
-  /** A previous archive no longer matches the current choices. */
   const clearResult = useCallback(() => {
     setResult(null)
     setProgress(null)
@@ -111,8 +98,6 @@ export function useWorkbook() {
 
   const selectFormat = useCallback(
     (next: ExportFormat) => {
-      // The archive on screen was written in the previous format, so it is
-      // dropped rather than left as a stale download.
       clearResult()
       setFormat(next)
     },
@@ -130,7 +115,6 @@ export function useWorkbook() {
   const separate = useCallback(async () => {
     if (!loaded || selected.length === 0) return
 
-    // Keep the workbook's own tab order, not the click order.
     const ordered = loaded.sheets
       .filter((s) => selected.includes(s.name) && !s.empty)
       .map((s) => s.name)

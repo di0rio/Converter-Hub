@@ -63,10 +63,6 @@ const FORMATS = [
   },
 ]
 
-/**
- * Naming every supported engine turned into a wall of text as the list grew.
- * A count plus a few recognisable names says the same thing in one line.
- */
 const HEADLINE_FORMATS = ['MySQL', 'PostgreSQL', 'SQL Server', 'SQLite']
 
 const SUPPORTED_SUMMARY = (() => {
@@ -78,11 +74,6 @@ const SUPPORTED_SUMMARY = (() => {
   return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, SQLite database files with their -wal, and Firebird 2.x databases.`
 })()
 
-/**
- * Say what was actually established. A dump carrying an engine's own markers
- * is named; plain SQL that carries none is read as MySQL, and says so rather
- * than claiming a detection.
- */
 function describeSource(
   sourceFormat: FormatDescriptor | null,
   confidence: FormatConfidence | null,
@@ -98,9 +89,7 @@ export function SqlExtractor({
   selection,
   onFiles,
 }: {
-  /** Files the SQL tool routed here as a dump. Loaded when they change. */
   selection?: File[] | undefined
-  /** Hands a new pick back to the SQL tool, which decides who reads it. */
   onFiles?: ((files: File[]) => void) | undefined
 } = {}) {
   const {
@@ -148,8 +137,6 @@ export function SqlExtractor({
     dump != null && sourceFormat != null && dump.databases.length > 0
   const databaseHasTables = database != null && database.tables.length > 0
 
-  // Counting walks every INSERT, so do it once per database and share the
-  // result with both the list and the windows.
   const rowCounts = useMemo(() => {
     const counts = new Map<string, number>()
     if (database) {
@@ -159,8 +146,6 @@ export function SqlExtractor({
     return counts
   }, [database])
 
-  // Previews belong to the database they were opened from; switching databases
-  // closes them rather than leaving windows pointing at tables that are gone.
   const handleSelectDatabase = useCallback(
     (name: string) => {
       closeAllWindows()
@@ -184,8 +169,6 @@ export function SqlExtractor({
         return
       }
 
-      // Reject on the size the browser already knows, before reading. Past the
-      // ceiling the tab runs out of memory partway through instead of saying so.
       if (isOversizedDump(file.size)) {
         reportFileError(oversizedDumpMessage(file.size))
         return
@@ -216,8 +199,6 @@ export function SqlExtractor({
     [database],
   )
 
-  // The workspace holds names; turning one back into a table is this tool's
-  // job, not the workspace's.
   const renderTablePreview = useCallback(
     (name: string) => {
       const table = database?.tables.find((t) => t.name === name)
@@ -329,8 +310,6 @@ export function SqlExtractor({
   )
 
   return (
-    // Two panes on desktop, stacked on narrow screens. The selection column is
-    // a fixed track so opening a preview can never resize or reflow it.
     <div className="flex w-full flex-col gap-6 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-8">
       <div className="no-scrollbar flex shrink-0 justify-center lg:w-[34rem] lg:justify-start lg:overflow-y-auto lg:pr-2">
         {selectionPanel}

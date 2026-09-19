@@ -176,8 +176,6 @@ describe('parseDump: PostgreSQL', () => {
         'CREATE SEQUENCE public.customers_id_seq',
       )
       expect(all.join('\n')).toContain('setval')
-      // Never in the shared postamble, where a partial export would drag it
-      // along for tables the user did not select.
       expect(dump.postamble).not.toContain('setval')
     })
 

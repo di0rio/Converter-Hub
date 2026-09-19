@@ -7,47 +7,24 @@ import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 
 interface FileSelectProps {
-  /** Unique per page: ties the label, the input and its description together. */
   id: string
-  /** The step's heading, e.g. "Select a database dump". */
   label: string
-  /** What the button says before a file is chosen. */
   buttonLabel: string
-  /** Extensions this tool reads, lowercase and dotted: ['.xlsx', '.csv']. */
   accept: string[]
-  /** The chosen file's name, once there is one. */
   fileName: string | null
   reading?: boolean
-  /** The line under the control. Both tools use it to say nothing is uploaded. */
   description: string
   onFile: (file: File) => void
   onError: (message: string) => void
-  /**
-   * Accept a whole selection rather than one file.
-   *
-   * A SQLite database in WAL mode is two or three files that only mean
-   * something together, so that tool takes the set and decides which is which.
-   * Left off, the control behaves as it always has and passes the first file.
-   */
   multiple?: boolean
   onFiles?: ((files: File[]) => void) | undefined
 }
 
-/** Named the way someone would read them aloud: ".xlsx, .xls or .csv". */
 export function listExtensions(accept: string[]): string {
   if (accept.length <= 1) return accept.join('')
   return `${accept.slice(0, -1).join(', ')} or ${accept[accept.length - 1]}`
 }
 
-/**
- * The entry point of every tool.
- *
- * One quiet row, not a large dashed target: this step is passed through once
- * and then sits at the top of a column of steps for the rest of the session, so
- * it should not outweigh the choices that follow it. It still accepts a drop -
- * the affordance costs nothing here - and it is a real button, so the keyboard
- * and a screen reader get the same path as the mouse.
- */
 export function FileSelect({
   id,
   label,
@@ -62,8 +39,7 @@ export function FileSelect({
   onFiles,
 }: FileSelectProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  // Counts nested dragenter/dragleave pairs; a plain boolean flickers off when
-  // the pointer crosses a child element.
+  // dragleave fires when crossing into a child, so count enter/leave pairs.
   const dragDepth = useRef(0)
   const [dragOver, setDragOver] = useState(false)
 
@@ -71,8 +47,6 @@ export function FileSelect({
     const files = chosen ? Array.from(chosen) : []
     if (files.length === 0) return
 
-    // A multi-file tool judges its own selection: the companions it accepts
-    // share a basename rather than an extension of their own.
     if (multiple && onFiles) {
       onFiles(files)
       return
@@ -109,7 +83,6 @@ export function FileSelect({
         className="sr-only"
         onChange={(event) => {
           handle(event.target.files)
-          // Reset so the same file can be picked again after starting over.
           event.target.value = ''
         }}
         aria-describedby={`${id}-desc`}
@@ -128,7 +101,6 @@ export function FileSelect({
           dragDepth.current = Math.max(0, dragDepth.current - 1)
           if (dragDepth.current === 0) setDragOver(false)
         }}
-        // Only a prevented dragover marks this element as a drop target.
         onDragOver={(event) => {
           event.preventDefault()
           event.dataTransfer.dropEffect = 'copy'

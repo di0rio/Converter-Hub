@@ -10,14 +10,6 @@ import { stripLeadingComments } from '../shared/syntax.js'
 import { IDENT, displayName, identAfter, normalizeKey } from './identifiers.js'
 import { findGeneratorOwners } from './generators.js'
 
-/**
- * A Firebird script has no notion of multiple databases or schemas - one
- * script targets one `.fdb` file. `CREATE DATABASE 'name.fdb'` names it; a
- * script that skips database creation (most restore scripts do, since the
- * file already exists) falls back to this, the same way the MySQL reader
- * falls back to `'database'` for a single-database dump with no CREATE
- * DATABASE or USE statement.
- */
 const FALLBACK_DATABASE_NAME = 'database'
 
 type StatementType =
@@ -54,12 +46,6 @@ function classify(sql: string): StatementType {
   return 'unknown'
 }
 
-/**
- * The database name from `CREATE DATABASE 'path/to/name.fdb' ...` - the
- * file's base name, without its directory or extension, the way a restore
- * target is usually referred to in conversation even though the statement
- * itself names a file path.
- */
 function databaseNameFromCreate(clean: string): string | null {
   const match = clean.match(/CREATE\s+DATABASE\s+'([^']+)'/i)
   if (!match) return null
@@ -70,32 +56,12 @@ function databaseNameFromCreate(clean: string): string | null {
   return stem.length > 0 ? stem : null
 }
 
-/**
- * Parse a Firebird SQL script into a normalised SqlDump.
- *
- * A script is one database, so this always produces at most one `Database`.
- * `SET TERM` is handled entirely by `splitScript` before any of this code
- * runs, so a trigger or procedure body full of internal semicolons already
- * arrives as one statement.
- *
- * Triggers and procedures are DDL, not tables: a trigger's text is preserved
- * - attached to the table it fires on when its `FOR` clause names one already
- * in the script, parked in the preamble/postamble otherwise - and never
- * becomes a selectable table itself. Generators (Firebird's sequences) are
- * attached to a table the same way, but only when a trigger's `GEN_ID` or
- * `NEXT VALUE FOR` call ties the two together; an unattached generator, or a
- * later `ALTER SEQUENCE` / `SET GENERATOR` that reseeds one, is parked rather
- * than guessed at. Statement text is stored verbatim so a SQL export stays
- * valid Firebird SQL; nothing here evaluates SQL.
- */
 export function parseFirebirdDump(sql: string): SqlDump {
   const statements = splitScript(sql, FIREBIRD_DIALECT)
   const generatorOwners = findGeneratorOwners(statements)
 
   let database: Database | null = null
   const tables = new Map<string, Table>()
-  // DDL that names a table before that table's CREATE TABLE has been seen -
-  // a generator or trigger preceding it in the script - waits here.
   const pendingPreData = new Map<string, string[]>()
 
   let preamble = ''
@@ -145,7 +111,6 @@ export function parseFirebirdDump(sql: string): SqlDump {
     return created
   }
 
-  /** Attach to the named table's preData if it exists yet, else buffer. */
   function attachOrBuffer(rawTable: string, stmt: string): void {
     const key = normalizeKey(rawTable)
     const existing = tables.get(key)

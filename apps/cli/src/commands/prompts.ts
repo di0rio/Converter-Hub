@@ -7,8 +7,6 @@ export async function resolveDatabase(
   dump: SqlDump,
   databaseName?: string,
 ): Promise<string> {
-  // MySQL and MariaDB group tables by database, PostgreSQL by schema. Say
-  // whichever the dump at hand actually uses.
   const grouping = describeFormat(dump.format).namespace
 
   if (databaseName) {
@@ -55,12 +53,10 @@ export async function resolveTables(
 
   const tableNames: string[] = db.tables.map((t) => t.name)
 
-  // Non-interactive: --all
   if (options.all) {
     return 'all'
   }
 
-  // Non-interactive: --tables
   if (options.tables) {
     const requested: string[] = options.tables
       .split(',')
@@ -79,7 +75,6 @@ export async function resolveTables(
     return requested
   }
 
-  // Interactive: prompt for all or specific
   const allResponse = await prompts({
     type: 'toggle',
     name: 'all',
@@ -98,7 +93,6 @@ export async function resolveTables(
     return 'all'
   }
 
-  // Interactive: multiselect tables
   const tableResponse = await prompts({
     type: 'multiselect',
     name: 'tables',

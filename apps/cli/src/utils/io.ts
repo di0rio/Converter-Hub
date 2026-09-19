@@ -14,8 +14,6 @@ export async function readSqlFile(
     throw new Error(`Error: File not found: ${filePath}`)
   }
 
-  // Check the size before reading. The whole file becomes one string, so a
-  // dump past the ceiling has to be refused rather than half-read.
   let size: number
   try {
     size = statSync(filePath).size

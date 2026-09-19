@@ -100,7 +100,6 @@ export function SheetSplitter() {
 
   const hasSheets = loadStatus === 'ready' && sheets.length > 0
 
-  // Only sheets with content can be opened: an empty one has nothing to show.
   const openable = useMemo(
     () => exportable.map((sheet) => sheet.name),
     [exportable],
@@ -113,16 +112,12 @@ export function SheetSplitter() {
 
   const workbook = loaded?.workbook ?? null
 
-  // The workspace holds names; turning one back into a sheet is this tool's
-  // job, not the workspace's.
   const renderSheetPreview = useCallback(
     (name: string) =>
       workbook ? <SheetViewer workbook={workbook} name={name} /> : null,
     [workbook],
   )
 
-  // Previews belong to the workbook they were opened from; loading another
-  // closes them rather than leaving windows pointing at sheets that are gone.
   const handleFile = useCallback(
     (file: File) => {
       closeAllWindows()
@@ -243,9 +238,6 @@ export function SheetSplitter() {
   )
 
   return (
-    // Two panes on desktop, stacked on narrow screens. The selection column is
-    // a fixed track so opening a preview can never resize or reflow it - the
-    // same shape the SQL tool uses.
     <div className="flex w-full flex-col gap-6 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-8">
       <div className="no-scrollbar flex shrink-0 justify-center lg:w-[34rem] lg:justify-start lg:overflow-y-auto lg:pr-2">
         {selectionPanel}

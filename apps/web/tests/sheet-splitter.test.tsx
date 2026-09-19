@@ -10,13 +10,6 @@ import * as XLSX from 'xlsx'
 import { strFromU8, unzipSync } from 'fflate'
 import { SheetSplitter } from '@/components/spreadsheet/sheet-splitter'
 
-/**
- * The whole flow, against the real hook and the real reader: choose a file,
- * pick sheets, split, download. Nothing here is mocked except the browser APIs
- * jsdom does not implement.
- */
-
-/** A synthetic workbook. No real spreadsheet is ever committed. */
 function makeFile(
   sheets: Record<string, unknown[][]>,
   name = 'clients.xlsx',
@@ -44,7 +37,6 @@ async function loadFile(container: HTMLElement, file: File) {
   )
 }
 
-/** The archive handed to the browser, unpacked. */
 function readArchive(blob: Blob): Promise<Record<string, Uint8Array>> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -74,7 +66,6 @@ let click: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   createObjectURL = vi.fn(() => 'blob:archive')
   revokeObjectURL = vi.fn()
-  // jsdom implements neither, and the download step is the point of the tool.
   Object.defineProperty(URL, 'createObjectURL', {
     value: createObjectURL,
     configurable: true,
@@ -108,7 +99,6 @@ describe('SheetSplitter', () => {
     expect(
       screen.getByText(/Processed entirely in your browser/i),
     ).toBeInTheDocument()
-    // The workspace is not blank while it waits.
     expect(
       screen.getByText(/Drop a sheet here to preview it/i),
     ).toBeInTheDocument()
@@ -153,14 +143,11 @@ describe('SheetSplitter', () => {
 
     expect(screen.getByText(/2 sheets found/)).toBeInTheDocument()
 
-    // Scoped to the list: a sheet name also appears in the preview header.
     const sheets = within(
       screen.getByRole('region', { name: /Select sheets/i }),
     )
     expect(sheets.getByText('Clients')).toBeInTheDocument()
     expect(sheets.getByText('Orders')).toBeInTheDocument()
-    // Data rows, not range rows: the header names the columns, the way the
-    // SQL tool counts a table's rows.
     expect(sheets.getByText('2 rows')).toBeInTheDocument()
     expect(sheets.getByText('1 row')).toBeInTheDocument()
   })
@@ -170,7 +157,6 @@ describe('SheetSplitter', () => {
 
     await loadFile(container, makeFile(SAMPLE))
 
-    // The workspace starts empty, exactly as the SQL tool's does.
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Preview Clients' }))
@@ -202,8 +188,6 @@ describe('SheetSplitter', () => {
     expect(sheets.getByText('Blank')).toBeInTheDocument()
     expect(sheets.getByText('empty')).toBeInTheDocument()
 
-    // Listed for transparency, but it does not count towards the export: one
-    // of one selectable sheet, not one of two.
     expect(sheets.getByText('1 / 1')).toBeInTheDocument()
     expect(screen.getByText('1 sheet ready to split.')).toBeInTheDocument()
   })
@@ -225,7 +209,6 @@ describe('SheetSplitter', () => {
       screen.getByRole('region', { name: /Split and download/i }),
     )
     expect(summary.getByText('clients_sheets.zip')).toBeInTheDocument()
-    // Two sheets in, two files out.
     expect(summary.getByText('Files').nextSibling).toHaveTextContent('2')
   })
 
@@ -240,7 +223,6 @@ describe('SheetSplitter', () => {
     })
     fireEvent.click(download)
 
-    // A blob: URL is this tab's own memory. Nothing is fetched or posted.
     expect(createObjectURL).toHaveBeenCalledTimes(1)
     expect(createObjectURL.mock.calls[0][0]).toBeInstanceOf(Blob)
     expect(click).toHaveBeenCalledTimes(1)
@@ -254,8 +236,6 @@ describe('SheetSplitter', () => {
     fireEvent.click(screen.getByRole('button', { name: /Split sheets/i }))
     await screen.findByRole('button', { name: /Download ZIP/i })
 
-    // The archive on screen was written as .xlsx, so it must not be offered
-    // as the result of a CSV split.
     fireEvent.click(screen.getByRole('radio', { name: /CSV/i }))
 
     expect(

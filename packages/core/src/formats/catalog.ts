@@ -4,54 +4,29 @@ import type {
   FormatDescriptor,
 } from './types.js'
 
-/**
- * The single source of truth for which database formats exist and how far each
- * one got. The UI list, the CLI's `--format` choices, the README table and the
- * compatibility matrix are all derived from here - nothing repeats these names
- * by hand.
- *
- * Detection works in two steps, which is what lets near-identical products stay
- * distinguishable without duplicating a parser:
- *
- *   1. FAMILY_MARKERS picks the family from signals the whole family shares.
- *   2. A member's own `markers` separate it from the family default.
- *
- * A member with no markers of its own is the family default: the format you get
- * when the family is recognised but nothing narrows it further.
- */
-
-// --------------------------------------------------------------- families
-
-/**
- * Signals that identify a family. These are the markers a dump tool writes
- * regardless of which product in the family produced it.
- */
 export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
   mysql: [
-    /\/\*!\d{5}/, // /*!40101 SET ... */ version-gated comments
+    /\/\*!\d{5}/,
     /^--\s*MySQL dump/im,
     /\bLOCK TABLES\b/i,
     /\bUNLOCK TABLES\b/i,
     /\bENGINE\s*=\s*[A-Za-z]+/i,
     /\bAUTO_INCREMENT\b/i,
     /\bDEFAULT CHARSET\s*=/i,
-    // A backtick-quoted identifier, but not one inside a comment: dump headers
-    // quite reasonably mention shell commands in backticks, and a PostgreSQL
-    // dump whose banner reads `cockroach dump ...` is not MySQL evidence.
     /^(?!\s*(?:--|#)).*`[^`\n]+`/m,
   ],
   postgresql: [
     /^--\s*PostgreSQL database dump/im,
     /^\\connect\b/im,
     /\bFROM stdin;/i,
-    /^\\\.$/m, // COPY data terminator
+    /^\\\.$/m,
     /\bSET search_path\b/i,
     /\bstandard_conforming_strings\b/i,
     /\bOWNER TO\b/i,
     /\bpg_catalog\./i,
   ],
   sqlserver: [
-    /^\s*GO\s*$/im, // batch separator on its own line
+    /^\s*GO\s*$/im,
     /\[dbo\]\s*\./i,
     /\bSET\s+IDENTITY_INSERT\b/i,
     /\bSET\s+ANSI_NULLS\b/i,
@@ -85,8 +60,6 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
   elasticsearch: [/^\s*\{[^\n]*"_index"\s*:/m, /"_source"\s*:\s*\{/],
   neo4j: [
     /\b(CREATE|MERGE)\s*\(\s*[A-Za-z_]\w*\s*:\s*[A-Za-z_]\w*\s*\{/,
-    // One quantifier for the type name, not `\w*[^\]]*`: those overlap, and
-    // the engine would try every division of the text between them.
     /-\s*\[\s*:[A-Za-z_][^\]]*\]\s*->/,
     /^\s*MATCH\s*\(/im,
   ],
@@ -112,12 +85,6 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
   none: [],
 }
 
-/**
- * The format a family resolves to when no member's own markers match.
- *
- * This is what keeps a plain `pg_dump` file reading as PostgreSQL rather than
- * as one of its derivatives.
- */
 export const FAMILY_DEFAULT: Record<DialectFamily, DatabaseFormat | null> = {
   mysql: 'mysql',
   postgresql: 'postgresql',
@@ -133,12 +100,9 @@ export const FAMILY_DEFAULT: Record<DialectFamily, DatabaseFormat | null> = {
   none: null,
 }
 
-// ---------------------------------------------------------------- catalog
-
 const DATABASE = { namespace: 'database', namespaceLabel: 'Database' } as const
 const SCHEMA = { namespace: 'schema', namespaceLabel: 'Schema' } as const
 
-/** A product with no local SQL dump this tool could read. */
 function notApplicable(
   id: DatabaseFormat,
   label: string,
@@ -156,15 +120,13 @@ function notApplicable(
 }
 
 export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
-  // ------------------------------------------------------- MySQL family
-
   mysql: {
     id: 'mysql',
     label: 'MySQL',
     status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    markers: [], // family default
+    markers: [],
   },
 
   mariadb: {
@@ -173,7 +135,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    // A MariaDB dump is a MySQL dump plus these; only they separate the two.
     markers: [/^--\s*MariaDB dump/im, /\/\*M!\d{5}/, /^--.*\bMariaDB\b/im],
   },
 
@@ -183,8 +144,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    // Dumpling writes no banner of its own, so the giveaway is the TiDB-only
-    // version-gated comment SHOW CREATE TABLE emits: /*T![clustered_index] */.
     markers: [
       /\/\*T!\[/,
       /^--\s*Dumpling\b/im,
@@ -200,8 +159,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    // mysqldump writes the server version it read from, and Percona's carries
-    // its own name and build suffix.
     markers: [/\bPercona\b/i, /\bXtraDB\b/i],
   },
 
@@ -211,7 +168,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    // Aurora reports itself as e.g. 8.0.mysql_aurora.3.04.0.
     markers: [/\bmysql_aurora\b/i, /\baurora_[a-z_]+\b/i],
   },
 
@@ -230,7 +186,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    // StarRocks writes its own table shape after the column list.
     markers: [
       /\bENGINE\s*=\s*OLAP\b/i,
       /\b(DUPLICATE|AGGREGATE|PRIMARY)\s+KEY\s*\([^)]*\)\s*(COMMENT|DISTRIBUTED|PARTITION)/i,
@@ -239,15 +194,13 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     ],
   },
 
-  // -------------------------------------------------- PostgreSQL family
-
   postgresql: {
     id: 'postgresql',
     label: 'PostgreSQL',
     status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
-    markers: [], // family default
+    markers: [],
   },
 
   cockroachdb: {
@@ -267,7 +220,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
       'name (FAMILY fam_0 (id)) is indistinguishable from a column named ' +
       'family, so it is left in the column list and shows up as an extra ' +
       'empty column. The quoted form cockroach dump normally writes is handled.',
-    // Not a loss, but the output carries a column the source never had.
     lossy: true,
   },
 
@@ -335,11 +287,8 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
-    // EDB Postgres Advanced Server writes its own session settings.
     markers: [/\bedb_[a-z_]+\b/i, /\bEnterpriseDB\b/i, /\bedbspl\b/i],
   },
-
-  // -------------------------------------------------- SQL Server family
 
   sqlserver: {
     id: 'sqlserver',
@@ -347,7 +296,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'sqlserver',
     ...SCHEMA,
-    markers: [], // family default
+    markers: [],
   },
 
   synapse: {
@@ -362,17 +311,13 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     ],
   },
 
-  // ------------------------------------------------------------ embedded
-
   sqlite: {
     id: 'sqlite',
     label: 'SQLite',
     status: 'supported',
     family: 'sqlite',
-    // SQLite has exactly one database and calls it `main`. That is SQLite's own
-    // word, so selecting it is honest rather than an invented grouping.
     ...DATABASE,
-    markers: [], // family default
+    markers: [],
   },
 
   duckdb: {
@@ -387,8 +332,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
       /\bCREATE\s+SEQUENCE\b[\s\S]*\bSTART\s+\d+/i,
     ],
   },
-
-  // ------------------------------------------------- standalone dialects
 
   firebird: {
     id: 'firebird',
@@ -422,7 +365,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     label: 'Cassandra',
     status: 'supported',
     family: 'cassandra',
-    // A keyspace holds tables the way a database does, and cqlsh calls it that.
     ...DATABASE,
     markers: [],
     note:
@@ -475,8 +417,6 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
       'represented - a table has nowhere to put an edge. The export counts ' +
       'the relationships it skipped and says so in the SQL it writes.',
   },
-
-  // ------------------------------------------------------ not applicable
 
   snowflake: notApplicable(
     'snowflake',

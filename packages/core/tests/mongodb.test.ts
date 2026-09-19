@@ -31,8 +31,6 @@ describe('parseMongoDump', () => {
   })
 
   it('columns are the union of the keys the documents use', () => {
-    // address and note appear only in the third document, tags only in the
-    // first. Taking the first document's shape would lose three columns.
     expect(toTabular(table('customers')).columns).toEqual([
       '_id',
       'full_name',
@@ -88,8 +86,6 @@ describe('parseMongoDump', () => {
   })
 
   it('skips a call whose argument is JavaScript rather than JSON', () => {
-    // Unquoted keys and ObjectId() are script, not data. Half-reading them
-    // would invent values; skipping loses nothing that was ever readable.
     const parsed = mongodbParser.parse(
       'use x;\ndb.a.insertMany([{ _id: ObjectId("aaa"), n: 1 }]);\n' +
         'db.b.insertMany([{ "_id": 1 }]);',
@@ -102,9 +98,6 @@ describe('parseMongoDump', () => {
   })
 
   it('treats a field named after an Object.prototype member as data', () => {
-    // A document may legitimately carry a field called toString, constructor
-    // or valueOf. Read through the prototype chain, a document missing that
-    // field returns the inherited function instead of nothing.
     const parsed = mongodbParser.parse(
       'use x;\ndb.a.insertMany([' +
         '{ "sku": "A1", "toString": "custom", "constructor": "c" },' +

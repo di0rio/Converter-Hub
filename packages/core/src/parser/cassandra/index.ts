@@ -9,12 +9,6 @@ import {
 } from '../shared/script-parser.js'
 import { qualifiedNameAfter } from '../shared/standard-names.js'
 
-/**
- * The keyspace an unqualified table belongs to when the script never says.
- *
- * `USE` names it in practice; this is only the fallback, and is deliberately a
- * plain word rather than an invented name.
- */
 const DEFAULT_KEYSPACE = 'default'
 
 type StatementType =
@@ -30,7 +24,6 @@ type StatementType =
 function classifyStatement(sql: string): StatementType {
   const clean = stripLeadingComments(sql)
   if (clean.length === 0) return 'comment'
-  // CQL also accepts // for a line comment.
   if (clean.startsWith('//')) return 'comment'
 
   if (/^CREATE\s+KEYSPACE\b/i.test(clean)) return 'create_keyspace'
@@ -43,19 +36,6 @@ function classifyStatement(sql: string): StatementType {
   return 'unknown'
 }
 
-/**
- * Parse a CQL script into a normalised SqlDump.
- *
- * Cassandra is not a SQL database, but CQL scripts are: a keyspace holds
- * tables, tables declare typed columns, and rows arrive as INSERT statements.
- * That is the whole shape this project's model needs, so a CQL script fits it
- * without stretching anything.
- *
- * What does not fit is left alone rather than approximated. Collection types
- * (`map<text, int>`) are read as one column, not flattened; user-defined types
- * are carried as text. Statement text is stored verbatim so a SQL export stays
- * valid CQL - this is not a converter. Nothing here is executed.
- */
 export function parseCassandraDump(sql: string): SqlDump {
   const statements = splitScript(sql, CQL_DIALECT)
 
@@ -68,8 +48,6 @@ export function parseCassandraDump(sql: string): SqlDump {
   let currentKeyspace: string | null = null
 
   function tableKey(keyspace: string, table: string): string {
-    // NUL cannot occur in an identifier, so it is the one separator that
-    // cannot make ("a b", "c") and ("a", "b c") collide.
     return keyspace + '\0' + table
   }
 

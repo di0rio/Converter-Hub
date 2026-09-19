@@ -47,8 +47,6 @@ describe('integration: parse → extract', () => {
         tables: 'all',
       })
 
-      // customers, products, orders have INSERT data
-      // categories does not
       expect(result.sql).toContain('INSERT INTO `customers`')
       expect(result.sql).toContain('INSERT INTO `products`')
       expect(result.sql).toContain('INSERT INTO `orders`')
@@ -206,7 +204,6 @@ describe('integration: parse → extract', () => {
         tables: 'all',
       })
 
-      // Allow at most two consecutive newlines (one blank line)
       expect(result.sql).not.toMatch(/\n\n\n/)
     })
   })
@@ -218,7 +215,6 @@ describe('integration: parse → extract', () => {
         tables: ['customers', 'products'],
       })
 
-      // Re-parse the extracted SQL
       const reParsed = parseDump(result.sql)
 
       expect(reParsed.databases.length).toBeGreaterThanOrEqual(1)

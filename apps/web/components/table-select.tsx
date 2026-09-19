@@ -8,24 +8,14 @@ import { PREVIEW_DRAG_TYPE } from '@/components/workspace'
 import { createDragGhost } from '@/lib/drag-ghost'
 
 interface TableSelectProps {
-  /**
-   * The tables to choose from, by name.
-   *
-   * Only the names are needed, so both tools pass their own table type: the SQL
-   * extractor's parsed tables and the SQLite reader's, without either having to
-   * adopt the other's model.
-   */
   tables: readonly { name: string }[]
   selectedTables: string[]
   allSelected: boolean
   someSelected: boolean
-  /** Row counts by table name, computed once by the parent. */
   rowCounts: Map<string, number>
-  /** Tables that currently have a preview window open. */
   previewedTables: string[]
   onToggle: (tableName: string) => void
   onToggleAll: () => void
-  /** Open a preview window for a table. Never changes the export selection. */
   onPreview: (tableName: string) => void
 }
 
@@ -40,8 +30,6 @@ export function TableSelect({
   onToggleAll,
   onPreview,
 }: TableSelectProps) {
-  // The live drag ghost, removed on dragend rather than on the next frame: a
-  // rAF can run before the browser has taken its snapshot.
   const ghostRef = useRef<HTMLElement | null>(null)
 
   const totalRows = tables.reduce(
@@ -94,8 +82,6 @@ export function TableSelect({
               key={table.name}
               draggable
               onDragStart={(event) => {
-                // A private type, so only the workspace reacts and a drop onto
-                // an unrelated text target does nothing.
                 event.dataTransfer.setData(PREVIEW_DRAG_TYPE, table.name)
                 event.dataTransfer.effectAllowed = 'copy'
 
@@ -126,11 +112,6 @@ export function TableSelect({
                 {rowLabel}
               </span>
 
-              {/* The non-drag path to a preview. Always visible below the
-                  desktop breakpoint, because a touch screen has no hover to
-                  reveal it with and tapping the row toggles the checkbox
-                  instead. Kept visible on focus so it is reachable by
-                  keyboard, not only by pointer. */}
               <button
                 type="button"
                 onClick={() => onPreview(table.name)}

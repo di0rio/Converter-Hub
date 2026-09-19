@@ -45,8 +45,6 @@ describe('toJson', () => {
   })
 
   it('keeps values exactly as they are', () => {
-    // JSON is read by programs, not reopened by a spreadsheet, so a prefix
-    // would only corrupt the value.
     const json = toJson(table(['v'], [['=1+1'], ['say "hi"']]))
 
     expect(JSON.parse(json)).toEqual([{ v: '=1+1' }, { v: 'say "hi"' }])

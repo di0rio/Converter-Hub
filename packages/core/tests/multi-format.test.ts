@@ -13,16 +13,6 @@ import { generateExport } from '../src/generator/index.js'
 import { extractDatabase } from '../src/extractor/index.js'
 import type { ExportFormat } from '../src/generator/index.js'
 
-/**
- * The matrix test: every format the project advertises has to survive the
- * whole pipeline, and the pipeline above the parser has to be indifferent to
- * which parser produced the model.
- *
- * This is the suite that stops the catalog drifting from reality. A format
- * marked `supported` with no fixture, no parser or a fixture the detector
- * cannot place fails here rather than reaching a user.
- */
-
 const READABLE = [...SUPPORTED_FORMATS, ...EXPERIMENTAL_FORMATS]
 
 function fixturePath(id: string): string {
@@ -80,8 +70,6 @@ describe('every readable format', () => {
       })
 
       it('carries no stray control character into a cell', () => {
-        // Tabs and newlines are legitimate cell content; the rest are not,
-        // and would mean a decoder let a raw escape or delimiter through.
         const dump = parseDump(fixture(descriptor.id))
         for (const database of dump.databases) {
           for (const table of database.tables) {
@@ -105,7 +93,6 @@ describe('one pipeline, every source format', () => {
     for (const format of EXPORTS) {
       it(`exports ${descriptor.label} to ${format.toUpperCase()}`, () => {
         const dump = parseDump(fixture(descriptor.id))
-        // The first grouping that actually holds tables.
         const database = dump.databases.find((d) => d.tables.length > 0)
         expect(database).toBeDefined()
 
@@ -125,26 +112,20 @@ describe('one pipeline, every source format', () => {
 
 describe('SQL export preserves the source dialect', () => {
   it("never rewrites one engine's SQL into another's", () => {
-    // A dialect converter is explicitly not part of this project, so the
-    // extracted SQL has to be the dump's own statements, verbatim.
     for (const descriptor of READABLE) {
       const dump = parseDump(fixture(descriptor.id))
       const database = dump.databases.find((d) => d.tables.length > 0)
       if (!database) continue
 
-      // generateExport packages everything as a ZIP, so read the SQL from the
-      // extractor directly rather than from the archive bytes.
       const sql = extractDatabase(dump, {
         database: database.name,
         tables: 'all',
       }).sql
 
-      // The header names the engine the dump came from, not a target.
       expect(sql).toContain(describeFormat(descriptor.id).label)
 
       for (const table of database.tables) {
         if (table.createStatement === '') continue
-        // Statement text survives byte for byte.
         expect(sql).toContain(table.createStatement.trimEnd())
       }
     }

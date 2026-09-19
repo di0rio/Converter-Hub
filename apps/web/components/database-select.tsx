@@ -12,7 +12,6 @@ interface DatabaseSelectProps {
   databases: DatabaseType[]
   value: string
   onChange: (name: string) => void
-  /** Supplies the word this engine uses for a grouping of tables. */
   sourceFormat: FormatDescriptor
 }
 
@@ -40,8 +39,6 @@ export function DatabaseSelect({
             <Radio value={db.name} />
             <Database className="size-4 shrink-0 text-muted-foreground" />
             <span className="text-sm">
-              {/* A schema belongs to a database. Showing the owner keeps two
-                  same-named schemas from looking like one entry. */}
               {db.catalog && (
                 <span className="text-muted-foreground">{db.catalog}.</span>
               )}

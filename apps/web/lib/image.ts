@@ -5,34 +5,17 @@ import {
   type IMAGE_OUTPUTS,
 } from '@/lib/formats'
 
-/**
- * Image conversion with nothing but the browser: decode through an `Image`,
- * draw onto a canvas, encode with `canvas.toBlob`.
- *
- * An SVG is checked by content - parsed with `DOMParser`, which runs nothing,
- * and required to have an `<svg>` root in the SVG namespace - then loaded
- * through `<img>` from a Blob URL. In that mode the browser runs no script
- * and fetches no external resource, and the SVG is never put into the page.
- */
-
 export type ImageInput = (typeof IMAGE_INPUTS)[number]
 export type ImageOutput = (typeof IMAGE_OUTPUTS)[number]
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 
-/** Past this, some browsers refuse the canvas or hand back a blank one. */
 const MAX_SIDE = 16384
 
-/**
- * A canvas costs four bytes a pixel, so a small file that decodes to a huge
- * image could take gigabytes. This caps the canvas near 256 MB.
- */
 const MAX_PIXELS = 64 * 1024 * 1024
 
-/** JPEG and WebP quality: the browsers' own default for JPEG. */
 const QUALITY = 0.92
 
-/** The `<svg>` root of a document, or null when the text is not SVG. */
 function parseSvg(text: string): Element | null {
   const document = new DOMParser().parseFromString(text, 'image/svg+xml')
   const root = document.documentElement
@@ -49,11 +32,6 @@ export function isSvg(text: string): boolean {
 
 const ABSOLUTE = /^\s*\d+(\.\d+)?(px)?\s*$/
 
-/**
- * An SVG with neither an absolute width nor height is drawn by the browser at
- * a default 300×150, letterboxed. Given a viewBox, it gets that size instead.
- * With one of the two set, the browser already derives the other from it.
- */
 function withSize(root: Element): string {
   const width = root.getAttribute('width') ?? ''
   const height = root.getAttribute('height') ?? ''
@@ -98,7 +76,7 @@ export async function convertImage(
   if (input === 'svg') {
     const root = parseSvg(await file.text())
     if (!root) throw new DataFormatError('This file is not an SVG image.')
-    // The SVG type is what makes the browser decode it as an image at all.
+    // Loaded through <img>, an SVG runs no script and fetches nothing.
     source = new Blob([withSize(root)], { type: FILE_FORMATS.svg.type })
   }
 
@@ -120,7 +98,6 @@ export async function convertImage(
   const context = canvas.getContext('2d')
   if (!context) throw new DataFormatError('This browser cannot draw images.')
   if (output === 'jpeg') {
-    // JPEG has no transparency; unpainted pixels would come out black.
     context.fillStyle = '#ffffff'
     context.fillRect(0, 0, width, height)
   }
@@ -130,7 +107,7 @@ export async function convertImage(
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, type, QUALITY),
   )
-  // A browser that cannot encode a type quietly writes PNG instead.
+  // A browser that can't encode the type silently returns a PNG.
   if (!blob || blob.type !== type) {
     throw new DataFormatError(`This browser cannot write ${label}.`)
   }

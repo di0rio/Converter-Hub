@@ -27,19 +27,16 @@ import { toJson, toMarkdown } from '@/lib/sheet-writers'
 export type Step = 'file' | 'database' | 'tables' | 'export'
 export type ConversionStatus = 'idle' | 'converting' | 'done'
 
-/** The core writes SQL, CSV and XLSX; JSON, JSON Lines and Markdown are the web writers. */
 export type DumpExportFormat = ExportFormat | TextExportFormat
 
 type TextExportFormat = 'json' | 'jsonl' | 'md'
 
-/** One JSON, JSON Lines or Markdown file per selected table, packed into a ZIP. */
 function textExport(
   database: Database,
   tables: readonly string[],
   format: TextExportFormat,
 ): ExportResult {
   const encoder = new TextEncoder()
-  // Table names become entry names, and two can collide once cleaned.
   const taken = new Set<string>()
   const files = database.tables
     .filter((table) => tables.includes(table.name))
@@ -89,22 +86,16 @@ export function useSqlDump() {
     [dump, selectedDatabase],
   )
 
-  /**
-   * The engine the loaded dump was read as. Drives the words the UI uses:
-   * PostgreSQL groups tables by schema, MySQL and MariaDB by database.
-   */
   const sourceFormat: FormatDescriptor | null = useMemo(
     () => (dump ? describeFormat(dump.format) : null),
     [dump],
   )
 
-  /** A previous archive no longer matches the current choices. */
   const clearResult = useCallback(() => {
     setResult(null)
     setStatus('idle')
   }, [])
 
-  /** Drop the table selection as well as the archive built from it. */
   const clearSelection = useCallback(() => {
     setSelectedTables([])
     clearResult()
@@ -123,13 +114,8 @@ export function useSqlDump() {
         return false
       }
 
-      // Detect once and hand the answer to the parser, so the UI can say
-      // whether the engine was recognised or only assumed.
       const detection = detectFormat(content)
 
-      // The core refuses anything it cannot place, and names an engine it
-      // recognises but cannot read. Both messages are safe to show as-is: they
-      // carry no SQL, no paths and nothing about the parser.
       let parsed: SqlDump
       try {
         parsed = parseDump(content, { format: detection.format ?? undefined })
@@ -156,7 +142,6 @@ export function useSqlDump() {
       setConfidence(detection.confidence)
       setError(null)
 
-      // A dump with exactly one database has nothing to choose between.
       if (parsed.databases.length === 1) {
         setSelectedDatabase(parsed.databases[0].name)
       }
@@ -218,8 +203,6 @@ export function useSqlDump() {
     setStatus('converting')
     setError(null)
 
-    // Yield once so the converting state paints before a large dump blocks
-    // the main thread.
     setTimeout(() => {
       try {
         const generated =

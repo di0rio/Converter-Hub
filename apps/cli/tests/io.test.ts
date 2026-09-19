@@ -26,8 +26,6 @@ describe('readSqlFile', () => {
     const path = join(dir, 'big.sql')
     await writeFile(path, 'x'.repeat(2048), 'utf-8')
 
-    // A small explicit ceiling stands in for the real one, so the test does
-    // not have to write hundreds of megabytes to exercise the refusal.
     await expect(readSqlFile(path, 1024)).rejects.toThrow(
       /The largest dump this tool reads is 1 KB/,
     )

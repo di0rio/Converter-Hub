@@ -10,7 +10,6 @@ function table(columns: string[], rows: (string | null)[][], name = 'users') {
   return { name, columns, rows }
 }
 
-/** The statements only, without the comment lines that open the file. */
 function body(sql: string): string {
   return sql.slice(sql.indexOf('CREATE TABLE'))
 }
@@ -50,7 +49,6 @@ describe('toSqlInserts', () => {
 
     expect(first.startsWith('-- ')).toBe(true)
     expect(second.startsWith('-- ')).toBe(true)
-    // Read by MySQL and MariaDB only; every other engine sees a comment.
     expect(third).toBe(MYSQL_MODE)
   })
 
@@ -84,8 +82,6 @@ describe('toSqlInserts', () => {
   })
 
   it('writes a backslash as itself, which the MySQL mode keeps literal', () => {
-    // Without NO_BACKSLASH_ESCAPES, a trailing backslash would escape the
-    // closing quote in MySQL and let the next value run as SQL.
     const sql = toSqlInserts(
       table(['a', 'b'], [['C:\\temp\\', '); DROP TABLE t; --']]),
       { tableName: 't' },
@@ -122,7 +118,6 @@ describe('toSqlInserts', () => {
 
     expect(statements(five)).toHaveLength(1)
     expect(statements(fiveOne)).toHaveLength(2)
-    // The second batch holds exactly the one row left over.
     expect(fiveOne.trimEnd().endsWith("VALUES\n  ('500');")).toBe(true)
   })
 

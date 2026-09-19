@@ -1,98 +1,50 @@
-/**
- * Lexical rules that differ between SQL dialects.
- *
- * Only the handful of rules this project's parsers actually need are modelled
- * here - this is not a general SQL grammar.
- */
-
-/**
- * How a dialect quotes an identifier.
- *
- * Most dialects use one character for both ends (`` `x` ``, `"x"`), which a
- * plain string describes. T-SQL brackets an identifier (`[x]`), so the two ends
- * differ and need a pair. A doubled closing character escapes itself in both
- * forms: `` `a``b` `` and `[a]]b]`.
- */
 export type QuoteSpec = string | { open: string; close: string }
 
 export interface SqlSyntax {
-  /** Characters, or character pairs, that delimit a quoted identifier. */
   identifierQuotes: readonly QuoteSpec[]
-  /** Whether a backslash escapes the next character inside a string literal. */
   backslashEscapes: boolean
-  /**
-   * Whether `<` and `>` nest, as they do in CQL's collection types
-   * (`map<text, frozen<list<int>>>`). A comma inside such a type belongs to
-   * the type, not to the column list.
-   *
-   * Only for dialects where the pair cannot also be a comparison operator -
-   * everywhere else this stays off, so `CHECK (a < b)` is left alone.
-   */
   angleBracketTypes?: boolean
 }
 
-/** MySQL and MariaDB: backtick identifiers, backslash escapes in strings. */
 export const MYSQL_SYNTAX: SqlSyntax = {
   identifierQuotes: ['`', '"'],
   backslashEscapes: true,
 }
 
-/**
- * PostgreSQL: double-quoted identifiers only, and standard-conforming strings
- * where a backslash is an ordinary character.
- */
 export const POSTGRES_SYNTAX: SqlSyntax = {
   identifierQuotes: ['"'],
   backslashEscapes: false,
 }
 
-/**
- * T-SQL: bracketed identifiers alongside the standard double-quoted form, and
- * standard strings where only a doubled quote escapes.
- */
 export const SQLSERVER_SYNTAX: SqlSyntax = {
   identifierQuotes: [{ open: '[', close: ']' }, '"'],
   backslashEscapes: false,
 }
 
-/**
- * SQLite accepts every quoting style it has ever been handed: backticks and
- * brackets for MySQL and T-SQL compatibility, double quotes as standard.
- */
 export const SQLITE_SYNTAX: SqlSyntax = {
   identifierQuotes: ['"', '`', { open: '[', close: ']' }],
   backslashEscapes: false,
 }
 
-/** Firebird, Oracle and Db2 all use standard double-quoted identifiers. */
 export const STANDARD_SYNTAX: SqlSyntax = {
   identifierQuotes: ['"'],
   backslashEscapes: false,
 }
 
-/** CQL: standard quoting, plus angle-bracketed collection types. */
 export const CQL_SYNTAX: SqlSyntax = {
   identifierQuotes: ['"'],
   backslashEscapes: false,
   angleBracketTypes: true,
 }
 
-// ------------------------------------------------------------- quoting
-
-/** The character that closes `spec`. */
 function closerOf(spec: QuoteSpec): string {
   return typeof spec === 'string' ? spec : spec.close
 }
 
-/** The character that opens `spec`. */
 function openerOf(spec: QuoteSpec): string {
   return typeof spec === 'string' ? spec : spec.open
 }
 
-/**
- * The closing character for an identifier quote opened by `ch`, or null when
- * `ch` does not open one.
- */
 export function identifierCloserFor(
   syntax: SqlSyntax,
   ch: string,
@@ -103,17 +55,12 @@ export function identifierCloserFor(
   return null
 }
 
-/**
- * Return the body of a parenthesised clause starting at `openIndex`,
- * respecting nesting, string literals and quoted identifiers.
- */
 export function readBalanced(
   sql: string,
   openIndex: number,
   syntax: SqlSyntax,
 ): string {
   let depth = 0
-  // The character that will close the literal or identifier currently open.
   let closer: string | null = null
 
   for (let i = openIndex; i < sql.length; i++) {
@@ -150,7 +97,6 @@ export function readBalanced(
   return ''
 }
 
-/** Split on commas that sit at nesting depth zero and outside any quoting. */
 export function splitTopLevel(body: string, syntax: SqlSyntax): string[] {
   const parts: string[] = []
   let current = ''
@@ -187,7 +133,6 @@ export function splitTopLevel(body: string, syntax: SqlSyntax): string[] {
     if (ch === '(') depth++
     else if (ch === ')') depth--
     else if (syntax.angleBracketTypes === true) {
-      // A collection type nests the same way parentheses do.
       if (ch === '<') depth++
       else if (ch === '>' && depth > 0) depth--
     }
@@ -205,10 +150,6 @@ export function splitTopLevel(body: string, syntax: SqlSyntax): string[] {
   return parts
 }
 
-/**
- * Strip leading comment lines from a statement, returning the remaining SQL.
- * Handles --, # and block comments at the start of a statement.
- */
 export function stripLeadingComments(sql: string): string {
   let rest = sql.trimStart()
 
@@ -233,7 +174,6 @@ export function stripLeadingComments(sql: string): string {
   return rest
 }
 
-/** Remove one layer of identifier quoting, undoubling any escaped quote. */
 export function unquoteIdentifier(raw: string, syntax: SqlSyntax): string {
   const value = raw.trim()
   const first = value[0]

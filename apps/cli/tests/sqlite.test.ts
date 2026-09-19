@@ -6,14 +6,6 @@ import { join } from 'node:path'
 import { unzipSync, strFromU8 } from 'fflate'
 import { sqliteCommand } from '../src/commands/sqlite.js'
 
-/**
- * The CLI has a filesystem, so it finds the -wal beside the database rather
- * than being handed it. That is the behaviour worth testing here: everything
- * downstream is the same code the web app runs.
- *
- * Fixtures are built at test time and hold invented data.
- */
-
 let dir: string
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'cli-sqlite-'))
@@ -32,14 +24,8 @@ function capture() {
   })
 }
 
-/**
- * Connections left open on purpose. Closing the last one checkpoints the log
- * away, and the garbage collector would close an unreferenced one whenever it
- * ran - so without this list the fixture loses its WAL at random.
- */
 const open: DatabaseSync[] = []
 
-/** Build a database, leaving `walOnly` stranded in the write-ahead log. */
 function build(name: string, schema: string, walOnly?: string): string {
   const path = join(dir, `${name}.db`)
   const db = new DatabaseSync(path)
@@ -74,7 +60,6 @@ describe('sqlite command', () => {
     expect(strFromU8(files['crew.csv'] as Uint8Array)).toContain('Ada')
   })
 
-  // The CLI must pick the -wal up on its own.
   it('reads the write-ahead log sitting beside the database', async () => {
     const path = build(
       'walcli',
@@ -152,8 +137,6 @@ describe('sqlite command: companion files', () => {
     expect(strFromU8(files['crew.csv'] as Uint8Array)).toContain('Grace')
   })
 
-  // Reading one database's log over another's pages would report rows that
-  // were never in the database the user named.
   it('refuses a -wal that belongs to another database', async () => {
     const left = build('left', 'CREATE TABLE t (a);')
     const right = build(

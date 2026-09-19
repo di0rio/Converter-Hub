@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useSqlDump } from '@/hooks/use-sql-dump'
 
-// Synthetic SQL dump fixture - no real production data
 const SAMPLE_SQL = `-- MySQL dump
 CREATE DATABASE IF NOT EXISTS \`shop_db\` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
 USE \`shop_db\`;
@@ -54,7 +53,6 @@ describe('useSqlDump', () => {
     expect(ok).toBe(true)
     expect(result.current.fileName).toBe('dump.sql')
     expect(result.current.error).toBeNull()
-    // A dump with exactly one database has nothing to choose between.
     expect(result.current.selectedDatabase).toBe('shop_db')
     expect(result.current.step).toBe('tables')
     expect(result.current.dump?.databases).toHaveLength(1)
@@ -73,7 +71,6 @@ describe('useSqlDump', () => {
     expect(dump.databases.map((d) => d.name)).toEqual(['shop_db'])
     const shop = dump.databases[0]
     expect(shop.tables.map((t) => t.name)).toEqual(['users', 'orders'])
-    // Table data should be captured
     expect(shop.tables[0].dataStatements).toHaveLength(1)
     expect(shop.tables[0].dataStatements[0]).toContain("'alice@example.com'")
   })
@@ -141,7 +138,6 @@ describe('useSqlDump', () => {
 
     expect(result.current.selectedDatabase).toBe('shop_db')
     expect(result.current.database?.name).toBe('shop_db')
-    // No tables selected yet, so we are on the tables step
     expect(result.current.step).toBe('tables')
     expect(result.current.selectedTables).toEqual([])
   })
@@ -168,7 +164,6 @@ describe('useSqlDump', () => {
     expect(result.current.selectedTables).toEqual(['users', 'orders'])
     expect(result.current.allTablesSelected).toBe(true)
 
-    // Toggle off
     act(() => {
       result.current.toggleTable('users')
     })
@@ -237,7 +232,6 @@ describe('useSqlDump', () => {
     act(() => {
       result.current.selectFormat('xlsx')
     })
-    // Changing the format must invalidate the previous archive.
     expect(result.current.result).toBeNull()
 
     act(() => {

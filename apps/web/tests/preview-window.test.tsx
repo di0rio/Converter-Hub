@@ -5,7 +5,6 @@ import { TableViewer } from '@/components/table-viewer'
 import { PreviewWindow } from '@/components/preview-window'
 import type { PreviewWindow as PreviewWindowState } from '@/hooks/use-preview-windows'
 
-// Synthetic fixture - no real data.
 const DUMP = [
   'CREATE TABLE `users` (`id` int NOT NULL, `name` varchar(50));',
   "INSERT INTO `users` VALUES (1,'Ana'),(2,'Bruno');",
@@ -54,14 +53,6 @@ function setup(
 
 const header = () => screen.getByLabelText('Move users window')
 
-/**
- * Dispatch a pointer gesture that actually carries coordinates.
- *
- * jsdom builds a bare `Event` for `pointerdown`/`pointermove`, dropping
- * clientX, clientY and button, so `fireEvent.pointerDown` cannot express a
- * gesture. A MouseEvent carries all three and React dispatches it to the
- * matching `onPointer*` handler by event name.
- */
 function pointer(
   element: Element,
   type: 'pointerdown' | 'pointermove' | 'pointerup',
@@ -112,7 +103,6 @@ describe('PreviewWindow', () => {
   it('tracks the pointer 1:1 from where the header was grabbed', () => {
     const { onChange } = setup()
 
-    // Grab 50px into the window, then move the pointer by (+100, +70).
     pointer(header(), 'pointerdown', {
       clientX: state.x + 50,
       clientY: state.y + 10,

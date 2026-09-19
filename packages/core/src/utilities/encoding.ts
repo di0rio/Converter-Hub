@@ -1,14 +1,5 @@
 import { DataFormatError } from '../records/index.js'
 
-/**
- * Text encodings: Base64, hex, URL encoding and HTML entities.
- *
- * Base64 and hex describe bytes, so text goes through UTF-8 on the way in and
- * must be valid UTF-8 on the way out - `btoa` on its own only handles Latin-1
- * and would corrupt anything else. Nothing here depends on `Buffer` or `btoa`,
- * which the browser, Bun and Node do not all have.
- */
-
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
 export function bytesToBase64(bytes: Uint8Array): string {
@@ -68,14 +59,12 @@ export function decodeBase64(text: string): string {
   return utf8(base64ToBytes(text))
 }
 
-/** The UTF-8 bytes of text as lowercase hex, two digits a byte. */
 export function encodeHex(text: string): string {
   return Array.from(new TextEncoder().encode(text), (byte) =>
     byte.toString(16).padStart(2, '0'),
   ).join('')
 }
 
-/** Hex back to text. Whitespace between bytes is allowed; case is not. */
 export function decodeHex(text: string): string {
   const clean = text.replace(/\s+/g, '')
   if (clean.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(clean)) {
@@ -88,7 +77,6 @@ export function decodeHex(text: string): string {
   return utf8(bytes)
 }
 
-/** Every character outside the unreserved set, as `encodeURIComponent` does. */
 export function encodeUrl(text: string): string {
   return encodeURIComponent(text)
 }
@@ -110,11 +98,6 @@ export function encodeHtmlEntities(text: string): string {
     .replace(/'/g, '&#39;')
 }
 
-/**
- * The named entities decoded: the five HTML gives meaning to, and the
- * non-breaking space. Every numeric entity is decoded; an unknown named one
- * is left as it was rather than guessed at.
- */
 const NAMED: Record<string, string> = {
   amp: '&',
   lt: '<',

@@ -8,46 +8,14 @@ import {
 } from '../shared/script-parser.js'
 import { tableFromDocuments } from '../shared/documents.js'
 
-/**
- * Read a Cypher script's nodes - `CREATE (n:Label {key: value, ...})`.
- *
- * Nodes sharing a label become a table and their properties become its
- * columns, which is a real mapping: a `:Person` node set is a table of people.
- *
- * Relationships are not. A graph's edges are the part this model has nowhere
- * to put - database, table, row has no place for "this node points at that
- * one" - so they are counted and reported, never invented into a table. That
- * loss is what keeps this format `experimental`, and the catalog note and the
- * app both say so before anyone exports.
- */
-
 const DEFAULT_DATABASE = 'neo4j'
 
-/** `CREATE (n:Label {` or `MERGE (n:Label {` - a node with properties. */
 const NODE =
   /\b(?:CREATE|MERGE)\s*\(\s*[A-Za-z_][\w]*\s*:\s*([A-Za-z_][\w]*)\s*(?:{|\))/g
 
-/**
- * A relationship arrow between two nodes, in either direction.
- *
- * The type name is matched by `[^\]]*` alone. Spelling it `[\w]*[^\]]*` reads
- * more precisely but every `\w` is also a `[^\]]`, so the two quantifiers
- * overlap and the engine has to try every way of dividing the text between
- * them. On a bracket that never closes that is quadratic: half a megabyte took
- * about three minutes. One quantifier is unambiguous, so the cost follows the
- * input.
- */
 const RELATIONSHIP =
   /-\s*\[\s*:?[A-Za-z_][^\]]*\]\s*->|<-\s*\[\s*:?[A-Za-z_][^\]]*\]\s*-/g
 
-/**
- * Read a Cypher property map into a record.
- *
- * Cypher writes unquoted keys and single-quoted strings, so this is not JSON
- * and cannot be handed to `JSON.parse`. Only scalars are read; a nested map or
- * list is kept as its source text, the same rule the other document readers
- * use for values that have no column of their own.
- */
 function readProperties(body: string): Record<string, unknown> {
   const properties: Record<string, unknown> = {}
   let index = 0
@@ -62,7 +30,6 @@ function readProperties(body: string): Record<string, unknown> {
     const name = match[1] as string
     const start = index
 
-    // Walk to the comma that ends this value, respecting nesting and quotes.
     let depth = 0
     let quote: string | null = null
     while (index < body.length) {
@@ -85,13 +52,12 @@ function readProperties(body: string): Record<string, unknown> {
     }
 
     properties[name] = decodeValue(body.slice(start, index).trim())
-    index++ // step past the comma
+    index++
   }
 
   return properties
 }
 
-/** One Cypher scalar as the value a cell should hold. */
 function decodeValue(raw: string): unknown {
   if (raw.length === 0) return null
   if (/^(null|NULL)$/.test(raw)) return null
@@ -108,7 +74,6 @@ function decodeValue(raw: string): unknown {
     return raw.slice(1, -1).replace(/\\(.)/g, '$1')
   }
 
-  // A map, a list or a function call: carry the source text rather than guess.
   return raw
 }
 
@@ -124,9 +89,6 @@ export function parseNeo4jDump(text: string): SqlDump {
     let properties: Record<string, unknown> = {}
     if (opensProperties) {
       const body = readBalancedBraces(text, NODE.lastIndex - 1)
-      // An unterminated property map means the rest of the file cannot be
-      // read: every node after this one would open a brace that also never
-      // closes, and each would rescan to the end. Keep what was read.
       if (body === null) break
       properties = readProperties(body)
     }
@@ -138,7 +100,6 @@ export function parseNeo4jDump(text: string): SqlDump {
 
   const tables: Table[] = []
   for (const [label, nodes] of labels) {
-    // A label whose nodes carry no properties has no columns, so no table.
     if (nodes.every((n) => Object.keys(n).length === 0)) continue
     tables.push(tableFromDocuments(label, DEFAULT_DATABASE, 'neo4j', nodes))
   }
@@ -156,7 +117,6 @@ export function parseNeo4jDump(text: string): SqlDump {
   return {
     format: 'neo4j',
     databases: tables.length > 0 ? [database] : [],
-    // Say what was dropped, in the dump itself, rather than losing it quietly.
     preamble:
       relationships > 0
         ? '-- ' +
@@ -168,14 +128,6 @@ export function parseNeo4jDump(text: string): SqlDump {
   }
 }
 
-/**
- * The body of a `{...}` starting at `open`, respecting nesting and quotes.
- *
- * `null` means the brace never closes, which is different from `{}` - an empty
- * body is a node with no properties, an unterminated one is a truncated file.
- * The caller needs to tell them apart: scanning to the end of the text once
- * per node is quadratic, and only stopping avoids it.
- */
 function readBalancedBraces(text: string, open: number): string | null {
   let depth = 0
   let quote: string | null = null

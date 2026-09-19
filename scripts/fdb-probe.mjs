@@ -1,10 +1,3 @@
-// Read a Firebird database with the core reader and print what it found:
-// the header, each table's name, row count and column count, and the tables
-// it could not read with the reason. Never prints row data.
-//
-//   bun run --filter @sql-extractor/core build
-//   node scripts/fdb-probe.mjs /path/to/DATABASE.FDB
-
 import { readFileSync } from 'node:fs'
 import { isFdbFile, readFdbDatabase } from '../packages/core/dist/index.js'
 

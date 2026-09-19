@@ -9,14 +9,6 @@ import {
 } from '../shared/script-parser.js'
 import { qualifiedNameAfter } from '../shared/standard-names.js'
 
-/**
- * The schema an unqualified Oracle table belongs to.
- *
- * Oracle resolves an unqualified name against the connected user's schema,
- * which a script file does not record. `ALTER SESSION SET CURRENT_SCHEMA` and
- * `CONNECT` name it when present; this is the last resort, and is deliberately
- * a plain word rather than an invented company-sounding name.
- */
 const DEFAULT_SCHEMA = 'default'
 
 type StatementType =
@@ -32,17 +24,8 @@ type StatementType =
   | 'set'
   | 'unknown'
 
-/** REM and PROMPT comment out the rest of their line, like `--` does. */
 const SCRIPT_DIRECTIVE = /^(REM|PROMPT)(\s|$)/i
 
-/**
- * Statement text with every leading comment removed, `REM` and `PROMPT` lines
- * included.
- *
- * Those lines travel attached to the statement that follows them, so treating
- * one as the whole statement would silently drop the table it introduces -
- * which is exactly what an Oracle script does before every CREATE TABLE.
- */
 function statementHead(sql: string): string {
   let rest = stripLeadingComments(sql)
 
@@ -69,7 +52,6 @@ function classifyStatement(sql: string): StatementType {
   if (/^CREATE\s+(?:UNIQUE\s+|BITMAP\s+)?INDEX\b/i.test(clean))
     return 'create_index'
   if (/^(CREATE|ALTER|DROP)\s+SEQUENCE\b/i.test(clean)) return 'sequence'
-  // A PL/SQL body is preserved as text; this project never implements PL/SQL.
   if (
     /^CREATE\s+(OR\s+REPLACE\s+)?(TRIGGER|PROCEDURE|FUNCTION|PACKAGE|TYPE)\b/i.test(
       clean,
@@ -82,18 +64,6 @@ function classifyStatement(sql: string): StatementType {
   return 'unknown'
 }
 
-/**
- * Parse an Oracle SQL script into a normalised SqlDump.
- *
- * Oracle groups tables by schema - a schema is a user - so each `Database`
- * here is a schema. A lone `/` closing a PL/SQL block is handled by
- * `splitScript` before any of this runs, as are `REM` and `PROMPT` lines.
- *
- * Only what is needed to reach tables, columns and rows is interpreted.
- * Triggers, procedures, packages and types are carried as text and never
- * appear as selectable tables. Statement text is stored verbatim so a SQL
- * export stays valid Oracle SQL. Nothing here is executed.
- */
 export function parseOracleDump(sql: string): SqlDump {
   const statements = splitScript(sql, ORACLE_DIALECT)
 
@@ -106,8 +76,6 @@ export function parseOracleDump(sql: string): SqlDump {
   let currentSchema: string | null = null
 
   function schemaKey(schema: string, table: string): string {
-    // NUL cannot occur in an identifier, so it is the one separator that
-    // cannot make ("a b", "c") and ("a", "b c") collide.
     return schema + '\0' + table
   }
 
@@ -155,11 +123,6 @@ export function parseOracleDump(sql: string): SqlDump {
     )
   }
 
-  /**
-   * The table a statement names, only if the script already declared it.
-   * Trailing DDL for a table that was never created belongs to the dump, not
-   * to a table entry invented for it.
-   */
   function existingTableNamedBy(
     statement: string,
     prefix: string,
@@ -170,11 +133,6 @@ export function parseOracleDump(sql: string): SqlDump {
     return tables.get(schemaKey(schema, qualified.name)) ?? null
   }
 
-  /**
-   * Park a statement that belongs to a table but is neither its DDL nor its
-   * rows. Whether it has to run before or after the rows is decided by where
-   * the script put it, which is the only ordering a script carries.
-   */
   function attach(table: Table, statement: string): void {
     if (table.dataStatements.length > 0)
       table.postDataStatements.push(statement)
@@ -186,7 +144,6 @@ export function parseOracleDump(sql: string): SqlDump {
     else preamble += statement + '\n'
   }
 
-  /** The table a `CREATE INDEX ... ON t` or trigger `ON t` clause names. */
   function tableAfterOn(statement: string): Table | null {
     return existingTableNamedBy(statement, String.raw`\bON\s+`)
   }
@@ -202,7 +159,6 @@ export function parseOracleDump(sql: string): SqlDump {
         if (match) {
           const name = (match[1] as string).replace(/^"|"$/g, '')
           currentSchema = name
-          // Naming a schema also selects it, the way USE does in MySQL.
           const schema = schemas.get(name)
           if (schema && schema.useStatement === '') schema.useStatement = stmt
           else park(stmt)
@@ -213,8 +169,6 @@ export function parseOracleDump(sql: string): SqlDump {
       }
 
       case 'create_user': {
-        // A user is a schema in Oracle. Record the name without creating an
-        // entry: a schema with no tables is nothing a user can select.
         const name = qualifiedNameAfter(
           stmt,
           String.raw`(?:CREATE|ALTER)\s+USER\s+`,
@@ -255,8 +209,6 @@ export function parseOracleDump(sql: string): SqlDump {
 
       case 'create_index':
       case 'plsql': {
-        // Both name the table they act on with ON; a PL/SQL body that names no
-        // table belongs to the script rather than to any one table.
         const table = tableAfterOn(stmt)
         if (table) attach(table, stmt)
         else park(stmt)

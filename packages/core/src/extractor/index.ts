@@ -5,16 +5,6 @@ import type {
 } from '../types/index.js'
 import { describeFormat } from '../formats/index.js'
 
-/**
- * Extract a database (or specific tables) from a parsed SQL dump,
- * producing a new SQL string.
- *
- * Every statement is reproduced exactly as the dump wrote it, so the result is
- * SQL for the engine the dump came from. This is not a dialect converter: a
- * PostgreSQL dump extracts to PostgreSQL SQL, never to MySQL SQL.
- *
- * Does not mutate the original dump.
- */
 export function extractDatabase(
   dump: SqlDump,
   options: ExtractionOptions,
@@ -29,7 +19,6 @@ export function extractDatabase(
     }
   }
 
-  // Filter tables
   const selectedTables =
     options.tables === 'all'
       ? database.tables
@@ -37,7 +26,6 @@ export function extractDatabase(
 
   const format = describeFormat(dump.format)
 
-  // Build output SQL
   const lines: string[] = []
 
   lines.push(`-- Extracted from ${format.label} dump`)
@@ -45,13 +33,11 @@ export function extractDatabase(
   lines.push(`-- Tables: ${selectedTables.length}`)
   lines.push('')
 
-  // Preamble
   if (dump.preamble) {
     lines.push(dump.preamble.trimEnd())
     lines.push('')
   }
 
-  // Database statements
   if (database.createStatement) {
     lines.push(database.createStatement.trimEnd())
   }
@@ -60,7 +46,6 @@ export function extractDatabase(
   }
   lines.push('')
 
-  // Tables
   for (const table of selectedTables) {
     lines.push(`-- Table: ${table.name}`)
 
@@ -90,7 +75,6 @@ export function extractDatabase(
     lines.push('')
   }
 
-  // Postamble
   if (dump.postamble) {
     lines.push(dump.postamble.trimEnd())
     lines.push('')

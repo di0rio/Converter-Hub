@@ -13,45 +13,26 @@ import type {
 interface PreviewWindowProps {
   window: PreviewWindowState
   name: string
-  /** Draws the item. The window does not know what it is holding. */
   children: ReactNode
   rowCount: number
-  /** True for the front-most window. */
   active: boolean
-  /** The workspace size, which every snap zone is measured against. */
   bounds: WorkspaceBounds
   onFocus: () => void
   onClose: () => void
   onMinimize: () => void
   onMaximize: () => void
   onChange: (patch: Partial<Omit<PreviewWindowState, 'id' | 'name'>>) => void
-  /** Report the region a release would snap to, so the workspace can draw it. */
   onSnapPreview: (rect: Rect | null) => void
 }
 
-/** Height of the window chrome, subtracted to size the scroll viewport. */
 const HEADER_HEIGHT = 33
-/**
- * Collapsed windows paint above every expanded one.
- *
- * A collapsed window is only a handle, and a handle that a maximised window can
- * bury is an item with no way back to it.
- */
 const COLLAPSED_LAYER = 100_000
-/** How long a maximise, restore or snap takes to settle. */
 const SETTLE_MS = 260
 
 type Gesture =
   | { kind: 'move'; grabX: number; grabY: number }
   | { kind: 'resize'; x0: number; y0: number; w: number; h: number }
 
-/**
- * One floating preview inside the workspace.
- *
- * Positioned absolutely against the workspace, never the viewport, so it cannot
- * drift over the selection panel or off the page. Gestures use native Pointer
- * Events with pointer capture - no drag-and-drop dependency is shipped.
- */
 export function PreviewWindow({
   window: win,
   name,
@@ -68,38 +49,24 @@ export function PreviewWindow({
 }: PreviewWindowProps) {
   const root = useRef<HTMLDivElement>(null)
   const gesture = useRef<Gesture | null>(null)
-  // The zone armed by the current drag. A ref as well as reported upward,
-  // because the release handler needs it after the last move.
   const pendingSnap = useRef<Rect | null>(null)
   const [dragging, setDragging] = useState(false)
-  // True only while a maximise, restore or snap plays out. Dragging and arrow
-  // keys stay untransitioned: one has to track the pointer 1:1, the other is
-  // repeated fast enough that any easing reads as lag.
   const [settling, setSettling] = useState(false)
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Capture keeps the gesture alive when the pointer leaves the window, but it
-  // is optional: it is absent in jsdom and throws when the id is not an active
-  // pointer. The move/up handlers work either way, so a failure is ignored.
   const capture = (element: HTMLElement, pointerId: number) => {
     try {
       element.setPointerCapture?.(pointerId)
-    } catch {
-      // No active pointer with this id; the gesture still tracks without capture.
-    }
+    } catch {}
   }
   const release = (element: HTMLElement, pointerId: number) => {
     try {
       if (element.hasPointerCapture?.(pointerId)) {
         element.releasePointerCapture(pointerId)
       }
-    } catch {
-      // Already released, or never captured.
-    }
+    } catch {}
   }
 
-  // A gesture in flight must not leave a stuck "dragging" state behind if the
-  // window unmounts mid-drag (closed from elsewhere, database switched).
   useEffect(
     () => () => {
       gesture.current = null
@@ -108,20 +75,12 @@ export function PreviewWindow({
     [],
   )
 
-  /** Ease the next geometry change instead of jumping to it. */
   function settle() {
     setSettling(true)
     if (settleTimer.current) clearTimeout(settleTimer.current)
     settleTimer.current = setTimeout(() => setSettling(false), SETTLE_MS)
   }
 
-  /**
-   * The pointer in workspace coordinates.
-   *
-   * The window's offset parent *is* the workspace, so the origin is read from
-   * the live layout rather than passed down and kept in sync. Null in jsdom,
-   * where there is no layout and snapping is simply off.
-   */
   function workspacePoint(event: React.PointerEvent) {
     const parent = root.current?.offsetParent as HTMLElement | null
     if (!parent?.getBoundingClientRect) return null
@@ -131,8 +90,6 @@ export function PreviewWindow({
   }
 
   function startMove(event: React.PointerEvent<HTMLElement>) {
-    // `button` is undefined under synthetic events in jsdom; only reject a real
-    // non-primary button.
     if (event.button && event.button !== 0) return
     onFocus()
     gesture.current = {
@@ -169,8 +126,6 @@ export function PreviewWindow({
         pendingSnap.current = target
         onSnapPreview(target)
       }
-      // The grab offset is kept, so the window tracks the pointer 1:1 from
-      // wherever it was picked up rather than snapping to a corner.
       onChange({ x: event.clientX - g.grabX, y: event.clientY - g.grabY })
       return
     }
@@ -196,15 +151,12 @@ export function PreviewWindow({
 
     onSnapPreview(null)
     settle()
-    // The pre-snap geometry becomes the restore target, so the same button that
-    // un-maximises also undoes a snap.
     onChange({
       ...snap,
       restore: { x: win.x, y: win.y, width: win.width, height: win.height },
     })
   }
 
-  /** Nudge with the keyboard, so moving a window never requires a pointer. */
   function onHeaderKeyDown(event: React.KeyboardEvent<HTMLElement>) {
     const step = event.shiftKey ? 24 : 8
     const moves: Record<string, [number, number]> = {
@@ -245,8 +197,6 @@ export function PreviewWindow({
       className={
         'absolute flex flex-col overflow-hidden rounded-xl border bg-card ' +
         'motion-safe:animate-preview-in ' +
-        // Only shadow, border and depth react to focus: no size or position
-        // change, so raising a window never shifts anything on screen.
         'transition-shadow duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ' +
         (settling
           ? 'motion-safe:transition-[left,top,width,height,box-shadow] ' +
@@ -258,8 +208,6 @@ export function PreviewWindow({
       }
     >
       <header
-        // A real gesture surface, not a control: the buttons inside it stay the
-        // keyboard path, and the header itself is reachable for arrow-key moves.
         tabIndex={0}
         aria-label={`Move ${name} window`}
         onPointerDown={startMove}
@@ -335,7 +283,6 @@ export function PreviewWindow({
             onPointerCancel={endGesture}
             className="group absolute right-0 bottom-0 size-4 cursor-nwse-resize touch-none select-none"
           >
-            {/* A hairline corner mark. The 16px parent is the real hit area. */}
             <div
               aria-hidden="true"
               className={
@@ -353,7 +300,6 @@ export function PreviewWindow({
   )
 }
 
-/** A title-bar control: small target, instant press feedback, never a drag. */
 function WindowButton({
   label,
   onClick,
@@ -369,8 +315,6 @@ function WindowButton({
     <button
       type="button"
       onClick={onClick}
-      // The header owns pointer gestures; stop this one so pressing a control
-      // never starts a drag.
       onPointerDown={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
       aria-label={label}

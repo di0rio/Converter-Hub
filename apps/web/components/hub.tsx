@@ -2,13 +2,6 @@ import Link from 'next/link'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { HUB_NAME, HUB_TAGLINE, TOOLS } from '@/lib/tools'
 
-/**
- * A tool's card on the hub.
- *
- * The whole card is the link rather than a button inside it: a card-sized
- * target is easier to hit on a phone, and it leaves one tab stop per tool
- * instead of one stop that does nothing plus one that navigates.
- */
 function ToolCard({
   tool,
   index,
@@ -21,12 +14,7 @@ function ToolCard({
   return (
     <Link
       href={tool.href}
-      // No prefetch: every tool is a static page that loads fast on click,
-      // and prefetching all of them on the hub downloads code nobody asked for.
       prefetch={false}
-      // The lift is small on purpose: enough to say the card is the target,
-      // not so much that the grid moves while the eye scans it. The press
-      // scale is the same feedback every button in the product gives.
       style={{ animationDelay: `${index * 60}ms` }}
       className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-5 transition-[background-color,border-color,box-shadow,translate,scale] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-input hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-safe:animate-step-in motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-sm motion-safe:active:scale-[0.99] motion-safe:active:translate-y-0"
     >
@@ -39,8 +27,6 @@ function ToolCard({
         <p className="mt-1 text-sm text-muted-foreground">{tool.tagline}</p>
       </div>
 
-      {/* What goes in and what comes out are separate facts, so they are
-          labelled rather than run together into one list of formats. */}
       <dl className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <div className="flex items-baseline gap-1.5">
           <dt>Reads</dt>

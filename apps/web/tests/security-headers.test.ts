@@ -9,11 +9,7 @@ async function scriptSrc(): Promise<string> {
   return csp?.split('; ').find((d) => d.startsWith('script-src')) ?? ''
 }
 
-// Tests run outside development, so this is the policy production serves.
 describe('Content Security Policy', () => {
-  // The SQLite reader is WebAssembly. Without this, the browser refuses to
-  // compile it and every SQLite file fails to open - in production only,
-  // because development adds 'unsafe-eval', which covers WebAssembly too.
   it('lets the browser compile WebAssembly', async () => {
     expect(await scriptSrc()).toContain("'wasm-unsafe-eval'")
   })

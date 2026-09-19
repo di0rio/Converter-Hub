@@ -17,19 +17,6 @@ import {
 } from '@sql-extractor/core'
 import type { ExportFile, SqliteTable } from '@sql-extractor/core'
 
-/**
- * Converting a SQLite database from the command line.
- *
- * The same reader the web app uses runs here, so a database converts to the same
- * bytes either way. What differs is where the files come from: the CLI has a
- * filesystem, so without an explicit `-wal` it reads the one beside the database
- * instead of waiting for someone to name it.
- *
- * Nothing is written back to the database. It is read into memory and opened
- * read-only.
- */
-
-/** Four times the browser's ceiling: Node has room a tab does not. */
 const MAX_SQLITE_FILE_BYTES = 1024 * 1024 * 1024
 
 export type SqliteFormat = 'sql' | 'csv' | 'xlsx'
@@ -42,23 +29,15 @@ export interface SqliteOptions {
 
 const require = createRequire(import.meta.url)
 
-/** wa-sqlite's WebAssembly binary, read from the installed package. */
 async function wasm(): Promise<Uint8Array> {
   const dist = dirname(require.resolve('wa-sqlite/dist/wa-sqlite.mjs'))
   return readFile(join(dist, 'wa-sqlite.wasm'))
 }
 
-/** Only messages this project wrote are shown; others may quote the file. */
 function safeMessage(cause: unknown, fallback: string): string {
   return cause instanceof SqliteReadError ? cause.message : fallback
 }
 
-/**
- * Convert the database among `paths`, with its `-wal` and `-shm` if given.
- *
- * Paths are paired by name, exactly as the browser pairs a selection, so a log
- * is only ever the one written beside its own database.
- */
 export async function sqliteCommand(
   paths: string[],
   options: SqliteOptions,
@@ -79,8 +58,6 @@ export async function sqliteCommand(
 
   const path = group.main.name
   const walPath = group.wal?.name ?? `${path}-wal`
-  // Checked before reading: the database and its log are read whole into
-  // memory, and a file past the ceiling would end in an out-of-memory crash.
   const size =
     statSync(path).size + (existsSync(walPath) ? statSync(walPath).size : 0)
   if (size > MAX_SQLITE_FILE_BYTES) {
@@ -89,7 +66,6 @@ export async function sqliteCommand(
     )
   }
   const main = await readFile(path)
-  // An empty log is what a checkpoint leaves behind; it carries nothing.
   const wal = existsSync(walPath) ? await readFile(walPath) : undefined
 
   let database
@@ -134,7 +110,6 @@ export async function sqliteCommand(
       content: toXlsx(chosen.map(sqliteToTabular)),
     })
   } else {
-    // Table names become entry names, and two can collide once cleaned.
     const taken = new Set<string>()
     for (const table of chosen) {
       files.push({

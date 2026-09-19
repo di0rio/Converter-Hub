@@ -19,8 +19,6 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  // Each tool sets its own title; the template keeps the product name on the
-  // tab without every page having to repeat it.
   title: { default: HUB_NAME, template: `%s · ${HUB_NAME}` },
   description: HUB_TAGLINE,
 }

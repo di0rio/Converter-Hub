@@ -6,7 +6,6 @@ import {
 } from '../shared/syntax.js'
 import type { DataBlock } from '../shared/format-parser.js'
 
-/** Clauses inside CREATE TABLE that declare something other than a column. */
 const CONSTRAINT_KEYWORDS = [
   'PRIMARY',
   'UNIQUE',
@@ -19,13 +18,8 @@ const CONSTRAINT_KEYWORDS = [
   'CHECK',
 ]
 
-/** `SHARD KEY (...)`, `SORT KEY (...)` - SingleStore's distribution clauses. */
 const VENDOR_INDEX_CLAUSE = /^(SHARD|SORT|CLUSTERED)\s+KEY\b/i
 
-/**
- * Column names from a CREATE TABLE statement, in declaration order.
- * Constraint and index clauses are skipped.
- */
 export function readColumns(createStatement: string): string[] {
   const openIndex = createStatement.indexOf('(')
   if (openIndex === -1) return []
@@ -43,9 +37,6 @@ export function readColumns(createStatement: string): string[] {
       continue
     }
 
-    // Index clauses the MySQL-family forks add. Matched as a pair, never by
-    // first word alone: `sort` and `shard` are perfectly good column names,
-    // and KEY is not a type, so only the two-word form is unambiguous.
     if (VENDOR_INDEX_CLAUSE.test(part)) continue
 
     const firstWord = part.split(/\s+/)[0]?.toUpperCase() ?? ''
@@ -58,7 +49,6 @@ export function readColumns(createStatement: string): string[] {
   return columns
 }
 
-/** Decode one SQL literal into the string a spreadsheet cell should hold. */
 function decodeLiteral(raw: string): string | null {
   const value = raw.trim()
   if (value.length === 0) return null
@@ -94,7 +84,6 @@ function decodeLiteral(raw: string): string | null {
   return out
 }
 
-/** Value tuples from a single INSERT statement. */
 function readTuples(insertStatement: string): string[][] {
   const valuesIndex = insertStatement.search(/\bVALUES\b/i)
   if (valuesIndex === -1) return []
@@ -114,7 +103,6 @@ function readTuples(insertStatement: string): string[][] {
   return tuples
 }
 
-/** Explicit column list from `INSERT INTO t (a, b) VALUES ...`, if present. */
 function readInsertColumns(insertStatement: string): string[] | null {
   const valuesIndex = insertStatement.search(/\bVALUES\b/i)
   const openIndex = insertStatement.indexOf('(')
@@ -134,11 +122,6 @@ export function readDataBlock(statement: string): DataBlock {
   }
 }
 
-/**
- * Rows in one INSERT, counted without decoding any value.
- *
- * One multi-row INSERT counts as its rows rather than as one statement.
- */
 export function countDataRows(statement: string): number {
   return readTuples(statement).length
 }

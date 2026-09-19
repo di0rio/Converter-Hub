@@ -11,9 +11,7 @@ describe('jsonToTypeScript', () => {
 
   it('names a nested object after its key', () => {
     expect(
-      jsonToTypeScript(
-        '{"user":{"name":"Ada","address":{"city":"London"}}}',
-      ),
+      jsonToTypeScript('{"user":{"name":"Ada","address":{"city":"London"}}}'),
     ).toBe(
       [
         'export interface Root {\n  user: User\n}\n',
@@ -25,7 +23,9 @@ describe('jsonToTypeScript', () => {
 
   it('merges the objects of a list, marking fields some lack as optional', () => {
     expect(
-      jsonToTypeScript('{"people":[{"id":1,"name":"Ada"},{"id":2,"email":null}]}'),
+      jsonToTypeScript(
+        '{"people":[{"id":1,"name":"Ada"},{"id":2,"email":null}]}',
+      ),
     ).toBe(
       [
         'export interface Root {\n  people: PeopleItem[]\n}\n',

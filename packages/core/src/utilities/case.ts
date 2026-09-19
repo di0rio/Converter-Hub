@@ -1,16 +1,3 @@
-/**
- * Identifier case conversion.
- *
- * A line is split into words at every run of anything that is not a letter or
- * a digit - spaces, punctuation, `_`, `-`, `.` - and again where a lowercase
- * letter meets an uppercase one (`userName`) or an acronym meets the next word
- * (`XMLHttp`). Digits stay with the word before them (`id2`). Accented and
- * non-Latin letters are letters; case is changed with the locale-independent
- * rules, so the result does not depend on the machine it runs on.
- *
- * Each line converts on its own, so a list of names converts in one go.
- */
-
 export const CASE_STYLES = [
   'camel',
   'pascal',

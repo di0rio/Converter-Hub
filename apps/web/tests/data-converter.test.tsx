@@ -4,11 +4,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DataConverter } from '@/components/data-converter'
 
-/**
- * The data tool end to end: pick a synthetic fixture, pick an output, convert,
- * download one file. Only the object URL the download goes through is stubbed.
- */
-
 const fixture = (name: string) =>
   new File(
     [readFileSync(join(__dirname, '..', '..', '..', 'examples', 'data', name))],

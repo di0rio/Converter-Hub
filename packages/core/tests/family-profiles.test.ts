@@ -1,22 +1,3 @@
-/**
- * Do PostgreSQL- and MySQL-derived products read through the EXISTING
- * postgresql/mysql parsers, without any parser change?
- *
- * These products are not registered formats yet (no entry in
- * `parser/index.ts`'s PARSERS map), so `parseDump`/`getParser` cannot be used
- * for them - the fixtures are fed straight to `postgresParser` /
- * `createMysqlParser('mysql')`, bypassing format detection entirely. Every
- * table these parsers produce is stamped with `format: 'postgresql'` (or
- * `'mysql'`) regardless of which product wrote the dump; that stamping is a
- * fact about today's parsers, not something this suite is trying to fix.
- *
- * Each product gets one synthetic, `pg_dump`/`mysqldump`-shaped fixture under
- * `examples/<id>/sample.sql`, built the way the real tool actually writes
- * dumps - including the one clause that makes that product different from
- * plain PostgreSQL/MySQL. Where that clause trips up the parser, the fixture
- * is kept as written by the real tool and the behaviour is asserted as it
- * actually is, rather than bent until it passes.
- */
 import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -46,21 +27,6 @@ function table(dump: SqlDump, groupName: string, tableName: string): Table {
   return found
 }
 
-// ==================================================================
-// CockroachDB - `cockroach dump` output read by postgresParser
-// ==================================================================
-//
-// Verdict: works with gaps. Schema/table detection, statement placement and
-// row values all read correctly. But cockroach dump appends a trailing
-// `FAMILY "primary" (a, b, ...)` clause inside the CREATE TABLE parens, after
-// the last real column/constraint. postgresParser's CONSTRAINT_KEYWORDS list
-// (CONSTRAINT, PRIMARY, UNIQUE, FOREIGN, CHECK, EXCLUDE, LIKE) does not
-// include FAMILY, so `readColumns` falls through to the bare-identifier
-// regex and adds a bogus "FAMILY" column. That corrupts any consumer that
-// cross-references CREATE TABLE columns against row data (toTabular).
-// INSERT statements name their own columns explicitly, so decoding a
-// statement in isolation (readDataBlock) is unaffected - only the
-// CREATE-TABLE-derived column list is wrong.
 describe('family profile: CockroachDB (via postgresParser)', () => {
   let dump: SqlDump
 
@@ -100,8 +66,6 @@ describe('family profile: CockroachDB (via postgresParser)', () => {
   })
 
   it('still reads a PostgreSQL column that is genuinely named family', () => {
-    // FAMILY is not reserved, so skipping the clause must not cost a real
-    // column. This is the reason only the unambiguous forms are skipped.
     const create = 'CREATE TABLE public.people (id integer, family text);'
     expect(postgresParser.readColumns(create)).toEqual(['id', 'family'])
   })
@@ -112,9 +76,6 @@ describe('family profile: CockroachDB (via postgresParser)', () => {
   })
 
   it('decodes row values correctly when read from the INSERT statement directly', () => {
-    // readDataBlock takes its column list from the INSERT statement's own
-    // explicit column list, not from the CREATE TABLE - so it sidesteps the
-    // FAMILY bug entirely and proves the row *values* are fine.
     const stmt = table(dump, 'public', 'customers').dataStatements[0]
     const block = postgresParser.readDataBlock(stmt)
     expect(block.columns).toEqual(['id', 'full_name', 'email', 'signed_up_at'])
@@ -125,7 +86,7 @@ describe('family profile: CockroachDB (via postgresParser)', () => {
       '2024-01-15 10:30:00',
     ])
     expect(block.rows[1][1]).toBe('Renée Example')
-    expect(block.rows[1][2]).toBeNull() // NULL email
+    expect(block.rows[1][2]).toBeNull()
   })
 
   it('exports rows with no phantom column, which is what CSV and XLSX receive', () => {
@@ -145,15 +106,6 @@ describe('family profile: CockroachDB (via postgresParser)', () => {
   })
 })
 
-// ==================================================================
-// YugabyteDB - `ysql_dump` output read by postgresParser
-// ==================================================================
-//
-// Verdict: works unmodified. ysql_dump is close enough to pg_dump that this
-// is effectively a PostgreSQL dump: `SPLIT INTO n TABLETS` is a table- and
-// index-level trailing clause that sits *outside* the CREATE TABLE/INDEX
-// parens, so readColumns never sees it, and USING lsm on the index is just
-// text carried along verbatim.
 describe('family profile: YugabyteDB (via postgresParser)', () => {
   let dump: SqlDump
 
@@ -222,14 +174,6 @@ describe('family profile: YugabyteDB (via postgresParser)', () => {
   })
 })
 
-// ==================================================================
-// Greenplum - pg_dump output plus DISTRIBUTED BY/RANDOMLY, read by
-// postgresParser
-// ==================================================================
-//
-// Verdict: works unmodified. DISTRIBUTED BY (col) / DISTRIBUTED RANDOMLY sits
-// after the closing paren of CREATE TABLE, outside the region readColumns
-// balances over, so it is never mistaken for a column.
 describe('family profile: Greenplum (via postgresParser)', () => {
   let dump: SqlDump
 
@@ -278,19 +222,6 @@ describe('family profile: Greenplum (via postgresParser)', () => {
   })
 })
 
-// ==================================================================
-// Amazon Redshift - DDL with DISTKEY/SORTKEY/DISTSTYLE/ENCODE, read by
-// postgresParser
-// ==================================================================
-//
-// Verdict: works unmodified for the DDL shown here. ENCODE is a per-column
-// attribute that sits inside the same comma-separated column clause as the
-// column it modifies, so it never becomes its own list entry; DISTSTYLE,
-// DISTKEY(...) and SORTKEY(...) are table-level clauses after the closing
-// paren, same as Greenplum's DISTRIBUTED BY. Row data is carried as plain
-// INSERT statements here rather than COPY: Redshift's own bulk-load path is
-// `COPY ... FROM 's3://...'` / `UNLOAD`, not a local `COPY ... FROM stdin`
-// text block, so INSERT is the realistic shape for a portable local dump.
 describe('family profile: Amazon Redshift (via postgresParser)', () => {
   let dump: SqlDump
 
@@ -339,14 +270,6 @@ describe('family profile: Amazon Redshift (via postgresParser)', () => {
   })
 })
 
-// ==================================================================
-// TimescaleDB - pg_dump output plus SELECT create_hypertable(...), read by
-// postgresParser
-// ==================================================================
-//
-// Verdict: works unmodified. create_hypertable is a plain SELECT statement,
-// not DDL, so classifyStatement falls through to 'unknown' and it is parked
-// in preamble/postamble verbatim - it never touches column reading.
 describe('family profile: TimescaleDB (via postgresParser)', () => {
   let dump: SqlDump
 
@@ -393,14 +316,6 @@ describe('family profile: TimescaleDB (via postgresParser)', () => {
   })
 })
 
-// ==================================================================
-// Citus - pg_dump output plus SELECT create_distributed_table(...) /
-// create_reference_table(...), read by postgresParser
-// ==================================================================
-//
-// Verdict: works unmodified, for the same reason as TimescaleDB: both calls
-// are plain SELECT statements that classify as 'unknown' and are parked
-// verbatim, never interfering with column or row reading.
 describe('family profile: Citus (via postgresParser)', () => {
   let dump: SqlDump
 
@@ -450,16 +365,6 @@ describe('family profile: Citus (via postgresParser)', () => {
   })
 })
 
-// ==================================================================
-// TiDB - Dumpling output, read by createMysqlParser('mysql')
-// ==================================================================
-//
-// Verdict: works unmodified. The TiDB-specific `/*T![feature] ... */`
-// comments (guarding AUTO_RANDOM and CLUSTERED/NONCLUSTERED) contain their
-// own balanced parens, so readBalanced's paren-depth tracking returns to the
-// same depth after each comment and never mistakes comment text for a
-// column boundary; PRIMARY KEY / KEY clauses are skipped the same way they
-// are in a plain MySQL dump.
 describe('family profile: TiDB (via createMysqlParser)', () => {
   let dump: SqlDump
 

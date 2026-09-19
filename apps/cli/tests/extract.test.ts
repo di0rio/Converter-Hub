@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { extractCommand } from '../src/commands/extract.js'
 
-// Synthetic SQL dump fixture (no real production data)
 const SAMPLE_SQL = `-- MySQL dump
 CREATE DATABASE IF NOT EXISTS \`shop_db\` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
 USE \`shop_db\`;
@@ -47,7 +46,6 @@ CREATE TABLE \`posts\` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `
 
-// Synthetic PostgreSQL dump fixture (no real production data)
 const POSTGRES_SQL = `--
 -- PostgreSQL database dump
 --
@@ -190,9 +188,7 @@ describe('extractCommand', () => {
     const output = await readFile(outputPath, 'utf-8')
     expect(output).toContain('USE `shop_db`;')
     expect(output).toContain('CREATE TABLE `orders`')
-    // Should not leak unrelated tables from other databases
     expect(output).not.toContain('CREATE TABLE `posts`')
-    // Should not leak unrelated tables from the same database
     expect(output).not.toContain('CREATE TABLE `users`')
   })
 
@@ -241,7 +237,6 @@ describe('source formats', () => {
     expect(output).toContain('CREATE TABLE public.people')
     expect(output).toContain('COPY public.people')
     expect(output).toContain('Ada Example')
-    // PostgreSQL groups tables by schema, and the summary says so.
     expect(logSpy).toHaveBeenCalledWith(
       'Extracted 1 table(s) from schema "public" to ' + outputPath,
     )
@@ -275,8 +270,6 @@ describe('source formats', () => {
   })
 
   it('says a product with no local dump can never be read, not "not yet"', async () => {
-    // Snowflake unloads to cloud storage; there is no file to parse, so
-    // promising future support would be a lie.
     await expect(
       extractCommand(join(tmpDir, 'missing.sql'), {
         all: true,

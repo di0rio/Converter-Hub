@@ -1,13 +1,6 @@
 import { zipSync, strToU8 } from 'fflate'
 import type { TabularTable } from '../tabular/columns.js'
 
-/**
- * The writers every tool shares: CSV, XLSX, ZIP and safe file names.
- *
- * Nothing here knows about SQL dumps or their parsers, so a tool that only
- * writes files does not pull every dialect into its bundle.
- */
-
 export interface ExportFile {
   name: string
   content: Uint8Array
@@ -16,41 +9,21 @@ export interface ExportFile {
 const RESERVED = /[\\/:*?"<>|]/g
 const CONTROL = /[\x00-\x1F\x7F]/g
 
-/** Leading and trailing dots, dashes and spaces, which never carry meaning. */
 const EDGES = /^[.\-\s]+|[.\-\s]+$/g
 
-/**
- * A name taken from the user's file - a sheet, a table, a database - made safe
- * to name a saved file or a ZIP entry.
- *
- * The name is untrusted input for the archive it is about to name: the
- * separators that would let an entry escape its folder are replaced, leading
- * dots cannot produce a `..` entry or a hidden file, control characters are
- * stripped, and the length is capped. What survives is left alone - accents and
- * non-Latin scripts are legal in file names, and mangling them would only make
- * the output harder to recognise.
- */
 export function toFileName(name: string, fallback: string): string {
   const cleaned = name
     .replace(RESERVED, '-')
     .replace(CONTROL, '')
     .replace(/\s+/g, ' ')
-    // A run of separators reads as one, and a name made only of them collapses
-    // to nothing and falls through to the fallback.
     .replace(/-{2,}/g, '-')
     .replace(EDGES, '')
     .slice(0, 100)
-    // The cut can land on a separator, so tidy the new end as well.
     .replace(EDGES, '')
 
   return cleaned.length > 0 ? cleaned : fallback
 }
 
-/**
- * Two names can differ only by case ("Sales" and "sales"), or become equal
- * once cleaned ("a/b" and "a-b"), and either is one file on Windows and macOS.
- * Suffix the later ones so nothing is overwritten.
- */
 export function uniqueName(base: string, taken: Set<string>): string {
   let candidate = base
   for (let n = 2; taken.has(candidate.toLowerCase()); n++) {
@@ -60,26 +33,18 @@ export function uniqueName(base: string, taken: Set<string>): string {
   return candidate
 }
 
-// ---------------------------------------------------------------- CSV
-
 export type CsvDelimiter = ',' | ';' | '\t'
 
 export type CsvOptions = {
   delimiter?: CsvDelimiter
 }
 
-/**
- * A value starting with = + - @ tab or CR is read as a formula when Excel or
- * Sheets opens the file. Prefix it with ' so it stays literal text.
- */
 export function neutralizeFormula(value: string): string {
   return /^[=+\-@\t\r]/.test(value) ? "'" + value : value
 }
 
-/** RFC 4180: quote when the value contains the delimiter, a quote or a newline. */
 function csvCell(value: string | null, delimiter: CsvDelimiter): string {
   if (value === null) return ''
-  // Dump and spreadsheet content is untrusted and may carry a formula payload.
   const safe = neutralizeFormula(value)
   return safe.includes(delimiter) || /["\r\n]/.test(safe)
     ? '"' + safe.replace(/"/g, '""') + '"'
@@ -94,28 +59,18 @@ export function toCsv(
     cells.map((cell) => csvCell(cell, delimiter)).join(delimiter)
   const lines = [line(table.columns)]
   for (const row of table.rows) lines.push(line(row))
-  // Excel only reads UTF-8 CSV correctly when a byte order mark is present.
   return '\ufeff' + lines.join('\r\n') + '\r\n'
 }
 
-// --------------------------------------------------------------- XLSX
-
 function xmlEscape(value: string): string {
-  return (
-    value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      // XML 1.0 forbids most control characters outright.
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
-  )
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
 }
 
-/**
- * Excel worksheet names: at most 31 characters, none of : \ / ? * [ ],
- * not blank, and unique within the workbook.
- */
 function sheetName(name: string, taken: Set<string>): string {
   let base = name.replace(/[:\\/?*[\]]/g, '_').slice(0, 31)
   if (base.trim().length === 0) base = 'Sheet'
@@ -152,7 +107,6 @@ function sheetXml(table: TabularTable): string {
       .map((value, colIndex) => {
         if (value === null || value === '') return ''
         const ref = columnLetter(colIndex) + (rowIndex + 1)
-        // Leading zeros carry meaning in dumps (postcodes, ids) - keep them text.
         if (NUMERIC.test(value) && !/^-?0[0-9]/.test(value)) {
           return '<c r="' + ref + '"><v>' + value + '</v></c>'
         }
@@ -255,8 +209,6 @@ export function toXlsx(tables: TabularTable[]): Uint8Array {
 
   return zipSync(files, { level: 6 })
 }
-
-// ---------------------------------------------------------------- ZIP
 
 export function createZip(files: ExportFile[]): Uint8Array {
   const entries: Record<string, Uint8Array> = {}

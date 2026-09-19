@@ -42,10 +42,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const tool = findTool('data')
 
-/**
- * A text file is held whole in memory, parsed, and written again, so the
- * ceiling is what a tab holds comfortably three times over.
- */
 const MAX_DATA_BYTES = 50 * 1024 * 1024
 
 const EXTENSIONS = formatExtensions(DATA_INPUTS)
@@ -115,8 +111,6 @@ export function DataConverter() {
         }),
       )
     } catch (cause) {
-      // Only messages this project wrote are shown; a parser's own message can
-      // quote the file.
       setError(
         cause instanceof DataFormatError
           ? cause.message

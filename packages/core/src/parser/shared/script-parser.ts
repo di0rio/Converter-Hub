@@ -7,23 +7,6 @@ import {
   unquoteIdentifier,
 } from './syntax.js'
 
-/**
- * Reading columns and rows out of ordinary DDL and INSERT statements, driven
- * by a dialect rather than written once per format.
- *
- * A format only needs its own reader for something genuinely different -
- * PostgreSQL's COPY blocks, say. Plain `CREATE TABLE` and `INSERT` look close
- * enough across engines that the differences are all lexical, and lexical
- * differences live in the dialect.
- */
-
-/**
- * Clauses inside CREATE TABLE that declare something other than a column.
- *
- * The union across supported dialects. A keyword that is a constraint in one
- * engine is not a column name in another, so over-including here is safe in a
- * way that under-including is not.
- */
 const CONSTRAINT_KEYWORDS = new Set([
   'PRIMARY',
   'UNIQUE',
@@ -39,13 +22,6 @@ const CONSTRAINT_KEYWORDS = new Set([
   'PERIOD',
 ])
 
-/**
- * Column names from a CREATE TABLE statement, in declaration order.
- *
- * Only the first token of each clause can be a name: dialects write types as
- * several words (`character varying(255)`, `timestamp without time zone`), so
- * everything after the first token is type or modifier text.
- */
 export function readColumns(
   createStatement: string,
   dialect: SqlDialect,
@@ -61,8 +37,6 @@ export function readColumns(
     const part = rawPart.trim()
     if (part.length === 0) continue
 
-    // A quoted first token is a name whatever it spells - including a word
-    // that would otherwise read as a constraint keyword.
     const quoted = readQuotedHead(part, dialect)
     if (quoted !== null) {
       columns.push(quoted)
@@ -79,7 +53,6 @@ export function readColumns(
   return columns
 }
 
-/** The unquoted value of a leading quoted identifier, or null if unquoted. */
 function readQuotedHead(part: string, dialect: SqlDialect): string | null {
   const first = part[0]
   if (first === undefined) return null
@@ -97,9 +70,6 @@ function readQuotedHead(part: string, dialect: SqlDialect): string | null {
   return null
 }
 
-// ------------------------------------------------------------- literals
-
-/** Escape sequences that mean something other than the character itself. */
 const ESCAPES: Record<string, string> = {
   n: '\n',
   t: '\t',
@@ -111,24 +81,15 @@ const ESCAPES: Record<string, string> = {
   '\\': '\\',
 }
 
-/**
- * Decode one SQL literal into the string a spreadsheet cell should hold.
- *
- * Values that are not string literals - numbers, keywords, hex and function
- * calls - are handed back as written. Nothing is evaluated: a value that looks
- * like a call stays the text of that call rather than becoming its result.
- */
 export function decodeLiteral(raw: string, dialect: SqlDialect): string | null {
   let value = raw.trim()
   if (value.length === 0) return null
   if (value.toUpperCase() === 'NULL') return null
 
-  // A trailing cast (`'{}'::jsonb`) is type information, not part of the value.
   const cast = value.match(/^([\s\S]*?)::[A-Za-z_][\w\s."[\]]*$/)
   if (cast && /['"]\s*$/.test(cast[1] as string))
     value = (cast[1] as string).trim()
 
-  // A one-letter prefix marks the literal's kind without moving where it ends.
   let backslashes = dialect.syntax.backslashEscapes
   const prefix = value[0]
   if (
@@ -136,8 +97,6 @@ export function decodeLiteral(raw: string, dialect: SqlDialect): string | null {
     value[1] === "'" &&
     dialect.stringPrefixes.includes(prefix.toUpperCase())
   ) {
-    // X'ff' and B'01' are binary; keep them as written rather than inventing
-    // a text rendering of bytes.
     const upper = prefix.toUpperCase()
     if (upper === 'X' || upper === 'B') return value
     if (upper === 'E') backslashes = true
@@ -169,9 +128,6 @@ export function decodeLiteral(raw: string, dialect: SqlDialect): string | null {
   return out
 }
 
-// -------------------------------------------------------------- INSERT
-
-/** Value tuples from a single INSERT statement. */
 function readTuples(statement: string, dialect: SqlDialect): string[][] {
   const valuesIndex = statement.search(/\bVALUES\b/i)
   if (valuesIndex === -1) return []
@@ -192,7 +148,6 @@ function readTuples(statement: string, dialect: SqlDialect): string[][] {
   return tuples
 }
 
-/** Explicit column list from `INSERT INTO t (a, b) VALUES ...`, if present. */
 function readInsertColumns(
   statement: string,
   dialect: SqlDialect,
@@ -210,7 +165,6 @@ function readInsertColumns(
   )
 }
 
-/** Decode one INSERT statement into cell values. */
 export function readInsertBlock(
   statement: string,
   dialect: SqlDialect,
@@ -224,11 +178,6 @@ export function readInsertBlock(
   }
 }
 
-/**
- * Rows in one INSERT, counted without decoding any value.
- *
- * One multi-row INSERT counts as its rows rather than as one statement.
- */
 export function countInsertRows(
   statement: string,
   dialect: SqlDialect,

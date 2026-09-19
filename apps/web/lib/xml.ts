@@ -1,24 +1,5 @@
 import { DataFormatError } from '@sql-extractor/core'
 
-/**
- * XML as a plain value, read with the browser's own parser.
- *
- * The shape is fixed, so the same document always gives the same value:
- *
- * - the document becomes `{ [root]: value }`, names kept as the parser reports
- *   them, namespace prefix included;
- * - an attribute becomes `"@name"`;
- * - a child element becomes a property, and one that repeats becomes a list in
- *   document order;
- * - an element holding only text becomes that text, and an empty one `""`;
- * - text beside attributes or children goes under `"#text"`, each piece
- *   trimmed and joined by a space. Comments and processing instructions are
- *   left out; CDATA is text.
- *
- * `DOMParser` builds an inert document: it runs nothing and fetches nothing,
- * so an external entity or DTD in the file is never resolved.
- */
-
 export type XmlValue = string | { [key: string]: XmlValue | XmlValue[] }
 
 const ELEMENT = 1
@@ -67,8 +48,6 @@ export function parseXml(text: string): XmlValue {
     throw refuse()
   }
 
-  // A browser reports a syntax error as a document holding <parsererror>,
-  // whose text quotes the file - so it is detected, never shown.
   const root = document.documentElement
   if (!root || document.getElementsByTagName('parsererror').length > 0) {
     throw refuse()

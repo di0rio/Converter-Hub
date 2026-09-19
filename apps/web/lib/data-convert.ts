@@ -17,22 +17,12 @@ import { toMarkdown } from '@/lib/sheet-writers'
 import { parseXml } from '@/lib/xml'
 import { DATA_INPUTS, DATA_OUTPUTS, FILE_FORMATS } from '@/lib/formats'
 
-/**
- * The data tool: one structured file in, one file out.
- *
- * Every input becomes a plain value - a CSV becomes a list of records - and
- * every output is written from that value. JSON, JSON Lines and YAML take any
- * shape; the table outputs go through `recordsToTable`, which refuses a shape
- * that is not a table rather than flattening it.
- */
-
 export { DATA_INPUTS, DATA_OUTPUTS }
 export type DataInput = (typeof DATA_INPUTS)[number]
 export type DataOutput = (typeof DATA_OUTPUTS)[number]
 
 export type DataFile = { filename: string; bytes: Uint8Array; type: string }
 
-/** YAML is loaded only by a page that meets a YAML file or writes one. */
 const loadYaml = () => import('yaml')
 
 function rowsToRecords(rows: string[][]) {
@@ -57,8 +47,6 @@ export async function readData(
       return parseXml(text)
     case 'yaml': {
       const { parse } = await loadYaml()
-      // The library's default alias limit refuses a document that expands
-      // into a huge graph from a few bytes of anchors.
       try {
         return parse(text)
       } catch {
@@ -105,7 +93,6 @@ export async function writeData(
   }
 }
 
-/** Read `text` as `input` and write it as `output`, named after `name`. */
 export async function convertData(
   text: string,
   input: DataInput,

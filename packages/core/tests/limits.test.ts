@@ -49,7 +49,6 @@ describe('oversizedDumpMessage', () => {
   })
 
   it('carries nothing from the file itself', () => {
-    // The message reaches a user as-is, so it must hold no path and no content.
     expect(oversizedDumpMessage(1)).toBe(
       'That file is 1 bytes. The largest dump this tool reads is 250 MB.',
     )

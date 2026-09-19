@@ -15,7 +15,6 @@ describe('recordsToTable', () => {
       { id: 2, city: 'Porto' },
     ])
 
-    // Columns in the order they are first seen; a missing field is NULL.
     expect(table.columns).toEqual(['id', 'name', 'city'])
     expect(table.rows).toEqual([
       ['1', 'Ada', null],
@@ -36,7 +35,6 @@ describe('recordsToTable', () => {
     expect(table.rows).toEqual([['1'], ['2']])
   })
 
-  // XML and many APIs wrap a list in named layers: <people><person>...
   it('reaches a list through objects that each hold exactly one property', () => {
     const table = recordsToTable('t', {
       people: { person: [{ a: 1 }, { a: 2 }] },

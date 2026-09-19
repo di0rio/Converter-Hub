@@ -5,46 +5,31 @@ import {
   stripLeadingComments,
 } from '../shared/syntax.js'
 
-/**
- * A COPY statement whose rows follow it as raw text rather than as SQL.
- * `pg_dump` writes data this way unless it was run with `--inserts`.
- *
- * Applied to a statement with its leading comments stripped, since pg_dump
- * puts a comment block in front of every data section.
- */
 export const COPY_FROM_STDIN = /^COPY\b[\s\S]*?\bFROM\s+stdin\s*;/i
 
 export function isCopyStatement(statement: string): boolean {
   return COPY_FROM_STDIN.test(stripLeadingComments(statement))
 }
 
-/** The line psql uses to end a COPY data block. */
 const COPY_TERMINATOR = '\\.'
 
 function isIdentifierChar(ch: string | undefined): boolean {
   return ch !== undefined && /[A-Za-z0-9_$]/.test(ch)
 }
 
-/** True when nothing but whitespace has been written since the last newline. */
 function atLineStart(buffer: string): boolean {
   return /(^|\n)[ \t\r]*$/.test(buffer)
 }
 
-/** The `$tag$` opening a dollar-quoted string at `index`, or null. */
 function dollarTagAt(sql: string, index: number): string | null {
   const match = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/.exec(sql.slice(index))
   return match ? match[0] : null
 }
 
-/**
- * Read a COPY data block: every line after the statement up to and including
- * the `\.` terminator. Returns the raw text and where the scan should resume.
- */
 function readCopyData(
   sql: string,
   from: number,
 ): { block: string; next: number } {
-  // The COPY statement ends at its semicolon; data starts on the next line.
   const lineEnd = sql.indexOf('\n', from)
   if (lineEnd === -1) return { block: '', next: sql.length }
 
@@ -57,8 +42,6 @@ function readCopyData(
     const line = sql.slice(cursor, stop).replace(/\r$/, '')
 
     if (line === COPY_TERMINATOR) {
-      // Stop before the terminator line: the caller re-adds it, and an extra
-      // blank line here would restore as a row with one empty field.
       return {
         block: sql.slice(start, cursor).replace(/\r?\n$/, ''),
         next: end === -1 ? sql.length : end + 1,
@@ -69,18 +52,9 @@ function readCopyData(
     cursor = end + 1
   }
 
-  // Truncated dump: take what is there rather than losing the rows.
   return { block: sql.slice(start), next: sql.length }
 }
 
-/**
- * Split PostgreSQL dump text into statements.
- *
- * Beyond the usual quoting this has to understand three things psql emits that
- * are not SQL statements at all: backslash meta-commands such as `\connect`,
- * dollar-quoted bodies, and COPY blocks whose rows are raw text lines that may
- * contain semicolons.
- */
 export function splitStatements(sql: string): string[] {
   const statements: string[] = []
   let current = ''
@@ -96,7 +70,6 @@ export function splitStatements(sql: string): string[] {
     const ch = sql[i]
     const next = sql[i + 1]
 
-    // psql meta-command: a backslash opening a line owns the rest of that line.
     if (ch === '\\' && atLineStart(current)) {
       flush()
       const end = sql.indexOf('\n', i)
@@ -113,7 +86,6 @@ export function splitStatements(sql: string): string[] {
       continue
     }
 
-    // Block comments nest in PostgreSQL, unlike in MySQL.
     if (ch === '/' && next === '*') {
       let depth = 0
       const start = i
@@ -142,7 +114,6 @@ export function splitStatements(sql: string): string[] {
       continue
     }
 
-    // E'...' turns on backslash escapes for one literal.
     if (
       (ch === 'E' || ch === 'e') &&
       next === "'" &&
@@ -173,7 +144,6 @@ export function splitStatements(sql: string): string[] {
       continue
     }
 
-    // Standard-conforming string: only a doubled quote escapes.
     if (ch === "'" || ch === '"') {
       current += ch
       i++
@@ -221,15 +191,11 @@ export function splitStatements(sql: string): string[] {
   return statements
 }
 
-// ------------------------------------------------------------ identifiers
-
 const IDENTIFIER = String.raw`(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)`
 
-/** `schema.table`, `"My Schema"."My Table"` or a bare name. */
 export const QUALIFIED_NAME = String.raw`(${IDENTIFIER})(?:\s*\.\s*(${IDENTIFIER}))?`
 
 export interface QualifiedName {
-  /** `null` when the statement did not qualify the name with a schema. */
   schema: string | null
   name: string
 }
@@ -242,7 +208,6 @@ export function unquote(raw: string): string {
   return value
 }
 
-/** Read the qualified name that follows `prefix` in a statement. */
 export function qualifiedNameAfter(
   sql: string,
   prefix: string,
@@ -260,7 +225,6 @@ export function qualifiedNameAfter(
     : { schema: null, name: first }
 }
 
-/** The parenthesised column list of a COPY or INSERT header, if it has one. */
 export function columnListAfter(
   sql: string,
   headerEnd: number,

@@ -9,13 +9,6 @@ import {
 } from '@/components/ui/breadcrumb'
 import { HUB_NAME, type ConverterTool } from '@/lib/tools'
 
-/**
- * The heading every tool opens with.
- *
- * The breadcrumb is what makes two separate tools read as one product: it
- * names the hub, says which tool you are in, and is the way back. Two levels
- * do not justify a sidebar, so this is the whole of the navigation.
- */
 export function ToolHeader({
   tool,
 }: {

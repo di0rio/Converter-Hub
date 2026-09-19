@@ -7,33 +7,20 @@ import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { downloadFile } from '@/lib/download'
 
-/** One line of the "what you are about to get" summary. */
 export interface ResultFact {
   label: string
   value: string
 }
 
 interface DownloadStepProps {
-  /** Unique per page: ties the section to its own heading. */
   id: string
   label: string
-  /** What to say before the archive exists, e.g. "3 tables ready to convert." */
   pending: string
-  /** The button that starts the work, and what it says while working. */
   actionLabel: string
   actionIcon: LucideIcon
   busyLabel: string
   busy: boolean
-  /**
-   * Real counted progress, when the work reports any. A tool that cannot say
-   * how far along it is passes nothing and gets a plain spinner instead of an
-   * invented number.
-   */
   progress?: { done: number; total: number } | null
-  /**
-   * The finished file, once there is one: a ZIP unless a `type` says it is a
-   * single file of its own format.
-   */
   result: { filename: string; bytes: Uint8Array; type?: string } | null
   facts: ResultFact[]
   onRun: () => void
@@ -41,13 +28,6 @@ interface DownloadStepProps {
   onError: (message: string) => void
 }
 
-/**
- * The last step of every tool: run the conversion, then take the ZIP.
- *
- * Both tools end the same way, so this is one component rather than two that
- * drift apart - the wording and the summary lines are what differ, and they
- * are passed in.
- */
 export function DownloadStep({
   id,
   label,
@@ -97,12 +77,7 @@ export function DownloadStep({
           ))}
         </dl>
       ) : (
-        <p
-          className="text-sm text-muted-foreground"
-          // The count changes as the work runs, and a reader who is not
-          // watching the button should still hear it.
-          aria-live="polite"
-        >
+        <p className="text-sm text-muted-foreground" aria-live="polite">
           {counting
             ? `Processing ${progress.done} of ${progress.total}...`
             : pending}

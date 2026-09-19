@@ -38,7 +38,6 @@ describe('parseElasticsearchDump', () => {
   })
 
   it('columns are the union of the keys the documents use', () => {
-    // address and note appear only in the third document.
     expect(toTabular(table(dump, 'customers')).columns).toEqual([
       'full_name',
       'email',
@@ -105,7 +104,6 @@ describe('parseNeo4jDump', () => {
     const people = toTabular(table(dump, 'Person')).rows
     expect(people[0]?.[0]).toBe('1')
     expect(people[1]?.[2]).toBeNull()
-    // Cypher accepts double quotes too.
     expect(people[2]?.[1]).toBe('Zoë Example')
     expect(toTabular(table(dump, 'Product')).rows[0]?.[3]).toBe('true')
   })
@@ -149,12 +147,6 @@ describe('parseNeo4jDump', () => {
     expect(countRows(table(dump, 'Product'))).toBe(2)
   })
 
-  // Reading a dump is reading untrusted input, so the cost of reading one has
-  // to follow its size. These two shapes each used to cost time proportional
-  // to the square of the input: half a megabyte took just under three minutes,
-  // which is a denial of service reachable from an ordinary file. The
-  // assertion is a wall clock on purpose - the defect is spent time, and no
-  // assertion about the parsed result would have caught it.
   it('reads an unterminated relationship bracket in time with its size', () => {
     const text = 'CREATE (n:Person {id: 1});\n-[' + 'a'.repeat(512 * 1024)
 
@@ -176,10 +168,6 @@ describe('parseNeo4jDump', () => {
 
 describe('tableFromDocuments', () => {
   it('treats a key named after an Object.prototype member as data', () => {
-    // Shared by MongoDB, Elasticsearch and Neo4j, so a prototype-chain read
-    // here would break all three. A record may carry a field called toString
-    // or constructor; a record missing it must give null, not the inherited
-    // function.
     const built = tableFromDocuments('items', 'db', 'mongodb', [
       { sku: 'A1', toString: 'custom', constructor: 'c' },
       { sku: 'A2' },

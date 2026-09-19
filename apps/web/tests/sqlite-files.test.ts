@@ -33,7 +33,6 @@ describe('groupSqliteFiles', () => {
     },
   )
 
-  // The case that would silently report one database's rows as another's.
   it('refuses companions belonging to a different database', () => {
     expect(() =>
       groupSqliteFiles([file('database-a.db'), file('database-b.db-wal')]),
@@ -66,8 +65,6 @@ describe('groupSqliteFiles', () => {
 })
 
 describe('isSqliteSelection', () => {
-  // Page type 1, 16 KB pages, ODS 11 with the Firebird flag: a Firebird 2.5
-  // database header, whatever the file is called.
   const firebird = Uint8Array.from([
     1, 0, 0x39, 0x30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x40, 0x0b, 0x80,
   ])

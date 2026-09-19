@@ -14,15 +14,6 @@ import {
 import { sqliteToTabular, sqliteToSql } from '../src/sqlite/index.js'
 import type { SqliteFileSet } from '../src/sqlite/reader.js'
 
-/**
- * Every fixture here is built in a temporary directory at test time and holds
- * invented data. No real database is committed, and none is read.
- *
- * The WAL cases are the point of this file. A reader that opens only the main
- * file passes a naive test and still loses every row a user had not checkpointed,
- * so the fixtures deliberately strand data in the write-ahead log.
- */
-
 const require = createRequire(import.meta.url)
 const wasmPath = join(
   dirname(require.resolve('wa-sqlite/dist/wa-sqlite.mjs')),
@@ -35,13 +26,6 @@ beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'sqlite-fixture-'))
 })
 
-/**
- * Build a database and return its bytes.
- *
- * `walOnly` runs after a checkpoint, so everything it writes stays in the -wal
- * until something reads it back. The connection is left open while the files are
- * copied - closing it would checkpoint and defeat the fixture.
- */
 function build(
   name: string,
   schema: string,
@@ -110,7 +94,6 @@ describe('readSqliteDatabase', () => {
     expect(crew?.rowCount).toBe(2)
   })
 
-  // The reason this reader exists.
   it('finds rows that live only in the write-ahead log', async () => {
     const files = build(
       'walrows',
@@ -127,7 +110,6 @@ describe('readSqliteDatabase', () => {
       'also-only-in-wal',
     ])
 
-    // Proof the fixture is doing its job: without the WAL the rows are missing.
     const withoutWal = await readSqliteDatabase({ main: files.main }, wasm)
     expect(withoutWal.tables[0]?.rows.map((r) => r[1])).toEqual([
       'checkpointed',
@@ -164,9 +146,7 @@ describe('readSqliteDatabase', () => {
     expect([...(first?.[3] as Uint8Array)]).toEqual([0x00, 0xff, 0x10])
     expect(first?.[4]).toBeNull()
 
-    // A leading zero is text, not a number that lost a digit.
     expect(second?.[2]).toBe('007')
-    // An empty string is not NULL.
     expect(second?.[4]).toBe('')
   })
 
@@ -210,7 +190,6 @@ describe('readSqliteDatabase', () => {
     )
     const database = await readSqliteDatabase(files, wasm)
     expect(database.unreadable).toEqual([{ name: 'docs', reason: 'virtual' }])
-    // Neither the virtual table nor its shadow tables are offered as data.
     expect(database.tables.map((t) => t.name)).toEqual(['plain'])
   })
 
@@ -256,8 +235,6 @@ describe('rejecting what is not a readable database', () => {
   })
 
   it('refuses a truncated database instead of reading part of it', async () => {
-    // Checkpointed into the main file and grown past a single page, so that
-    // cutting it in half actually removes data rather than trailing zeroes.
     const path = join(dir, 'trunc.db')
     const db = new DatabaseSync(path)
     db.exec(`CREATE TABLE t (a TEXT);
@@ -274,7 +251,6 @@ describe('rejecting what is not a readable database', () => {
     )
   })
 
-  // A message that quoted the file could put the user's own data on screen.
   it('never puts database contents in the error message', async () => {
     const main = new TextEncoder().encode('secret-token-abc123 not sqlite')
     await expect(readSqliteDatabase({ main }, wasm)).rejects.toThrow(
@@ -325,9 +301,6 @@ describe('columns SQLite computes itself', () => {
 
     const [table] = (await readSqliteDatabase(files, wasm)).tables
 
-    // A generated value is derived, not stored. Leaving it out keeps every row
-    // lined up with its header, and keeps the SQL export replayable: SQLite
-    // refuses an INSERT that names a generated column.
     expect(table!.columns.map((c) => c.name)).toEqual(['net', 'label'])
     expect(table!.rows).toEqual([[10, 'ten']])
     expect(sqliteToSql([table!])).toContain(
@@ -343,8 +316,6 @@ describe('a write-ahead log SQLite would skip without a word', () => {
       'CREATE TABLE t (a); INSERT INTO t VALUES (1);',
       'INSERT INTO t VALUES (2);',
     )
-    // SQLite treats a log with a bad header as empty and opens the main file
-    // alone, which would export the database minus its latest rows.
     const wal = Uint8Array.from(files.wal!)
     wal[28] = (wal[28] as number) ^ 0xff
 

@@ -1,19 +1,8 @@
 import type { Rect, WorkspaceBounds } from '@/hooks/use-preview-windows'
 
-/** How close to an edge the pointer has to get before a zone arms. */
 export const SNAP_EDGE = 32
-/** How deep a corner zone reaches along the left and right edges. */
 const CORNER_DEPTH = 0.28
 
-/**
- * The region a window would take if the drag ended right now, or null when the
- * pointer is nowhere near an edge.
- *
- * Zones are read from the pointer, not the window, because a window is already
- * clamped against the walls: by the time it touches the left edge every drag
- * towards that side looks identical, and left-half and top-left could not be
- * told apart.
- */
 export function snapTarget(
   pointer: { x: number; y: number },
   bounds: WorkspaceBounds,
@@ -21,8 +10,6 @@ export function snapTarget(
   if (bounds.width <= 0 || bounds.height <= 0) return null
 
   const { x, y } = pointer
-  // A pointer outside the workspace belongs to no zone; pointer capture keeps
-  // delivering moves after the cursor has left.
   if (x < -SNAP_EDGE || y < -SNAP_EDGE) return null
   if (x > bounds.width + SNAP_EDGE || y > bounds.height + SNAP_EDGE) return null
 
@@ -48,8 +35,6 @@ export function snapTarget(
     return { x: left, y: 0, width: halfWidth, height: bounds.height }
   }
 
-  // The top edge between the two corners fills the workspace, the way a
-  // desktop window manager treats a drag into the title bar area.
   if (nearTop) {
     return { x: 0, y: 0, width: bounds.width, height: bounds.height }
   }

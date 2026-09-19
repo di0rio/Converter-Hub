@@ -13,15 +13,11 @@ describe('FormatCaveat', () => {
   })
 
   it('says nothing for a format that loses nothing', () => {
-    // MySQL carries no caveat, so a warning here would be noise that teaches
-    // people to dismiss the one that matters.
     render(<FormatCaveat sourceFormat={DATABASE_FORMATS.mysql} />)
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('says nothing for a format whose note is merely informative', () => {
-    // Cassandra documents what it does not read, but nothing is lost from
-    // what it does read.
     expect(DATABASE_FORMATS.cassandra.note).toBeTruthy()
     expect(DATABASE_FORMATS.cassandra.lossy).toBeUndefined()
 
@@ -35,7 +31,6 @@ describe('FormatCaveat', () => {
   })
 
   it('shows the catalog note verbatim for every lossy format', () => {
-    // The warning text is the catalog's, so it cannot drift from the docs.
     for (const format of allFormats().filter((f) => f.lossy === true)) {
       const { unmount } = render(<FormatCaveat sourceFormat={format} />)
       expect(screen.getByRole('alert')).toHaveTextContent(format.note as string)

@@ -1,37 +1,15 @@
 import type { NextConfig } from 'next'
 
-/**
- * The app reads dump files entirely in the browser and sends nothing anywhere.
- * These headers make that enforceable rather than merely true: `connect-src`
- * and `form-action` leave no route for a compromised dependency to ship a
- * user's data out, `object-src` and `base-uri` close the usual ways of getting
- * around that, and `frame-ancestors` keeps the page out of other sites.
- *
- * `script-src` allows inline scripts, and deliberately. Next hydrates through
- * an inline bootstrap script, and the only way to allow it without the keyword
- * is a per-request nonce - which requires every page to render dynamically,
- * giving up the static prerender that lets this app be served as files from a
- * CDN with no server at all. The exchange is worth making here because the
- * injection this would defend against has nowhere to enter: the app renders no
- * user-supplied HTML (no `dangerouslySetInnerHTML`, no `innerHTML`), takes
- * nothing from the URL, and has no server or database behind it. The
- * directives that carry this threat model - keeping a user's dump from leaving
- * the browser - are unaffected either way.
- */
 const isDev = process.env.NODE_ENV === 'development'
 
 const csp = [
   "default-src 'self'",
-  // 'wasm-unsafe-eval' lets the browser compile the SQLite engine, which is
-  // WebAssembly; it allows no JavaScript eval. 'unsafe-eval' is React Refresh
-  // in development only - it also covers WebAssembly, which is why a missing
-  // 'wasm-unsafe-eval' breaks SQLite in production and nowhere else.
+  // Next hydrates through an inline script, and a nonce would force every page
+  // to render dynamically. wasm-unsafe-eval is for the SQLite engine.
   `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
-  // Tailwind and Next inject styles through <style> tags.
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  // The archive is handed to the browser as a blob: URL by the download step.
   "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
@@ -46,7 +24,6 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'no-referrer' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-  // Nothing here needs a device or a location.
   {
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',

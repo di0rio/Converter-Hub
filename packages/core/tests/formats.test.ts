@@ -52,13 +52,11 @@ describe('detectFormat', () => {
   })
 
   it('refuses to choose when two engines are equally evidenced', () => {
-    // One marker each: a backtick identifier and a COPY terminator.
     const contradictory = ['SELECT `x`;', '\\.'].join('\n')
     expect(detectFormat(contradictory).format).toBeNull()
   })
 
   it('lets a clear majority win over an incidental marker', () => {
-    // A PostgreSQL dump that happens to contain a backtick in a value.
     const postgres = [
       '-- PostgreSQL database dump',
       'SET search_path = public;',

@@ -8,30 +8,17 @@ import { Label } from '@/components/ui/label'
 
 interface TableViewerProps {
   table: Table
-  /** When embedding inside a panel that provides its own header, drop the built-in one. */
   hideHeader?: boolean
-  /** Height of the scroll viewport in px, for a resizable parent. Defaults to a fixed 320. */
   height?: number
-  /**
-   * Drop the viewer's own border and radius. For a parent that already draws
-   * the frame, such as a preview window, so the two do not double up.
-   */
   bare?: boolean
 }
 
-/**
- * A dump table, ready to read.
- *
- * The grid itself is shared with the spreadsheet tool; what belongs here is
- * turning a parsed table into columns and rows, and saying which table it is.
- */
 export function TableViewer({
   table,
   hideHeader = false,
   height,
   bare = false,
 }: TableViewerProps) {
-  // Parsing is the expensive step, so it happens once per table, not per render.
   const data = useMemo(() => toTabular(table), [table])
   const total = data.rows.length
 

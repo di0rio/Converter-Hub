@@ -1,15 +1,5 @@
 import { DataFormatError } from '../records/index.js'
 
-/**
- * One moment, written as Unix seconds, Unix milliseconds and ISO 8601 UTC.
- *
- * The input may be any of the three. A whole number is seconds below 1e11 -
- * the year 5138 in seconds, a value every millisecond timestamp since 1973
- * exceeds - and milliseconds from there. An ISO 8601 date-time carrying an
- * offset is read at that offset; one without an offset is read as UTC, and the
- * result says so. Nothing is read in the machine's local timezone.
- */
-
 export type TimestampRead =
   | 'seconds'
   | 'milliseconds'
@@ -23,6 +13,7 @@ export type Timestamp = {
   iso: string
 }
 
+// In seconds this is year 5138; every millisecond timestamp since 1973 is above it.
 const SECONDS_LIMIT = 1e11
 
 const ISO =
@@ -40,7 +31,6 @@ function readIso(text: string): { read: TimestampRead; milliseconds: number } {
 
   const [, date, time, offset] = match
   if (!time) {
-    // A date alone is midnight UTC by the standard, offset or not.
     return {
       read: offset ? 'iso' : 'iso-assumed-utc',
       milliseconds: Date.parse(

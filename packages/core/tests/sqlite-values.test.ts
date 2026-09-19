@@ -7,12 +7,6 @@ import {
 } from '../src/sqlite/index.js'
 import type { SqliteTable } from '../src/sqlite/index.js'
 
-/**
- * SQLite stores what it was given: five storage classes, no coercion, and no
- * date type. These cover the conversions where a careless reader would quietly
- * lose or invent data.
- */
-
 describe('toCellText', () => {
   it('keeps NULL as null rather than as a word', () => {
     expect(toCellText(null)).toBeNull()
@@ -61,7 +55,6 @@ describe('toSqlLiteral', () => {
     expect(toSqlLiteral(1.5)).toBe('1.5')
   })
 
-  // SQLite has no literal for these, and writing one would not read back.
   it('writes a non-finite number as NULL', () => {
     expect(toSqlLiteral(Number.POSITIVE_INFINITY)).toBe('NULL')
     expect(toSqlLiteral(Number.NaN)).toBe('NULL')

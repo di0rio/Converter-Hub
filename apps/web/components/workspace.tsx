@@ -22,24 +22,13 @@ import {
   type Rect,
 } from '@/hooks/use-preview-windows'
 
-/**
- * The drag payload a row writes, so a stray text drop is ignored.
- *
- * One type for both tools: a workspace only ever sees drops from the list
- * beside it, and the names it accepts are checked against `names` anyway.
- */
 export const PREVIEW_DRAG_TYPE = 'application/x-converter-preview'
 
 interface WorkspaceProps {
-  /** Names that may be open. A window whose name is gone stops rendering. */
   names: string[]
-  /** Whether there is anything loaded yet; hides the controls when not. */
   ready: boolean
-  /** Draws one open item. This is all the workspace knows about content. */
   renderPreview: (name: string) => ReactNode
-  /** What one open thing is called: "table", "sheet". */
   noun: string
-  /** Drawn in the empty state, above the invitation to drop. */
   emptyIcon: LucideIcon
   windows: PreviewWindowState[]
   rowCounts: Map<string, number>
@@ -57,7 +46,6 @@ interface WorkspaceProps {
     id: string,
     patch: Partial<Omit<PreviewWindowState, 'id' | 'name'>>,
   ) => void
-  /** Report the measured workspace size, which clamps every window. */
   onMeasure: (bounds: { width: number; height: number }) => void
 }
 
@@ -82,16 +70,6 @@ const LAYOUT_OPTIONS = [
   { value: 'split' as const, label: 'Split', icon: <LayoutGrid /> },
 ]
 
-/**
- * The visualisation half of every tool: the surface that accepts dropped
- * items and decides how the open ones share the space.
- *
- * It knows nothing about what it is showing - a dump table and a spreadsheet
- * sheet both arrive as a name and a node to draw.
- *
- * It owns its own size (measured, not assumed) because every window position is
- * workspace-relative and has to be re-contained when the area changes.
- */
 export function Workspace({
   names,
   ready,
@@ -114,12 +92,10 @@ export function Workspace({
   onMeasure,
 }: WorkspaceProps) {
   const ref = useRef<HTMLDivElement>(null)
-  // Counts nested dragenter/dragleave pairs; a plain boolean flickers off when
-  // the pointer crosses a child element.
+  // dragleave fires when crossing into a child, so count enter/leave pairs.
   const dragDepth = useRef(0)
   const [dragOver, setDragOver] = useState(false)
   const [bounds, setBounds] = useState({ width: 0, height: 0 })
-  // The region the window being dragged would take on release.
   const [snap, setSnap] = useState<Rect | null>(null)
 
   useEffect(() => {
@@ -140,8 +116,6 @@ export function Workspace({
     return () => observer.disconnect()
   }, [onMeasure])
 
-  // A window is closed while a drag may still be armed; a stale guide would
-  // otherwise stay painted over an empty workspace.
   const clearSnap = useCallback(() => setSnap(null), [])
 
   const accepts = (event: React.DragEvent) =>
@@ -161,7 +135,6 @@ export function Workspace({
 
   const onDragOver = (event: React.DragEvent) => {
     if (!accepts(event)) return
-    // Only a prevented dragover marks this element as a drop target.
     event.preventDefault()
     event.dataTransfer.dropEffect = 'copy'
   }
@@ -176,27 +149,18 @@ export function Workspace({
     if (!name) return
 
     const target = event.currentTarget
-    // Re-measure before placing. The observer reports asynchronously, so a drop
-    // that lands right after a layout change would otherwise be clamped against
-    // a stale size and could sit slightly outside.
     onMeasure({ width: target.clientWidth, height: target.clientHeight })
 
-    // A full-width preview ignores the drop point, so only the windowed mode
-    // pays for reading it.
     if (mode !== 'windows') {
       onOpen(name)
       return
     }
 
-    // Offsets are relative to the padding box, which is the containing block
-    // for the absolutely positioned windows, so the border is subtracted out.
     const rect = target.getBoundingClientRect()
     const style = window.getComputedStyle(target)
     const originX = rect.left + parseFloat(style.borderLeftWidth)
     const originY = rect.top + parseFloat(style.borderTopWidth)
 
-    // Drop where the pointer landed, biased so the window opens under the
-    // cursor rather than hanging off it.
     onOpen(name, {
       x: event.clientX - originX - WINDOW_DEFAULT_WIDTH / 2,
       y: event.clientY - originY - 16,
@@ -204,8 +168,6 @@ export function Workspace({
   }
 
   const available = new Set(names)
-  // A window whose item vanished (database or workbook switched) must not
-  // render.
   const open = windows.filter((w) => available.has(w.name))
   const activeId = frontWindow(open)?.id ?? null
   const empty = open.length === 0
@@ -263,8 +225,6 @@ export function Workspace({
         className={
           'relative min-h-0 w-full flex-1 overflow-hidden rounded-xl border ' +
           'transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ' +
-          // The dashed outline is an invitation to drop. Once a table is on
-          // screen the frame turns solid and stops competing with the data.
           (empty ? 'border-dashed ' : 'border-solid ') +
           (dragOver
             ? 'border-ring bg-accent/40'
@@ -307,14 +267,10 @@ export function Workspace({
 
         {mode === 'windows' && (
           <>
-            {/* The landing zone, drawn under the window being dragged so the
-                window itself is never hidden by its own guide. */}
             {snap && (
               <div
                 aria-hidden="true"
                 className={
-                  // Dashed, like the empty workspace: the app already uses that
-                  // outline to mean "something lands here".
                   'pointer-events-none absolute z-0 rounded-xl border-2 border-dashed ' +
                   'border-primary/45 bg-primary/[0.07] motion-safe:animate-snap-in ' +
                   'transition-[left,top,width,height] duration-150 ' +

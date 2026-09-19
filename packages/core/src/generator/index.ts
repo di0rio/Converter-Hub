@@ -15,21 +15,11 @@ export interface ExportResult {
   tableCount: number
 }
 
-/** Keep generated names safe as archive entries and as saved files. */
 function safeFileName(name: string): string {
   const cleaned = name.replace(/[^A-Za-z0-9._-]/g, '_').replace(/^\.+/, '')
   return cleaned.length > 0 ? cleaned.slice(0, 100) : 'unnamed'
 }
 
-// -------------------------------------------------------- orchestration
-
-/**
- * Extract the selected database and tables and package them in the chosen
- * format as a ZIP archive.
- *
- * Everything here is a pure byte transformation: no filesystem, no network,
- * and the SQL is never executed.
- */
 export function generateExport(
   dump: SqlDump,
   options: ExtractionOptions,

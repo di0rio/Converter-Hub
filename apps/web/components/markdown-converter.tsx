@@ -14,14 +14,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const tool = findTool('markdown')
 
-/** A document, not a data dump: this is far past any real one. */
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
 
 type Input = (typeof MARKDOWN_INPUTS)[number]
 type Loaded = { name: string; text: string }
 type Result = { filename: string; bytes: Uint8Array; type: string }
 
-/** Each input has one output: Markdown becomes HTML, HTML becomes Markdown. */
 const OUTPUT_OF = { markdown: 'html', html: 'markdown' } as const
 
 const DIRECTIONS = [

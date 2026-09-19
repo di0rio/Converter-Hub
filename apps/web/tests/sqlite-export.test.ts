@@ -22,7 +22,6 @@ const table = (over: Partial<SqliteTable> = {}): SqliteTable => ({
 const entries = (bytes: Uint8Array) => unzipSync(bytes)
 
 describe('file names', () => {
-  // Table names come from the user's database and end up as ZIP entry paths.
   it('never lets a table name become a path, or two tables share a file', () => {
     const names = ['../../etc/passwd', 'Users', 'users', 'a/b', 'a-b']
     const result = buildSqliteExport(
@@ -119,8 +118,6 @@ describe('buildSqliteExport', () => {
     expect(records[0].name).toBe('Ada')
   })
 
-  // The protection exists because a spreadsheet opens CSV cells as formulas.
-  // Data arriving from SQLite is no more trustworthy than data from a sheet.
   it('keeps formula neutralisation for values out of SQLite', () => {
     const dangerous = table({ rows: [[1, '=SUM(A1:A9)']] })
     const result = buildSqliteExport('shop', [dangerous], 'csv')

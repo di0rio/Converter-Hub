@@ -20,7 +20,6 @@ const hex = (text: string) =>
     Number.parseInt(b, 16),
   )
 
-/** The first 96 bytes of the user's DADOS.FDB: the header, no table data. */
 const DADOS_HEADER = hex(`
   0100 3930 ab0b 2b00 0000 0000 0000 0000
   0040 0b80 0300 0000 0000 0000 140b 2b00
@@ -123,8 +122,6 @@ describe('Firebird values', () => {
   })
 })
 
-// ------------------------------------------------ a synthetic database
-
 const PAGE = 4096
 const WIN1252 = 53
 
@@ -161,7 +158,6 @@ function encodeRow(format: Descriptor[], values: Value[]): Uint8Array {
   return data
 }
 
-/** Literal runs only: the reader must not depend on how data was compressed. */
 function compress(data: Uint8Array): Uint8Array {
   const out: number[] = []
   for (let i = 0; i < data.length; i += 127) {
@@ -218,7 +214,7 @@ function blobId(relation: number, number: number): Uint8Array {
 function buildDatabase(): Uint8Array {
   const pages: Uint8Array[] = []
   const alloc = () => pages.push(new Uint8Array(PAGE)) - 1
-  alloc() // header
+  alloc()
   const relations = [0, 1, 2, 5, 6, 8, 128]
   const pointer: Record<number, number> = {}
   const data: Record<number, number> = {}
@@ -240,7 +236,6 @@ function buildDatabase(): Uint8Array {
   header.setUint16(64, 2, true)
   header.setUint16(66, 96, true)
 
-  // Transaction 5 committed, transaction 9 still active.
   at(tip).setUint8(0, 3)
   at(tip).setUint8(20 + (5 >> 2), 3 << ((5 & 3) * 2))
 
@@ -464,8 +459,6 @@ function buildDatabase(): Uint8Array {
       tx: 5,
       format: 1,
     }),
-    // Updated by transaction 9, which never committed: the committed version
-    // is the delta at line 2.
     record(encodeRow(items, [2, 'New', null, null]), {
       tx: 9,
       format: 1,
@@ -473,10 +466,8 @@ function buildDatabase(): Uint8Array {
       back: [data[128] as number, 2],
     }),
     record(diff, { tx: 5, format: 1, flags: 2 }),
-    // Deleted by a committed transaction.
     record(new Uint8Array(0), { tx: 5, format: 1, flags: 1 }),
     blobRecord([win1252('Olá '), win1252('mundo')], 1, WIN1252),
-    // Inserted by transaction 9 only.
     record(encodeRow(items, [3, 'Ghost', null, null]), { tx: 9, format: 1 }),
   ])
 

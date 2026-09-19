@@ -8,8 +8,6 @@ export const metadata = {
 
 export default function Home() {
   return (
-    // The hub is a short, ordinary page: it scrolls with the document rather
-    // than owning the viewport the way the tool workspaces do.
     <main className="w-full flex-1 px-4 lg:px-6">
       <Hub />
     </main>

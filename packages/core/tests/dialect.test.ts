@@ -59,12 +59,6 @@ describe('splitScript', () => {
       expect(splitScript(sql, SQLSERVER_DIALECT)).toHaveLength(1)
     })
 
-    /**
-     * SSMS scripts table data as bare INSERT lines with no semicolons at all,
-     * stacked many per GO batch. Merging them yields one statement whose VALUES
-     * scan walks into the next INSERT's column list, so the rows decode as
-     * nonsense - this is data corruption, not just untidy splitting.
-     */
     it('separates semicolon-less INSERT lines the way SSMS writes them', () => {
       const sql = [
         "INSERT [dbo].[items] ([id], [name]) VALUES (1, N'Alice Example')",
@@ -96,18 +90,12 @@ describe('splitScript', () => {
     })
 
     it('does not split INSERT ... SELECT across its own lines', () => {
-      // SELECT is deliberately not a statement starter: it continues an INSERT.
       const sql = ['INSERT INTO [a] ([id])', 'SELECT [id] FROM [b]'].join('\n')
       expect(splitScript(sql, SQLSERVER_DIALECT)).toHaveLength(1)
     })
   })
 
   describe('SQLite trigger bodies', () => {
-    /**
-     * A trigger body holds its own statements. SQLite has no batch separator
-     * and no terminator swap, so without knowing about BEGIN ... END the body
-     * fragments and a SQL export emits the pieces out of order.
-     */
     it('keeps a compound trigger body in one statement', () => {
       const sql = [
         'CREATE TRIGGER authors_ai AFTER INSERT ON authors',
@@ -158,7 +146,6 @@ describe('splitScript', () => {
       ].join('\n')
 
       const statements = splitScript(sql, FIREBIRD_DIALECT)
-      // The trigger survives whole, and the INSERT after the swap-back splits.
       expect(statements.some((s) => s.includes('IF (NEW.ID IS NULL)'))).toBe(
         true,
       )

@@ -11,10 +11,6 @@ import {
 } from '../shared/script-parser.js'
 import { qualifiedNameAfter } from './lexer.js'
 
-/**
- * The schema an unqualified T-SQL table belongs to. A single-database script
- * usually never spells it out, so it has to be supplied.
- */
 const DEFAULT_SCHEMA = 'dbo'
 
 type StatementType =
@@ -37,7 +33,6 @@ function classifyStatement(sql: string): StatementType {
   if (/^CREATE\s+SCHEMA\b/i.test(clean)) return 'create_schema'
   if (/^CREATE\s+TABLE\b/i.test(clean)) return 'create_table'
   if (/^SET\s+IDENTITY_INSERT\b/i.test(clean)) return 'identity_insert'
-  // T-SQL makes INTO optional: `INSERT [t] (...) VALUES (...)`.
   if (/^INSERT\b/i.test(clean)) return 'insert'
   if (/^ALTER\s+TABLE\b/i.test(clean)) return 'alter_table'
   if (
@@ -52,16 +47,6 @@ function classifyStatement(sql: string): StatementType {
   return 'unknown'
 }
 
-/**
- * Parse a T-SQL (SQL Server / Azure Synapse) script into a normalised SqlDump.
- *
- * SQL Server nests schemas inside a database, the same shape PostgreSQL uses,
- * so this groups tables by schema and carries the database named by `USE` in
- * `catalog` when the script names one. `GO` batch separators are handled by
- * `splitScript` before any of this runs; statements never need a trailing
- * semicolon. Statement text is stored verbatim, so a SQL export stays valid
- * T-SQL. Nothing here is executed.
- */
 export function parseSqlServerDump(
   sql: string,
   format: SqlServerFamilyFormat = 'sqlserver',
@@ -78,8 +63,6 @@ export function parseSqlServerDump(
   let catalog: string | undefined
 
   function schemaKey(schema: string, table: string): string {
-    // NUL cannot occur in an identifier, so it is the one separator that
-    // cannot make ("a b", "c") and ("a", "b c") collide.
     return schema + '\0' + table
   }
 
@@ -119,18 +102,12 @@ export function parseSqlServerDump(
     return created
   }
 
-  /** The table a statement names, creating an entry for it if it is new. */
   function tableNamedBy(sql: string, prefix: string): Table | null {
     const qualified = qualifiedNameAfter(sql, prefix)
     if (!qualified) return null
     return ensureTable(qualified.schema ?? DEFAULT_SCHEMA, qualified.name)
   }
 
-  /**
-   * The table a statement names, only if the script already declared it.
-   * Trailing DDL for a table that was never created belongs to the dump, not
-   * to a table entry invented for it.
-   */
   function existingTableNamedBy(sql: string, prefix: string): Table | null {
     const qualified = qualifiedNameAfter(sql, prefix)
     if (!qualified) return null
@@ -138,13 +115,6 @@ export function parseSqlServerDump(
     return tables.get(schemaKey(schema, qualified.name)) ?? null
   }
 
-  /**
-   * Park a statement that belongs to a table but is not its DDL or its rows.
-   * Whether it has to run before or after the rows is decided by where the
-   * script put it: `SET IDENTITY_INSERT ... ON` always precedes the insert
-   * block it guards and `... OFF` always follows it, so this rule alone puts
-   * both halves in the right place.
-   */
   function attach(table: Table, statement: string): void {
     if (table.dataStatements.length > 0)
       table.postDataStatements.push(statement)
@@ -250,17 +220,11 @@ export function countDataRows(statement: string): number {
   return countInsertRows(statement, SQLSERVER_DIALECT)
 }
 
-/**
- * The engines whose scripts this parser reads. Synapse is T-SQL plus its own
- * table-shape clauses, which sit outside the column list and so do not change
- * how the script is read - but it stays its own product, not a relabelling.
- */
 export type SqlServerFamilyFormat = Extract<
   DatabaseFormat,
   'sqlserver' | 'synapse'
 >
 
-/** One reader, one identity per product. */
 export function createSqlServerParser(
   format: SqlServerFamilyFormat,
 ): FormatParser {

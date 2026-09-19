@@ -1,22 +1,8 @@
 import { SqliteReadError } from '../sqlite/index.js'
 
-/**
- * The on-disk structure of a Firebird 2.x database (ODS 11), read directly.
- *
- * Every layout and constant here is taken from Firebird 2.5's own source -
- * `ods.h` for the structures, `sqz.cpp` for record compression, `dpm.epp` for
- * record and fragment access, `tpc.cpp` for transaction states, `blb.cpp` for
- * blobs - and every read is bounds-checked, because the file is untrusted.
- */
+// Layouts follow Firebird 2.5's own source (ods.h, sqz.cpp, dpm.epp, tpc.cpp,
+// blb.cpp). The file is untrusted, so every read is bounds-checked.
 
-/**
- * Thrown when a Firebird database cannot be read.
- *
- * It extends `SqliteReadError` so the app shows its message the way it shows
- * the SQLite reader's. The message is fixed text and never quotes the file;
- * `detail` names the internal step for diagnostics and is never shown in the
- * app.
- */
 export class FdbReadError extends SqliteReadError {
   readonly detail: string
 
@@ -32,8 +18,6 @@ export function damaged(detail: string): FdbReadError {
   return new FdbReadError(DAMAGED, detail)
 }
 
-// ------------------------------------------------------------ constants
-
 const PAG_HEADER = 1
 const PAG_TRANSACTIONS = 3
 const PAG_POINTER = 4
@@ -46,9 +30,7 @@ export const RHD = {
   fragment: 4,
   incomplete: 8,
   blob: 16,
-  /** On a blob: stored as a stream, not segments. */
   stream: 32,
-  /** On a record: its back version is a difference string. */
   delta: 32,
   damaged: 128,
 } as const
@@ -60,23 +42,16 @@ const BLP_SIZE = 28
 const HDR_DATA = 96
 const HDR_FILE = 3
 
-/** A record is at most 64 KB once expanded; nothing legitimate is longer. */
 const MAX_RECORD = 65536
 
-/** How many bytes `isFdbFile` needs. */
 export const FDB_HEADER_BYTES = 20
-
-// ---------------------------------------------------------------- header
 
 export interface FdbHeader {
   pageSize: number
   odsMajor: number
   odsMinor: number
-  /** The ODS minor version the database was created with. */
   odsMinorOriginal: number
-  /** First pointer page of RDB$PAGES. */
   pagesPointer: number
-  /** Oldest interesting transaction: everything below it committed. */
   oldestTransaction: number
   nextTransaction: number
 }
@@ -89,11 +64,6 @@ function validPageSize(size: number): boolean {
   return size >= 1024 && size <= 16384 && (size & (size - 1)) === 0
 }
 
-/**
- * Whether these bytes begin a Firebird or InterBase database, of any version.
- * Versions this tool cannot read still count, so they are refused by name
- * rather than treated as an unknown file.
- */
 export function isFdbFile(head: Uint8Array): boolean {
   if (head.length < FDB_HEADER_BYTES || head[0] !== PAG_HEADER) return false
   const v = view(head)
@@ -150,12 +120,6 @@ export function readHeader(bytes: Uint8Array): FdbHeader {
   }
 }
 
-// ----------------------------------------------------------- compression
-
-/**
- * Expand a compressed record (SQZ_decompress). A negative control byte repeats
- * the next byte that many times; a positive one copies that many bytes.
- */
 export function decompress(input: Uint8Array, limit = MAX_RECORD): Uint8Array {
   const out = new Uint8Array(limit)
   let o = 0
@@ -178,10 +142,6 @@ export function decompress(input: Uint8Array, limit = MAX_RECORD): Uint8Array {
   return out.subarray(0, o)
 }
 
-/**
- * Rebuild an older record version from a newer one (SQZ_apply_differences).
- * A positive control byte replaces that many bytes; a negative one keeps them.
- */
 export function applyDifferences(
   base: Uint8Array,
   diff: Uint8Array,
@@ -216,8 +176,6 @@ function concat(parts: readonly Uint8Array[]): Uint8Array {
   return out
 }
 
-// ----------------------------------------------------------------- file
-
 export interface RawRecord {
   page: number
   line: number
@@ -226,7 +184,6 @@ export interface RawRecord {
   backPage: number
   backLine: number
   format: number
-  /** Compressed data of this piece. */
   data: Uint8Array
   fragmentPage: number
   fragmentLine: number
@@ -257,7 +214,6 @@ export class FdbFile {
     this.transPerTip = (size - 20) * 4
   }
 
-  /** The byte offset of a page, after checking it exists and has this type. */
   private page(number: number, type: number): number {
     const offset = number * this.header.pageSize
     if (number <= 0 || offset + this.header.pageSize > this.bytes.length) {
@@ -279,7 +235,6 @@ export class FdbFile {
     return this.v.getUint32(offset, true)
   }
 
-  /** A relation's pointer pages, in order, starting from its first. */
   pointerPages(first: number, relation: number): number[] {
     const pages: number[] = []
     const seen = new Set<number>()
@@ -296,7 +251,6 @@ export class FdbFile {
     return pages
   }
 
-  /** The data page in each slot of a pointer page; 0 where the slot is empty. */
   dataPages(pointer: number): number[] {
     const o = this.page(pointer, PAG_POINTER)
     const count = this.u16(o + 24)
@@ -306,7 +260,6 @@ export class FdbFile {
     return Array.from({ length: count }, (_, i) => this.u32(o + 32 + i * 4))
   }
 
-  /** How many record slots a data page has, after checking its relation. */
   lineCount(page: number, relation: number): number {
     const o = this.page(page, PAG_DATA)
     if (this.u16(o + 20) !== relation) {
@@ -331,7 +284,6 @@ export class FdbFile {
     return { at: o + offset, length }
   }
 
-  /** One record piece as stored, or null for an empty slot. */
   record(page: number, line: number): RawRecord | null {
     const slot = this.slot(page, line)
     if (!slot) return null
@@ -354,7 +306,6 @@ export class FdbFile {
     }
   }
 
-  /** A record's full data: every fragment, each decompressed on its own. */
   expand(record: RawRecord): Uint8Array {
     const parts = [decompress(record.data)]
     let total = parts[0]?.length ?? 0
@@ -376,7 +327,6 @@ export class FdbFile {
     return parts.length === 1 ? (parts[0] as Uint8Array) : concat(parts)
   }
 
-  /** Set the transaction inventory pages, by sequence, from RDB$PAGES. */
   setTips(first: number): void {
     const pages: number[] = []
     const seen = new Set<number>()
@@ -389,7 +339,6 @@ export class FdbFile {
     this.tips = pages
   }
 
-  /** Whether a transaction committed, as the engine's TPC would say. */
   committed(transaction: number): boolean {
     if (transaction === 0) return true
     if (transaction >= this.header.nextTransaction) return false
@@ -404,7 +353,6 @@ export class FdbFile {
     return ((byte >> ((transaction & 3) << 1)) & 3) === 3
   }
 
-  /** A blob, located by its record number among its relation's pages. */
   blob(pointers: readonly number[], number: number): Blob {
     const line = number % this.maxRecords
     const sequence = Math.floor(number / this.maxRecords)
@@ -462,7 +410,6 @@ export class FdbFile {
   }
 }
 
-/** A segmented blob's data: each segment is prefixed with its u16 length. */
 function joinSegments(stream: Uint8Array): Uint8Array {
   const parts: Uint8Array[] = []
   const v = view(stream)

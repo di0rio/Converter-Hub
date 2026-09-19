@@ -22,33 +22,14 @@ import type {
 export type SqliteStep = 'file' | 'tables' | 'export'
 export type SqliteStatus = 'idle' | 'reading' | 'converting' | 'done'
 
-/**
- * The largest database this tool will open.
- *
- * Everything is held in memory - the file, SQLite's page cache and the decoded
- * rows all at once - so the ceiling is the tab's, not the format's. Past this
- * the tab dies partway through with no message; refusing up front says so
- * instead. A database beyond it is a job for the CLI, which opens up to 1 GB.
- */
 export const MAX_SQLITE_BYTES = 256 * 1024 * 1024
 
-/**
- * Rows kept per table.
- *
- * A SQLite file gives no hint of its row count until it is open, and a small
- * file can hold millions of rows. This bounds what a single table can cost, and
- * the reader still reports the true count so a truncated read is never passed
- * off as a whole one.
- */
 export const MAX_ROWS_PER_TABLE = 200_000
 
-/** The generic message shown when nothing more specific is safe to say. */
 const GENERIC =
   'This file could not be read as a SQLite database. It may be incomplete, damaged, or encrypted.'
 
 function safeMessage(cause: unknown): string {
-  // Only messages this project wrote are shown. Anything else may quote the
-  // file's contents, and the user's data never goes on screen.
   return cause instanceof SqliteReadError ? cause.message : GENERIC
 }
 
@@ -102,7 +83,6 @@ export function useSqlite() {
         }
 
         const bytes = await readSelection(selection)
-        // A Firebird database is read by the core directly; no engine to load.
         const read = isFdbFile(bytes.main)
           ? readFdbDatabase(bytes.main, { rowLimit: MAX_ROWS_PER_TABLE })
           : await readSqliteDatabase(
@@ -159,7 +139,6 @@ export function useSqlite() {
     setResult(null)
   }, [])
 
-  // An archive built with the previous delimiter no longer matches the choice.
   const selectDelimiter = useCallback((next: CsvDelimiter) => {
     setDelimiter(next)
     setResult(null)

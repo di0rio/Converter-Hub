@@ -11,8 +11,6 @@ const SVG = readFileSync(
   'utf8',
 )
 
-// jsdom neither decodes images nor draws them: this Image "loads" at a set
-// size, and the canvas records what it was asked to do.
 let size = { width: 120, height: 80 }
 let decodes = true
 let writes: string | null = null
@@ -89,15 +87,12 @@ describe('convertImage', () => {
     const bytes = await convertImage(new Blob([SVG]), 'svg', 'png')
 
     expect(bytes.byteLength).toBeGreaterThan(0)
-    // Loaded through <img> from a Blob URL typed as SVG: scripts do not run
-    // and external resources are not fetched in that mode.
     const source = createObjectURL.mock.calls[0]?.[0] as Blob
     expect(source.type).toBe('image/svg+xml')
     expect(drawImage).toHaveBeenCalled()
     expect(fillRect).not.toHaveBeenCalled()
   })
 
-  // The browser would draw it at a letterboxed 300×150 otherwise.
   it('gives an SVG with only a viewBox the viewBox size', async () => {
     const icon =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64"/></svg>'
@@ -136,7 +131,6 @@ describe('convertImage', () => {
 
   it.each([
     ['a side', { width: 20000, height: 10 }],
-    // Each side is allowed; together they would be a gigabyte of canvas.
     ['the pixel count', { width: 16000, height: 16000 }],
   ])('refuses an image too large to draw by %s', async (_by, big) => {
     size = big
@@ -145,7 +139,6 @@ describe('convertImage', () => {
     ).rejects.toThrow(/too large/)
   })
 
-  // A browser that cannot encode a type hands back PNG instead of failing.
   it('says so when the browser cannot write the format', async () => {
     writes = 'image/png'
     await expect(

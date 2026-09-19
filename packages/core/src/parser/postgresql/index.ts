@@ -5,10 +5,6 @@ import { stripLeadingComments } from '../shared/syntax.js'
 import { splitStatements, qualifiedNameAfter, unquote } from './lexer.js'
 import { readColumns, readDataBlock, countDataRows } from './rows.js'
 
-/**
- * The schema PostgreSQL puts an unqualified table in. A dump of a single
- * database usually never writes the word, so it has to be supplied.
- */
 const DEFAULT_SCHEMA = 'public'
 
 type StatementType =
@@ -55,12 +51,10 @@ function classifyStatement(sql: string): StatementType {
   return 'unknown'
 }
 
-/** A sequence name as the dump writes it, schema included when it gives one. */
 function qualify(name: { schema: string | null; name: string }): string {
   return name.schema ? name.schema + '.' + name.name : name.name
 }
 
-/** The sequence a CREATE/ALTER SEQUENCE or setval() statement acts on. */
 function sequenceNamedBy(sql: string): string | null {
   const clean = stripLeadingComments(sql)
 
@@ -74,15 +68,6 @@ function sequenceNamedBy(sql: string): string | null {
   return setval ? setval[1] : null
 }
 
-/**
- * Map every sequence in the dump to the table that owns it.
- *
- * A dump connects the two only in `ALTER SEQUENCE ... OWNED BY t.c` and in the
- * `nextval` default on a column, and both can appear after the CREATE SEQUENCE
- * they explain. Reading them up front lets the walk attach each sequence
- * statement to its table as it goes, which is what keeps a partial export from
- * carrying sequences belonging to tables the user did not select.
- */
 function readSequenceOwners(statements: string[]): Map<string, string> {
   const owners = new Map<string, string>()
 
@@ -93,7 +78,6 @@ function readSequenceOwners(statements: string[]): Map<string, string> {
       /ALTER\s+SEQUENCE\s+(\S+)\s+OWNED\s+BY\s+([^\s;]+)/i,
     )
     if (owned) {
-      // schema.table.column, or table.column when the dump left it unqualified.
       const path = owned[2].split('.')
       if (path.length >= 2) {
         owners.set(unquote(owned[1]), path.slice(0, -1).map(unquote).join('.'))
@@ -115,7 +99,6 @@ function readSequenceOwners(statements: string[]): Map<string, string> {
   return owners
 }
 
-/** `SET search_path = app, public;` - the first entry is where tables land. */
 function searchPathSchema(sql: string): string | null {
   const match = stripLeadingComments(sql).match(
     /SET\s+search_path\s*(?:=|TO)\s*([^;]+)/i,
@@ -126,18 +109,9 @@ function searchPathSchema(sql: string): string | null {
   if (first.length === 0 || /^(''|""|DEFAULT)$/i.test(first)) return null
 
   const name = unquote(first)
-  // pg_catalog first means "resolve nothing here"; it is never a table's home.
   return name.length > 0 && name !== 'pg_catalog' ? name : null
 }
 
-/**
- * Parse a PostgreSQL dump into a normalised SqlDump.
- *
- * A PostgreSQL dump groups tables by schema rather than by database, so each
- * `Database` here is a schema and carries the database it belongs to in
- * `catalog` when the dump names one. Statement text is stored verbatim; nothing
- * is executed.
- */
 export function parsePostgresDump(
   sql: string,
   format: PostgresFamilyFormat = 'postgresql',
@@ -156,10 +130,6 @@ export function parsePostgresDump(
   let searchPath: string | null = null
 
   function schemaKey(schema: string, table: string): string {
-    // NUL cannot occur in an identifier, so it is the one separator that
-    // cannot make ("a b", "c") and ("a", "b c") collide. Written as an
-    // escape: a raw control character here would be invisible to a reader
-    // and lost to any tool that strips it.
     return schema + '\0' + table
   }
 
@@ -199,7 +169,6 @@ export function parsePostgresDump(
     return created
   }
 
-  /** The table a statement names, creating an entry for it if it is new. */
   function tableNamedBy(sql: string, prefix: string): Table | null {
     const qualified = qualifiedNameAfter(sql, prefix)
     if (!qualified) return null
@@ -209,7 +178,6 @@ export function parsePostgresDump(
     )
   }
 
-  /** Look up a table written as `schema.table`, or as a bare `table`. */
   function tableAtPath(path: string): Table | null {
     const parts = path.split('.')
     const name = parts.pop() as string
@@ -217,11 +185,6 @@ export function parsePostgresDump(
     return tables.get(schemaKey(schema, name)) ?? null
   }
 
-  /**
-   * The table a statement names, only if the dump already declared it. Trailing
-   * DDL for a table that was never created belongs to the dump, not to a table
-   * entry invented for it.
-   */
   function existingTableNamedBy(sql: string, prefix: string): Table | null {
     const qualified = qualifiedNameAfter(sql, prefix)
     if (!qualified) return null
@@ -229,11 +192,6 @@ export function parsePostgresDump(
     return tables.get(schemaKey(schema, qualified.name)) ?? null
   }
 
-  /**
-   * Park a statement that belongs to a table but is not its DDL or its rows.
-   * Whether it has to run before or after the rows is decided by where the dump
-   * put it, which is the only ordering information a dump carries.
-   */
   function attach(table: Table, statement: string): void {
     if (table.dataStatements.length > 0)
       table.postDataStatements.push(statement)
@@ -276,8 +234,6 @@ export function parsePostgresDump(
 
       case 'search_path': {
         searchPath = searchPathSchema(stmt)
-        // A search_path that names a real schema also selects it, the way USE
-        // does in MySQL. Recording it keeps the switch in the SQL export.
         if (searchPath && schemas.has(searchPath)) {
           const schema = schemas.get(searchPath)
           if (schema && schema.useStatement === '') schema.useStatement = stmt
@@ -339,8 +295,6 @@ export function parsePostgresDump(
       }
 
       case 'sequence': {
-        // A sequence only restores alongside the table that owns it, so it has
-        // to travel with that table rather than with the dump.
         const sequence = sequenceNamedBy(stmt)
         const owner =
           sequence === null ? undefined : sequenceOwners.get(sequence)
@@ -369,13 +323,6 @@ export function parsePostgresDump(
   }
 }
 
-/**
- * The engines whose dumps this parser reads.
- *
- * Each is a distinct product that emits pg_dump-shaped output. They share the
- * reader, but keep their own identity: a Greenplum dump is reported as
- * Greenplum, not silently relabelled PostgreSQL.
- */
 export type PostgresFamilyFormat = Extract<
   DatabaseFormat,
   | 'postgresql'
@@ -388,7 +335,6 @@ export type PostgresFamilyFormat = Extract<
   | 'enterprisedb'
 >
 
-/** One reader, one identity per product. */
 export function createPostgresParser(
   format: PostgresFamilyFormat,
 ): FormatParser {

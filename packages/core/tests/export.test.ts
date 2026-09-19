@@ -9,7 +9,6 @@ import {
   generateExport,
 } from '../src/generator/index.js'
 
-// Synthetic fixture - no real data.
 const DUMP = [
   '-- MySQL dump 10.13',
   '-- Host: localhost    Database: shop',
@@ -95,7 +94,6 @@ describe('csv', () => {
   })
 
   it('neutralises leading = + - @ so Excel/Sheets cannot read them as formulas', () => {
-    // Dump content is untrusted - a table value can carry a formula payload.
     const table = {
       name: 'notes',
       columns: ['id', 'note'],
@@ -216,7 +214,6 @@ describe('xlsx', () => {
   it('keeps values with leading zeros as text', () => {
     const sheet = strFromU8(parts['xl/worksheets/sheet2.xml'])
     expect(sheet).toContain('<t xml:space="preserve">007</t>')
-    // A plain decimal is still a number.
     expect(sheet).toContain('<v>12.50</v>')
   })
 
@@ -286,7 +283,6 @@ describe('generateExport', () => {
   })
 
   it('never executes SQL and never reaches the network or filesystem', () => {
-    // generateExport returns bytes only; this guards the contract in review.
     const result = generateExport(
       dump,
       { database: 'shop', tables: 'all' },

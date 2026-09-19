@@ -10,7 +10,6 @@ export interface Entry {
   isDir: boolean
 }
 
-/** List subdirectories and .sql files in a directory, dirs first, alphabetical within each. */
 export function listEntries(dir: string): Entry[] {
   let names: string[]
   try {
@@ -46,7 +45,6 @@ export function listEntries(dir: string): Entry[] {
   return entries
 }
 
-/** Interactively navigate the filesystem with arrow keys and pick a .sql file. */
 export async function browseForFile(
   startDir: string = process.cwd(),
 ): Promise<string> {

@@ -12,7 +12,6 @@ import {
   writeData,
 } from '@/lib/data-convert'
 
-/** Synthetic fixtures: the same two invented rows in every input format. */
 const fixture = (name: string) =>
   readFileSync(
     join(__dirname, '..', '..', '..', 'examples', 'data', name),

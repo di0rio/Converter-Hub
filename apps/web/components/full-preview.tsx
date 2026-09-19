@@ -9,14 +9,10 @@ import type {
 
 interface FullPreviewProps {
   layout: FullLayout
-  /** Open tables in insertion order, so nothing reshuffles under the pointer. */
   windows: PreviewWindowState[]
   rowCounts: Map<string, number>
-  /** Draws one open item. The workspace does not know what it is looking at. */
   renderPreview: (name: string) => ReactNode
-  /** What one open thing is called, for labels: "table", "sheet". */
   noun: string
-  /** The front-most window: the one a tabbed or single layout shows. */
   activeId: string | null
   onFocus: (id: string) => void
   onClose: (id: string) => void
@@ -25,13 +21,6 @@ interface FullPreviewProps {
 const rowLabel = (rows: number) =>
   `${rows.toLocaleString()} row${rows === 1 ? '' : 's'}`
 
-/**
- * The default preview: a table given the whole workspace.
- *
- * Three ways to share that space, none of which overlap - overlapping is what
- * the windowed mode is for. `tabs` keeps every open table one click away,
- * `single` shows exactly one, `split` tiles them for comparison.
- */
 export function FullPreview({
   layout,
   windows,
@@ -43,8 +32,6 @@ export function FullPreview({
   onClose,
 }: FullPreviewProps) {
   if (layout === 'split') {
-    // Roughly square, capped at three across so a column never gets too narrow
-    // to read a value in.
     const columns = Math.min(
       3,
       Math.max(1, Math.ceil(Math.sqrt(windows.length))),
@@ -103,9 +90,7 @@ export function FullPreview({
                   'transition-[background-color,color,border-color] duration-150 ' +
                   'ease-[cubic-bezier(0.23,1,0.32,1)] ' +
                   (selected
-                    ? // The selected tab merges into the panel below it, so the
-                      // strip reads as one surface with a raised card on it.
-                      'relative -mb-px border-border bg-card pb-2 text-foreground'
+                    ? 'relative -mb-px border-border bg-card pb-2 text-foreground'
                     : 'border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground')
                 }
               >
@@ -169,8 +154,6 @@ export function FullPreview({
       <div
         role="tabpanel"
         aria-label={`${active.name} preview`}
-        // Keyed on the table so switching tabs remounts the viewer: the scroll
-        // position belongs to the table, not to the panel it happens to be in.
         key={active.id}
         className="min-h-0 flex-1 overflow-hidden bg-card motion-safe:animate-preview-in"
       >
@@ -180,7 +163,6 @@ export function FullPreview({
   )
 }
 
-/** The name-and-rows strip a non-tabbed panel carries instead of a tab. */
 function PanelHeader({
   name,
   rows,

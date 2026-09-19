@@ -7,14 +7,6 @@ import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
 import { SqlTool } from '@/components/sql-tool'
 
-/**
- * One tool, two kinds of input. A dump is a script and a SQLite file is a
- * database, and the tool tells them apart by what the file holds rather than
- * by its name - then hands it to the flow that reads it.
- *
- * Fixtures are built here and hold invented data.
- */
-
 const require = createRequire(import.meta.url)
 const wasm = readFileSync(
   join(
@@ -28,7 +20,6 @@ CREATE TABLE \`crew\` (\`id\` int NOT NULL, \`name\` varchar(20));
 INSERT INTO \`crew\` VALUES (1,'Ada');
 `
 
-/** A SQLite database whose last row lives only in its write-ahead log. */
 function sqliteFiles(name = 'crew.db'): File[] {
   const path = join(mkdtempSync(join(tmpdir(), 'sql-tool-')), name)
   const db = new DatabaseSync(path)
@@ -39,7 +30,6 @@ function sqliteFiles(name = 'crew.db'): File[] {
   )
   db.exec('PRAGMA wal_checkpoint(FULL)')
   db.exec("INSERT INTO crew VALUES (2, 'Grace');")
-  // Read while the connection is open: closing it would checkpoint the log.
   return [
     new File([readFileSync(path)], name),
     new File([readFileSync(`${path}-wal`)], `${name}-wal`),

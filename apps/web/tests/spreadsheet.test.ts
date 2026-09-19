@@ -12,13 +12,9 @@ import {
   type LoadedWorkbook,
 } from '@/lib/spreadsheet'
 
-/** A workbook built in memory, so no real spreadsheet is ever committed. */
 function makeWorkbook(sheets: Record<string, unknown[][]>): LoadedWorkbook {
   const workbook = XLSX.utils.book_new()
 
-  // Assigned directly rather than through book_append_sheet: that helper
-  // rejects the very names this tool has to defend against, and a file written
-  // by something other than Excel can still carry them.
   for (const [name, rows] of Object.entries(sheets)) {
     workbook.SheetNames.push(name)
     workbook.Sheets[name] = XLSX.utils.aoa_to_sheet(rows)
@@ -43,15 +39,12 @@ function entries(bytes: Uint8Array): Record<string, Uint8Array> {
 
 describe('toFileName', () => {
   it('replaces the characters a file system reserves', () => {
-    // "Jan/Feb" would otherwise collapse into a path separator.
     expect(toFileName('Jan/Feb')).toBe('Jan-Feb')
     expect(toFileName('Q1:Q2')).toBe('Q1-Q2')
     expect(toFileName('a\\b*c?d"e<f>g|h')).toBe('a-b-c-d-e-f-g-h')
   })
 
   it('keeps accents and non-Latin scripts', () => {
-    // These are legal in file names, and mangling them only makes the output
-    // harder to recognise.
     expect(toFileName('Março')).toBe('Março')
     expect(toFileName('売上')).toBe('売上')
   })
@@ -102,7 +95,6 @@ describe('readWorkbook', () => {
         ['Grace', 'Porto'],
       ],
     })
-    // A sheet with no used range at all.
     source.workbook.SheetNames.push('Blank')
     source.workbook.Sheets.Blank = {}
 
@@ -117,7 +109,6 @@ describe('readWorkbook', () => {
     expect(loaded.baseName).toBe('clients')
     expect(loaded.sheets.map((sheet) => sheet.name)).toContain('Clients')
 
-    // Three rows in the range, one of which names the columns.
     const clients = loaded.sheets.find((sheet) => sheet.name === 'Clients')
     expect(clients).toMatchObject({ rows: 2, columns: 2, empty: false })
 
@@ -171,7 +162,6 @@ describe('buildArchive', () => {
       'Orders.xlsx',
     ])
 
-    // Each entry is a workbook in its own right, holding only its own sheet.
     const clients = XLSX.read(unpacked['Clients.xlsx'], { type: 'array' })
     expect(clients.SheetNames).toEqual(['Clients'])
     expect(
@@ -191,9 +181,6 @@ describe('buildArchive', () => {
 
     expect(result.files).toEqual(['Clients.csv'])
 
-    // The byte order mark is what makes Excel read the file as UTF-8. It is
-    // asserted on the bytes, because a UTF-8 decoder consumes it on the way
-    // back out.
     const raw = entries(result.bytes)['Clients.csv']
     expect(Array.from(raw.slice(0, 3))).toEqual([0xef, 0xbb, 0xbf])
 
@@ -203,8 +190,6 @@ describe('buildArchive', () => {
   })
 
   it('neutralises a cell that would be read back as a formula', async () => {
-    // The same rule the SQL tool applies: a leading = + - or @ makes a
-    // spreadsheet treat the value as a formula when the CSV is reopened.
     const source = makeWorkbook({
       Payload: [['note'], ['=1+1'], ['+cmd'], ['-2'], ['@SUM(A1)']],
     })
@@ -265,7 +250,6 @@ describe('buildArchive', () => {
 
     expect(result.files).toEqual(['Clients.json', 'Orders.json'])
     const raw = entries(result.bytes)['Clients.json']
-    // No byte order mark: a JSON parser rejects one.
     expect(raw[0]).toBe(0x5b)
     expect(JSON.parse(strFromU8(raw))).toEqual([
       { name: 'Ada', city: 'Lisbon' },
@@ -297,8 +281,6 @@ describe('buildArchive', () => {
   })
 
   it('keeps two sheets that differ only by case as two files', async () => {
-    // The same file name on Windows and macOS, so the later one is suffixed
-    // rather than silently overwriting the first.
     const source = makeWorkbook({
       Sales: [['a'], ['1']],
       sales: [['b'], ['2']],
@@ -316,7 +298,6 @@ describe('buildArchive', () => {
     const result = await buildArchive(source, ['Jan/Feb'], 'xlsx')
 
     expect(result.files).toEqual(['Jan-Feb.xlsx'])
-    // Nothing in the archive may contain a path separator.
     for (const name of Object.keys(entries(result.bytes))) {
       expect(name).not.toContain('/')
       expect(name).not.toContain('\\')
@@ -352,10 +333,6 @@ describe('buildArchive', () => {
 })
 
 describe('buildArchive: formulas', () => {
-  /**
-   * Sheet B reads from its neighbours the ways a real workbook does. Each cell
-   * carries the cached value Excel would have stored next to the formula.
-   */
   function linked(): LoadedWorkbook {
     const source = makeWorkbook({
       A: [['n'], [10]],
@@ -422,9 +399,7 @@ describe('buildArchive: formulas', () => {
     const sheet = await exportB(linked())
 
     expect(sheet.E2.f).toBe('A2*2')
-    // Naming its own sheet is still reading its own sheet.
     expect(sheet.G2.f).toBe('B!E2')
-    // A "!" inside a string literal is not a reference.
     expect(sheet.F2.f).toBe('"a!b"')
   })
 
@@ -446,7 +421,6 @@ describe('readWorkbook: formats', () => {
     ['Grace', 'Porto'],
   ]
 
-  /** A synthetic workbook written by SheetJS in the given format. */
   function written(bookType: XLSX.BookType, name: string): File {
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(
@@ -485,7 +459,6 @@ describe('readWorkbook: formats', () => {
   })
 
   it('reads a CSV saved by Excel in a decimal-comma locale', async () => {
-    // A byte order mark, semicolons, and a semicolon inside a quoted value.
     const file = new File(
       ['\ufeffname;city\r\nAda;São Paulo\r\n"Doe; Jane";Porto\r\n'],
       'export.csv',
@@ -501,7 +474,6 @@ describe('readWorkbook: formats', () => {
   })
 
   it('keeps CSV values as the text they are', async () => {
-    // A postcode or an id keeps its leading zero, and "1.10" is not 1.1.
     const file = new File(
       ['code,price,day\r\n007,1.10,2024-01-02\r\n'],
       'codes.csv',
@@ -579,8 +551,6 @@ describe('buildArchive: SQL output', () => {
       ],
     )
 
-    // The file name is cleaned for the archive; the table keeps the sheet's
-    // own name, which SQL can quote.
     expect(sql).toContain('CREATE TABLE "Jan/Feb" (')
   })
 
@@ -597,7 +567,6 @@ describe('buildArchive: SQL output', () => {
 
     expect(sql).toContain("  ('x''); DROP TABLE t; --'),")
     expect(sql).toContain("  ('C:\\temp\\');")
-    // The mode line is what keeps the backslash literal in MySQL.
     expect(sql).toContain('NO_BACKSLASH_ESCAPES')
   })
 

@@ -8,17 +8,6 @@ import { createRequire } from 'node:module'
 import { strFromU8, unzipSync } from 'fflate'
 import { SqliteConverter } from '@/components/sqlite-converter'
 
-/**
- * The whole tool against the real reader and a real SQLite engine: pick the
- * files, see the tables, choose a format, convert, take the ZIP. Only the
- * browser APIs jsdom lacks are stood in for - the fetch of the WebAssembly
- * binary and the object URL the download goes through.
- *
- * The fixture is built at test time and holds invented data. Its last row is
- * written after a checkpoint, so it exists only in the write-ahead log: a tool
- * that ignored the log would pass everything here except that row.
- */
-
 const require = createRequire(import.meta.url)
 const wasm = readFileSync(
   join(
@@ -27,7 +16,6 @@ const wasm = readFileSync(
   ),
 )
 
-/** A database in WAL mode, as the files a user would select. */
 function walDatabase(): File[] {
   const path = join(mkdtempSync(join(tmpdir(), 'sqlite-ui-')), 'crew.db')
   const db = new DatabaseSync(path)
@@ -37,7 +25,6 @@ function walDatabase(): File[] {
            INSERT INTO crew VALUES (1, 'Ada', x'00ff');`)
   db.exec('PRAGMA wal_checkpoint(FULL)')
   db.exec(`INSERT INTO crew VALUES (2, 'Grace', NULL);`)
-  // The connection stays open: closing it would checkpoint the log away.
   const files = [
     new File([readFileSync(path)], 'crew.db'),
     new File([readFileSync(`${path}-wal`)], 'crew.db-wal'),
@@ -54,7 +41,6 @@ function select(container: HTMLElement, files: File[]) {
   fireEvent.change(input, { target: { files } })
 }
 
-/** The archive handed to the browser, unpacked. */
 function readArchive(blob: Blob): Promise<Record<string, Uint8Array>> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -93,12 +79,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** Select the fixture, every table, a format, and take the archive. */
 async function convert(format: RegExp, delimiter?: RegExp) {
   const { container } = render(<SqliteConverter />)
   select(container, walDatabase())
 
-  // The row that lives only in the log is counted, before anything is exported.
   await screen.findByText(/write-ahead log was included/i, undefined, {
     timeout: 10_000,
   })

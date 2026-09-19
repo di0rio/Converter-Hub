@@ -8,24 +8,12 @@ import {
 } from '../shared/script-parser.js'
 import { readJsonObjects, tableFromDocuments } from '../shared/documents.js'
 
-/**
- * Read an `elasticdump` export - one JSON object per line, each naming the
- * index it came from.
- *
- * That `_index` is what makes this readable at all: an export that only
- * carried documents could be given no honest table name. Each index becomes a
- * table, `_source` supplies the row, and the columns are the union of the keys
- * the documents in that index use.
- */
-
 const DEFAULT_DATABASE = 'elasticsearch'
 
-/** The row a dump line describes: `_source` when present, else the line. */
 function documentOf(line: Record<string, unknown>): Record<string, unknown> {
   const source = line['_source']
   if (typeof source === 'object' && source !== null && !Array.isArray(source)) {
     const document = { ...(source as Record<string, unknown>) }
-    // The id lives outside _source and is the only key a reader can join on.
     const id = line['_id']
     if (id !== undefined && !('_id' in document)) document['_id'] = id
     return document
@@ -34,7 +22,6 @@ function documentOf(line: Record<string, unknown>): Record<string, unknown> {
 }
 
 export function parseElasticsearchDump(text: string): SqlDump {
-  // Index name to the documents it holds, in the order they appeared.
   const indices = new Map<string, Record<string, unknown>[]>()
 
   for (const raw of text.split('\n')) {

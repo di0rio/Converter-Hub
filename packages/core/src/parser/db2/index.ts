@@ -9,13 +9,6 @@ import {
 } from '../shared/script-parser.js'
 import { qualifiedNameAfter } from '../shared/standard-names.js'
 
-/**
- * The schema an unqualified Db2 table belongs to.
- *
- * Db2 resolves against CURRENT SCHEMA, which defaults to the connecting
- * authorisation id and is not recorded in a script. `SET SCHEMA` names it when
- * present; this is the last resort.
- */
 const DEFAULT_SCHEMA = 'default'
 
 type StatementType =
@@ -46,14 +39,6 @@ function classifyStatement(sql: string): StatementType {
   return 'unknown'
 }
 
-/**
- * Parse an IBM Db2 SQL script into a normalised SqlDump.
- *
- * Db2 groups tables by schema, so each `Database` here is a schema. Only what
- * is needed to reach tables, columns and rows is interpreted; routines and
- * anything else are carried as text. Statement text is stored verbatim so a
- * SQL export stays valid Db2 SQL. Nothing here is executed.
- */
 export function parseDb2Dump(sql: string): SqlDump {
   const statements = splitScript(sql, DB2_DIALECT)
 
@@ -66,8 +51,6 @@ export function parseDb2Dump(sql: string): SqlDump {
   let currentSchema: string | null = null
 
   function schemaKey(schema: string, table: string): string {
-    // NUL cannot occur in an identifier, so it is the one separator that
-    // cannot make ("a b", "c") and ("a", "b c") collide.
     return schema + '\0' + table
   }
 

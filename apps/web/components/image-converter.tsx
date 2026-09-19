@@ -21,7 +21,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const tool = findTool('image')
 
-/** A decoded image takes four bytes a pixel, far more than the file. */
 const MAX_IMAGE_BYTES = 50 * 1024 * 1024
 
 const EXTENSIONS = formatExtensions(IMAGE_INPUTS)
@@ -80,7 +79,6 @@ export function ImageConverter() {
         type: format.type,
       })
     } catch (cause) {
-      // Only messages this project wrote are shown.
       setError(
         cause instanceof DataFormatError
           ? cause.message

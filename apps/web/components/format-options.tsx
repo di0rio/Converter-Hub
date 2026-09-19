@@ -7,13 +7,11 @@ import { Radio, RadioGroup } from '@/components/ui/radio-group'
 export interface FormatOption<T extends string> {
   id: T
   label: string
-  /** What choosing it produces, in the fewest words that are still true. */
   hint: string
   Icon: LucideIcon
 }
 
 interface FormatOptionsProps<T extends string> {
-  /** Unique per page: ties the group to its own label. */
   id: string
   label: string
   options: FormatOption<T>[]
@@ -21,18 +19,6 @@ interface FormatOptionsProps<T extends string> {
   onChange: (value: T) => void
 }
 
-/**
- * The output-format picker, shared by every tool.
- *
- * What a tool reads and what it writes are separate choices; this is only the
- * second one, which is why it takes its options rather than knowing any.
- *
- * It is a real radio group rather than a row of buttons pretending to be one,
- * so arrow keys move between formats and a screen reader announces the set and
- * the position in it. Two columns rather than one per option: the list grows as
- * writers are added, and a grid that reflows reads better at five than a row
- * that keeps getting narrower.
- */
 export function FormatOptions<T extends string>({
   id,
   label,

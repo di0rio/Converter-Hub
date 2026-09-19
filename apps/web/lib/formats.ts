@@ -1,13 +1,3 @@
-/**
- * File formats the general-purpose tools read and write.
- *
- * Metadata only: a name to show, the extensions a file arrives with, and the
- * MIME type a download goes out as. How a format is read or written lives with
- * the tool that does it, so this stays a table rather than a framework.
- *
- * The SQL tool's database formats are not here: they carry dialect semantics
- * and have their own catalog in `packages/core/src/formats`.
- */
 export type FileFormat = {
   label: string
   extensions: readonly string[]
@@ -54,7 +44,6 @@ export const FILE_FORMATS = {
 
 export type FormatId = keyof typeof FILE_FORMATS
 
-/** What the data tool reads, and what it writes. The card derives from these. */
 export const DATA_INPUTS = [
   'csv',
   'tsv',
@@ -74,14 +63,9 @@ export const DATA_OUTPUTS = [
   'xlsx',
 ] as const
 
-/** The Markdown tool: each input has one output, the other of the pair. */
 export const MARKDOWN_INPUTS = ['markdown', 'html'] as const
 export const MARKDOWN_OUTPUTS = ['html', 'markdown'] as const
 
-/**
- * The image tool. AVIF is read where the browser decodes it, but never
- * written: `canvas.toBlob` does not produce AVIF in general.
- */
 export const IMAGE_INPUTS = ['svg', 'png', 'jpeg', 'webp', 'avif'] as const
 export const IMAGE_OUTPUTS = ['png', 'jpeg', 'webp'] as const
 
@@ -93,7 +77,6 @@ export function formatExtensions(ids: readonly FormatId[]): string[] {
   return ids.flatMap((id) => FILE_FORMATS[id].extensions)
 }
 
-/** The format among `ids` that a file name's extension names, if any. */
 export function formatOf<T extends FormatId>(
   name: string,
   ids: readonly T[],

@@ -6,7 +6,6 @@ import { Workspace, PREVIEW_DRAG_TYPE } from '@/components/workspace'
 import { TableViewer } from '@/components/table-viewer'
 import type { PreviewWindow } from '@/hooks/use-preview-windows'
 
-// Synthetic fixture - no real data.
 const DUMP = [
   'CREATE DATABASE `shop`;',
   'USE `shop`;',
@@ -72,7 +71,6 @@ function setup(props: Partial<React.ComponentProps<typeof Workspace>> = {}) {
   return { ...view, ...handlers }
 }
 
-/** A drag payload carrying a table name, as the table list writes it. */
 function tableTransfer(name: string) {
   return {
     types: [PREVIEW_DRAG_TYPE],
@@ -137,7 +135,6 @@ describe('Workspace', () => {
     setup()
     const workspace = screen.getByLabelText('Preview workspace')
 
-    // Entering a child fires enter before the parent's leave.
     fireEvent.dragEnter(workspace, { dataTransfer: tableTransfer('users') })
     fireEvent.dragEnter(workspace, { dataTransfer: tableTransfer('users') })
     fireEvent.dragLeave(workspace, { dataTransfer: tableTransfer('users') })
@@ -182,7 +179,6 @@ describe('Workspace', () => {
     ])
     expect(dialogs[0]).toHaveStyle({ zIndex: '5' })
     expect(dialogs[1]).toHaveStyle({ zIndex: '2' })
-    // The highest z is the active one, whatever its position in the array.
     expect(dialogs[0]).toHaveAttribute('data-active')
     expect(dialogs[1]).not.toHaveAttribute('data-active')
   })

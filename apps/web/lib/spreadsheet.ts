@@ -10,22 +10,17 @@ import type { CsvDelimiter, ExportFile } from '@sql-extractor/core'
 import type { CellObject, WorkBook, WorkSheet } from 'xlsx'
 import { toJson, toMarkdown } from '@/lib/sheet-writers'
 
-/** What the export writes for each sheet. The id is also the file extension. */
 export type ExportFormat = 'xlsx' | 'csv' | 'json' | 'md' | 'sql'
 
 export interface SheetInfo {
   name: string
-  /** Data rows that actually hold something, header row excluded. */
   rows: number
-  /** Index of the right-most column holding a value. */
   columns: number
-  /** Not a single cell with a value, so nothing would be written for it. */
   empty: boolean
 }
 
 export interface LoadedWorkbook {
   fileName: string
-  /** File name without its extension, used to name the archive. */
   baseName: string
   sheets: SheetInfo[]
   workbook: WorkBook
@@ -34,11 +29,9 @@ export interface LoadedWorkbook {
 export interface ArchiveResult {
   filename: string
   bytes: Uint8Array
-  /** Names of the files inside the archive, in the order they were written. */
   files: string[]
 }
 
-/** The file extensions this tool reads. */
 export const ACCEPTED_EXTENSIONS = [
   '.xlsx',
   '.xlsm',
@@ -49,50 +42,28 @@ export const ACCEPTED_EXTENSIONS = [
   '.tsv',
 ]
 
-/** Plain-text tables, read as UTF-8 text rather than as bytes. */
 const TEXT_EXTENSIONS = ['.csv', '.tsv']
 
-/** Formats stored as a ZIP archive, which always starts with "PK\x03\x04". */
 const ZIP_EXTENSIONS = ['.xlsx', '.xlsm', '.xlsb', '.ods']
 
 type SheetJS = typeof import('xlsx')
 
-/**
- * How large a workbook this tool will accept.
- *
- * A spreadsheet is a compressed archive, and reading it inflates far past its
- * size on disk: every cell becomes an object, and the split then holds a second
- * copy of each selected sheet while the ZIP is written. The ceiling sits well
- * below the SQL side's because a 100 MB workbook already costs more memory than
- * a 250 MB dump does.
- */
 export const MAX_WORKBOOK_BYTES = 100 * 1024 * 1024
 
 export function isOversizedWorkbook(bytes: number): boolean {
   return bytes > MAX_WORKBOOK_BYTES
 }
 
-/** Names both sizes so the gap is obvious, and nothing from the file itself. */
 export function oversizedWorkbookMessage(bytes: number): string {
   return `That file is ${formatBytes(bytes)}. The largest spreadsheet this tool reads is ${formatBytes(MAX_WORKBOOK_BYTES)}.`
 }
 
 const CONTROL = /[\x00-\x1F\x7F]/g
 
-/** A sheet name as a file name: "Jan/Feb" becomes "Jan-Feb", not a folder. */
 export function toFileName(sheetName: string): string {
   return safeName(sheetName, 'sheet')
 }
 
-/**
- * A tab name Excel will accept: at most 31 characters, none of : \ / ? * [ ],
- * and not blank.
- *
- * Excel enforces these when you type a name, but a file written by something
- * else need not have gone through Excel - and handing such a name back to the
- * writer throws, which would fail the whole split over one sheet. The file
- * name keeps the original; only the tab inside the new workbook is adjusted.
- */
 function toSheetName(name: string): string {
   const cleaned = name
     .replace(/[:\\/?*[\]]/g, '_')
@@ -105,20 +76,6 @@ function toSheetName(name: string): string {
 
 const CELL_REF = /^([A-Z]+)(\d+)$/
 
-/**
- * What a sheet actually holds.
- *
- * The used range (`!ref`) is not the answer. Excel grows it to cover anything
- * that was ever touched - a fill colour dragged down a column, a deleted block,
- * a stray border - so a sheet with fifty rows of data routinely reports a range
- * of ten thousand. Reading the range gave a count that matched nothing: not the
- * preview, not the exported file, not what the user sees in Excel.
- *
- * So the cells are walked instead. A row counts when it holds at least one cell
- * with a value, which is the same rule the export applies when it drops blank
- * rows - the number here and the number of rows in the file that comes out are
- * now the same number, by construction.
- */
 function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
   if (!sheet) return { name, rows: 0, columns: 0, empty: true }
 
@@ -126,12 +83,9 @@ function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
   let columns = 0
 
   for (const ref in sheet) {
-    // Keys beginning with "!" are metadata (`!ref`, `!merges`), not cells.
     if (ref.charCodeAt(0) === 33) continue
 
     const cell = sheet[ref]
-    // `z` is the blank cell type; a cell can also carry formatting and no
-    // value at all. Neither is data, and neither survives into the export.
     if (!cell || cell.t === 'z' || cell.v === undefined || cell.v === '') {
       continue
     }
@@ -147,29 +101,14 @@ function describe(sheet: WorkSheet | undefined, name: string): SheetInfo {
     if (column > columns) columns = column
   }
 
-  // The first row that holds anything is the header - it names the columns in
-  // the preview and in the CSV. Counting data rows rather than every row is
-  // what makes "5 rows" here mean what it means in the SQL tool, and agree
-  // with the five numbered rows the preview shows.
   return {
     name,
     rows: Math.max(0, rows.size - 1),
     columns,
-    // A sheet holding only a header is not empty: exporting it produces a real
-    // file with real column names, which is a reasonable thing to ask for.
     empty: rows.size === 0,
   }
 }
 
-/**
- * A CSV or TSV, read as UTF-8 text so accents survive, with every value kept
- * as the text it is: "007" keeps its zero and "1.10" stays "1.10".
- *
- * SheetJS reads almost anything as a text table, so two cheap checks refuse
- * what is plainly not one. A NUL character means the file is binary, and an
- * odd number of quotes means one never closed - SheetJS would otherwise
- * swallow the rest of the file into a single cell.
- */
 function readTextTable(XLSX: SheetJS, text: string, name: string): WorkBook {
   const table = text.replace(/^\ufeff/, '')
   const quotes = table.match(/"/g)?.length ?? 0
@@ -178,16 +117,10 @@ function readTextTable(XLSX: SheetJS, text: string, name: string): WorkBook {
   }
 
   const workbook = XLSX.read(table, { type: 'string', raw: true })
-  // A text table has one sheet, and "Sheet1" says nothing about it.
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   return { ...workbook, SheetNames: [name], Sheets: { [name]: sheet } }
 }
 
-/**
- * A workbook stored as bytes. A ZIP-based format that does not start like a
- * ZIP is some other file renamed, which SheetJS would read as a text table
- * rather than reject.
- */
 function readBinaryWorkbook(
   XLSX: SheetJS,
   buffer: ArrayBuffer,
@@ -203,7 +136,6 @@ function readBinaryWorkbook(
   return XLSX.read(bytes, { type: 'array', cellDates: true })
 }
 
-/** Read a spreadsheet file into its sheet list. Nothing leaves the browser. */
 export async function readWorkbook(file: File): Promise<LoadedWorkbook> {
   const XLSX = await import('xlsx')
   const extension = /\.[^.]+$/.exec(file.name.toLowerCase())?.[0] ?? ''
@@ -222,11 +154,6 @@ export async function readWorkbook(file: File): Promise<LoadedWorkbook> {
   }
 }
 
-/**
- * Every row of a sheet as text, which is what both the viewer and the CSV
- * writer take. Blank rows are dropped, so the count matches what `describe`
- * reports and what the exported file holds.
- */
 export async function readSheetRows(
   workbook: WorkBook,
   sheetName: string,
@@ -247,27 +174,10 @@ export async function readSheetRows(
   return scoped.map((row) => row.map((cell) => String(cell ?? '')))
 }
 
-/**
- * Write one file per selected sheet into a ZIP.
- *
- * A ZIP rather than separate downloads: a browser blocks the second and later
- * downloads of a burst, so ten sheets would silently arrive as one file.
- *
- * The archive is written by the same ZIP writer the SQL tool uses, and CSV by
- * the same CSV writer - so a spreadsheet split and a dump extraction produce
- * files of the same shape, including the escaping that keeps a cell beginning
- * with `=` from being read back as a formula by whatever opens it next.
- */
-/** A string literal inside a formula, where "!" and "[" are only text. */
 const STRING_LITERAL = /"(?:[^"]|"")*"/g
 
-/** A sheet named in a reference: quoted ('It''s here'!A1) or bare (Sales!A1). */
 const SHEET_REFERENCE = /(?:'((?:[^']|'')+)'|([^\s'!"(),;=+\-*/&^<>:%{}]+))!/g
 
-/**
- * Defined names belong to the source workbook and are not copied into the one
- * a sheet is written to, so a formula using one would open as #NAME?.
- */
 function definedNames(workbook: WorkBook): RegExp | null {
   const names = (workbook.Workbook?.Names ?? [])
     .map((entry) => entry.Name)
@@ -278,11 +188,6 @@ function definedNames(workbook: WorkBook): RegExp | null {
   return new RegExp(`(?<![\\w.])(?:${names.join('|')})(?![\\w.(])`, 'i')
 }
 
-/**
- * Whether a formula reads something a file holding only this sheet will not
- * have: another sheet, another workbook or table (`[1]Book!A1`, `Table1[Col]`)
- * or a defined name.
- */
 function readsOutside(
   formula: string,
   sheetName: string,
@@ -294,7 +199,6 @@ function readsOutside(
 
   for (const [, quoted, bare] of code.matchAll(SHEET_REFERENCE)) {
     const referenced = quoted === undefined ? bare : quoted.replace(/''/g, "'")
-    // Naming its own sheet is fine, as long as the tab keeps that name.
     if (referenced !== sheetName || toSheetName(sheetName) !== sheetName) {
       return true
     }
@@ -302,14 +206,6 @@ function readsOutside(
   return false
 }
 
-/**
- * The sheet as it should be written on its own.
- *
- * A formula reading outside the sheet would open as #REF! or #NAME? in a file
- * that holds nothing else, so it is replaced by the value Excel cached next to
- * it. Formulas that only read this sheet stay formulas. The loaded workbook is
- * never modified: changed cells go into a copy of the sheet.
- */
 function standalone(workbook: WorkBook, sheetName: string): WorkSheet {
   const sheet = workbook.Sheets[sheetName]
   const names = definedNames(workbook)
@@ -331,9 +227,7 @@ function standalone(workbook: WorkBook, sheetName: string): WorkSheet {
 }
 
 export type ArchiveOptions = {
-  /** Read only when writing CSV. */
   delimiter?: CsvDelimiter
-  /** Called after each sheet, so the UI can report real progress. */
   onProgress?: (done: number, total: number) => void
 }
 
@@ -358,8 +252,6 @@ export async function buildArchive(
 
     if (format !== 'xlsx') {
       const rows = await readSheetRows(loaded.workbook, name)
-      // The first row is the header the sheet already has; the writers take
-      // columns and rows apart, so it is split off rather than invented.
       const [header = [], ...body] = rows
       const table = { name, columns: header, rows: body }
       const text =
@@ -368,10 +260,7 @@ export async function buildArchive(
           : format === 'json'
             ? toJson(table)
             : format === 'sql'
-              ? // The table is named after the sheet, not after the archive
-                // entry: a file name has to survive a file system, a table
-                // name only has to survive being quoted.
-                toSqlInserts(table, { tableName: name })
+              ? toSqlInserts(table, { tableName: name })
               : toMarkdown(table)
       const entry = `${fileName}.${format}`
       entries.push({ name: entry, content: encoder.encode(text) })
@@ -394,9 +283,6 @@ export async function buildArchive(
     }
 
     onProgress?.(files.length, sheetNames.length)
-    // Writing a sheet blocks the main thread, so yield between them. Without
-    // this the count would reach the end before the browser painted any of it,
-    // and the progress would read as a single jump from nothing to done.
     if (onProgress) await new Promise((resolve) => setTimeout(resolve, 0))
   }
 

@@ -8,15 +8,12 @@ import {
   formatsWithStatus,
 } from '@sql-extractor/core'
 
-// Mock the hook to control component state deterministically.
-// The hook's real logic is tested separately in use-sql-dump.test.ts.
 vi.mock('@/hooks/use-sql-dump', () => ({
   useSqlDump: vi.fn(),
 }))
 
 const mockedUseSqlDump = vi.mocked(useSqlDump)
 
-// Synthetic fixtures
 const SAMPLE_SQL = `-- MySQL dump
 CREATE DATABASE IF NOT EXISTS \`shop_db\` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
 USE \`shop_db\`;
@@ -81,7 +78,6 @@ describe('SqlExtractor', () => {
     expect(
       screen.getByRole('button', { name: /Choose file/i }),
     ).toBeInTheDocument()
-    // The tool sits inside the hub, and says so with a way back to it.
     expect(
       screen.getByRole('link', { name: /Converter Hub/i }),
     ).toHaveAttribute('href', '/')
@@ -98,8 +94,6 @@ describe('SqlExtractor', () => {
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
     expect(input.accept).toBe('.sql,.txt,.db,.sqlite,.sqlite3,.db3,.fdb,.gdb')
-    // The section is labelled "Select a database dump" and the input is associated with the
-    // visible label via htmlFor.
     expect(
       screen.getByRole('region', {
         name: /Select a SQL dump or a database file/i,
@@ -321,7 +315,6 @@ describe('SqlExtractor', () => {
     const file = new File([SAMPLE_SQL], 'dump.sql', { type: 'text/plain' })
     fireEvent.change(input, { target: { files: [file] } })
 
-    // file.text() is async; wait for the promise to resolve
     await waitFor(() => {
       expect(loadFile).toHaveBeenCalledWith(SAMPLE_SQL, 'dump.sql')
     })
@@ -340,7 +333,6 @@ describe('SqlExtractor', () => {
     ) as HTMLInputElement
 
     const file = new File([SAMPLE_SQL], 'huge.sql', { type: 'text/plain' })
-    // Stand in for a file too large to allocate in a test.
     Object.defineProperty(file, 'size', { value: 300 * 1024 * 1024 })
     const text = vi.spyOn(file, 'text')
 
@@ -396,8 +388,6 @@ describe('SqlExtractor: source formats', () => {
 
     render(<SqlExtractor />)
 
-    // Derived from the catalog rather than pinned to a list, so growing the
-    // supported set cannot silently make this claim wrong.
     const supported = SUPPORTED_FORMATS.length
     expect(
       screen.getByText(new RegExp(`Supports ${supported} dump formats`)),
@@ -479,7 +469,6 @@ describe('SqlExtractor: source formats', () => {
 
     expect(screen.getByText(/Select schema/i)).toBeInTheDocument()
     expect(screen.queryByText(/Select database/i)).not.toBeInTheDocument()
-    // The owning database is shown rather than dropped.
     expect(screen.getByText('shop.')).toBeInTheDocument()
   })
 })

@@ -10,79 +10,18 @@ import {
   CQL_SYNTAX,
 } from './syntax.js'
 
-/**
- * The lexical shape of one SQL dialect, as data.
- *
- * Splitting a dump into statements is the part every format needs and the part
- * that is easy to get wrong - a semicolon inside a string, a comment, or a
- * procedure body must not end a statement. Describing the differences as data
- * means a new format supplies a dialect rather than another hand-written
- * splitter, which is what keeps the fiftieth format cheaper than the fifth.
- */
 export interface SqlDialect {
-  /** Identifier quoting and string escaping. */
   syntax: SqlSyntax
-  /** Statement terminator. The starting value; SET TERM can replace it. */
   terminator: string
-  /**
-   * A line that ends a batch rather than a statement: `GO` in T-SQL, a lone
-   * `/` in Oracle. Matched against a whole trimmed line.
-   */
   batchSeparator: RegExp | null
-  /** `#` opens a line comment. MySQL only. */
   hashComments: boolean
-  /**
-   * A word that turns the rest of its line into a comment: Oracle's `REM` and
-   * `PROMPT`. Unlike `--` these are keywords, so they only count at the start
-   * of a line - and they carry no terminator, so without this the line would
-   * merge into whatever statement follows it.
-   */
   lineCommentKeyword: RegExp | null
-  /** Block comments nest. PostgreSQL only. */
   nestedBlockComments: boolean
-  /** Honour `SET TERM x ;`, which swaps the terminator. Firebird only. */
   settableTerminator: boolean
-  /** `$tag$ ... $tag$` bodies. PostgreSQL only. */
   dollarQuoting: boolean
-  /**
-   * A statement head that opens a `BEGIN ... END` body, matched against the
-   * start of a statement.
-   *
-   * Inside such a body every `;` belongs to the body, not to the script: only
-   * a terminator directly after `END` closes the statement. Dialects that keep
-   * bodies apart some other way - Firebird's `SET TERM`, Oracle's `/` - do not
-   * need this and leave it null.
-   *
-   * Bodies are assumed not to nest, which holds for the triggers this covers.
-   */
   compoundBody: RegExp | null
-  /**
-   * A statement head after which only the batch separator ends the statement.
-   *
-   * Oracle's PL/SQL blocks are full of semicolons - every inner statement ends
-   * with one, and so does the `END` - and nothing but the lone `/` line closes
-   * the block. `compoundBody` cannot express that, because there is no single
-   * `END;` to stop at: blocks nest.
-   */
   deferToBatchSeparator: RegExp | null
-  /**
-   * Keywords that begin a new statement even with no terminator in front of
-   * them, matched against the start of a line at paren depth zero.
-   *
-   * T-SQL needs this: SSMS scripts data as bare `INSERT ... VALUES (...)`
-   * lines stacked many-per-batch with no semicolons at all, and without this
-   * they merge into one blob whose values decode as nonsense rows.
-   *
-   * Only keywords that can never continue the previous statement belong here.
-   * `SELECT`, `SET` and `UPDATE` must not: `INSERT INTO t` / `SELECT ...` and
-   * `UPDATE t` / `SET c = 1` both legitimately span lines that way.
-   */
   statementStarters: RegExp | null
-  /**
-   * Letters that may prefix a string literal: `N'x'` (T-SQL national),
-   * `E'x'` (PostgreSQL escape), `X'ff'` / `B'01'` (binary and bit literals).
-   * A prefix never changes where the literal ends, only how it decodes.
-   */
   stringPrefixes: readonly string[]
 }
 
@@ -115,7 +54,6 @@ export const POSTGRES_DIALECT: SqlDialect = {
   stringPrefixes: ['E', 'U', 'B', 'X'],
 }
 
-/** T-SQL: `GO` ends a batch, and it may carry a repeat count. */
 export const SQLSERVER_DIALECT: SqlDialect = {
   ...BASE,
   syntax: SQLSERVER_SYNTAX,
@@ -128,13 +66,10 @@ export const SQLSERVER_DIALECT: SqlDialect = {
 export const SQLITE_DIALECT: SqlDialect = {
   ...BASE,
   syntax: SQLITE_SYNTAX,
-  // A trigger body holds statements of its own. SQLite has no batch separator
-  // and no terminator swap, so END is the only thing that closes one.
   compoundBody: /^CREATE\s+(?:TEMP\s+|TEMPORARY\s+)?TRIGGER\b/i,
   stringPrefixes: ['X'],
 }
 
-/** Firebird: `SET TERM ^ ;` swaps the terminator around procedure bodies. */
 export const FIREBIRD_DIALECT: SqlDialect = {
   ...BASE,
   syntax: STANDARD_SYNTAX,
@@ -142,28 +77,22 @@ export const FIREBIRD_DIALECT: SqlDialect = {
   stringPrefixes: ['X'],
 }
 
-/** Oracle: a lone `/` runs the preceding block, including PL/SQL bodies. */
 export const ORACLE_DIALECT: SqlDialect = {
   ...BASE,
   syntax: STANDARD_SYNTAX,
   batchSeparator: /^\/$/,
-  // SQL*Plus script directives that comment out the rest of their line.
   lineCommentKeyword: /^(REM|PROMPT)(\s|$)/i,
-  // Inside a PL/SQL block every semicolon belongs to the block; only the `/`
-  // line closes it.
   deferToBatchSeparator:
     /^(?:CREATE\s+(?:OR\s+REPLACE\s+)?(?:TRIGGER|PROCEDURE|FUNCTION|PACKAGE|TYPE)\b|DECLARE\b|BEGIN\b)/i,
   stringPrefixes: ['N', 'Q'],
 }
 
-/** CQL: SQL-shaped, with `//` line comments alongside `--`. */
 export const CQL_DIALECT: SqlDialect = {
   ...BASE,
   syntax: CQL_SYNTAX,
   stringPrefixes: [],
 }
 
-/** Plain ANSI SQL: standard quoting, semicolons, nothing else. */
 export const ANSI_DIALECT: SqlDialect = {
   ...BASE,
   syntax: STANDARD_SYNTAX,
@@ -175,22 +104,10 @@ export const DB2_DIALECT: SqlDialect = {
   stringPrefixes: ['X', 'N'],
 }
 
-// ------------------------------------------------------------ splitting
-
-/** Escape a terminator so it can sit inside a regular expression. */
 function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/**
- * `SET TERM <new> <current>` - Firebird's terminator swap.
- *
- * The line always ends with the terminator in force at the time it is read,
- * and that is what marks where the new one stops. Assuming it ends with a
- * semicolon breaks the swap back: `SET TERM ; ^` ends with `^`, so the script
- * would never return to `;` and everything after it would merge into one
- * statement.
- */
 function readTermSwap(line: string, current: string): string | null {
   const match = new RegExp(
     '^SET\\s+TERM\\s+(.+?)\\s*' + escapeForRegExp(current) + '\\s*$',
@@ -204,18 +121,6 @@ function isIdentifierChar(ch: string | undefined): boolean {
   return ch !== undefined && /[A-Za-z0-9_$]/.test(ch)
 }
 
-/**
- * Split a SQL script into statements.
- *
- * Understands, per dialect: line and block comments, string literals with
- * their prefixes, quoted identifiers in every supported bracketing, dollar
- * quoting, batch separator lines, and a terminator that a statement may
- * itself change. A semicolon inside any of those does not end a statement.
- *
- * Statement text is returned verbatim, including its terminator, because every
- * parser above this stores the source text so a SQL export stays valid for the
- * engine the dump came from.
- */
 export function splitScript(sql: string, dialect: SqlDialect): string[] {
   const statements: string[] = []
   const { syntax } = dialect
@@ -223,14 +128,8 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
   let terminator = dialect.terminator
   let current = ''
   let i = 0
-  /** Parenthesis nesting, outside quotes and comments. */
   let depth = 0
 
-  /**
-   * The statement text with leading comment lines removed - including the
-   * keyword comments (`REM`, `PROMPT`) that sit in front of a statement and
-   * would otherwise hide the keyword that opens a block.
-   */
   function statementHead(text: string): string {
     let rest = stripLeadingComments(text)
 
@@ -243,17 +142,14 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
     return rest
   }
 
-  /** Whether what has been read so far opens a BEGIN ... END body. */
   function opensCompoundBody(text: string): boolean {
     return dialect.compoundBody?.test(statementHead(text)) ?? false
   }
 
-  /** Whether only the batch separator can end what has been read so far. */
   function opensDeferredBlock(text: string): boolean {
     return dialect.deferToBatchSeparator?.test(statementHead(text)) ?? false
   }
 
-  /** Whether the text ends at the END that closes such a body. */
   function endsCompoundBody(text: string): boolean {
     return new RegExp(
       '\\bEND\\s*' + escapeForRegExp(terminator) + '\\s*$',
@@ -265,16 +161,13 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
     const trimmed = current.trim()
     if (trimmed.length > 0) statements.push(trimmed)
     current = ''
-    // An unbalanced statement must not leave later ones stuck inside it.
     depth = 0
   }
 
-  /** True when nothing but whitespace has been written since the last newline. */
   function atLineStart(): boolean {
     return /(^|\n)[ \t\r]*$/.test(current)
   }
 
-  /** The whole line beginning at `from`, without its line break. */
   function lineAt(from: number): { text: string; end: number } {
     const end = sql.indexOf('\n', from)
     const stop = end === -1 ? sql.length : end
@@ -285,8 +178,6 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
     const ch = sql[i] as string
     const next = sql[i + 1]
 
-    // A batch separator, or a terminator swap, owns its whole line. Both are
-    // only meaningful when nothing else sits in front of them on that line.
     if (atLineStart() && !/\s/.test(ch)) {
       const { text, end } = lineAt(i)
       const trimmed = text.trim()
@@ -313,9 +204,6 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
         }
       }
 
-      // A keyword that cannot continue the statement in hand starts a new one,
-      // even though nothing terminated the last. Only outside parentheses: a
-      // column list may well have a line beginning with one of these words.
       if (
         depth === 0 &&
         current.trim().length > 0 &&
@@ -348,7 +236,6 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
           depth++
           i += 2
           if (!dialect.nestedBlockComments) {
-            // Only the outermost opener counts; find the first close.
             const close = sql.indexOf('*/', i)
             i = close === -1 ? sql.length : close + 2
             depth = 0
@@ -377,7 +264,6 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
       }
     }
 
-    // A literal may carry a one-letter prefix: N'x', E'x', X'ff'.
     let quoteStart = -1
     let backslashes = syntax.backslashEscapes
     if (ch === "'") {
@@ -387,7 +273,6 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
       dialect.stringPrefixes.includes(ch.toUpperCase()) &&
       !isIdentifierChar(sql[i - 1])
     ) {
-      // E'...' opts back into backslash escapes for one literal.
       if (ch.toUpperCase() === 'E') backslashes = true
       current += ch
       i++
@@ -442,11 +327,8 @@ export function splitScript(sql: string, dialect: SqlDialect): string[] {
       current += terminator
       i += terminator.length
 
-      // Inside a compound body the terminator belongs to the body. Only one
-      // sitting directly after END closes the statement itself.
       if (opensCompoundBody(current) && !endsCompoundBody(current)) continue
 
-      // In a block that only the batch separator closes, no terminator does.
       if (opensDeferredBlock(current)) continue
 
       flush()

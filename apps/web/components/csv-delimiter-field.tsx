@@ -11,12 +11,6 @@ const DELIMITERS: { value: CsvDelimiter; label: string }[] = [
   { value: '\t', label: 'Tab' },
 ]
 
-/**
- * The CSV delimiter, shown under the format picker while CSV is chosen.
- *
- * Excel in decimal-comma locales expects a semicolon and opens a
- * comma-separated file as one column, so every tool writing CSV offers it.
- */
 export function CsvDelimiterField({
   value,
   onChange,

@@ -1,13 +1,3 @@
-/**
- * Markdown to an HTML file, and HTML to Markdown.
- *
- * Neither direction renders anything in the app: the result is a file to
- * download. It is still a file someone will open, so what could run where it
- * is opened does not survive - raw HTML in Markdown is written as text, and a
- * link or image whose address could run code keeps its text and loses the
- * address.
- */
-
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -17,14 +7,9 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;')
 }
 
-/**
- * An address a converted document may keep: the web, mail, and the document's
- * own relative links and fragments. Any other scheme - `javascript:`, `data:`,
- * `vbscript:` - is dropped. Whitespace and control characters are removed
- * before the scheme is read, because browsers ignore them inside one.
- */
 function safeUrl(href: string): string | null {
   const url = href.trim()
+  // Browsers ignore whitespace and control characters inside a scheme.
   const compact = url.replace(/[\u0000-\u0020]/g, '')
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(compact)?.[1]?.toLowerCase()
   if (scheme === undefined) return url
@@ -33,9 +18,6 @@ function safeUrl(href: string): string | null {
     : null
 }
 
-// ------------------------------------------------------- Markdown to HTML
-
-/** A complete HTML document from Markdown. `marked` loads only when used. */
 export async function markdownToHtml(
   markdown: string,
   title: string,
@@ -44,6 +26,7 @@ export async function markdownToHtml(
   const marked = new Marked({
     gfm: true,
     renderer: {
+      // marked passes raw HTML through by default.
       html: ({ text }) => escapeHtml(text),
       link({ href, title: linkTitle, tokens }) {
         const text = this.parser.parseInline(tokens)
@@ -78,12 +61,9 @@ export async function markdownToHtml(
   ].join('\n')
 }
 
-// ------------------------------------------------------- HTML to Markdown
-
 const ELEMENT = 1
 const TEXT = 3
 
-/** Elements whose content is not part of the document's text. */
 const SKIPPED = new Set([
   'SCRIPT',
   'STYLE',
@@ -97,7 +77,6 @@ const SKIPPED = new Set([
   'HEAD',
 ])
 
-/** Elements that start a block of their own rather than flowing in a line. */
 const BLOCKS = new Set([
   'ADDRESS',
   'ARTICLE',
@@ -279,13 +258,6 @@ function blocks(parent: Element): string[] {
   return out.filter(Boolean)
 }
 
-/**
- * Markdown from HTML: headings, paragraphs, links, images, lists, tables,
- * code, emphasis and strong text. Anything else keeps its text. Scripts,
- * styles and the document's head are left out.
- *
- * `DOMParser` builds an inert document - no script runs and no image loads.
- */
 export function htmlToMarkdown(html: string): string {
   const document = new DOMParser().parseFromString(html, 'text/html')
   const text = blocks(document.body).join('\n\n')

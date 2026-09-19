@@ -34,8 +34,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// Encoding, case, timestamp and color are parked off the hub, so only JSON to
-// TypeScript renders here. Their conversions stay covered by the core tests.
 describe('TextTool', () => {
   it('writes types as you type, with no mode to pick', () => {
     render(<TextTool id="json-to-typescript" />)

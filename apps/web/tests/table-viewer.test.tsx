@@ -3,7 +3,6 @@ import { render, screen, within } from '@testing-library/react'
 import { parseDump } from '@sql-extractor/core'
 import { TableViewer } from '@/components/table-viewer'
 
-// Synthetic fixture - no real data.
 const DUMP = [
   'CREATE TABLE `users` (',
   '  `id` int NOT NULL,',
@@ -37,12 +36,10 @@ describe('TableViewer', () => {
     render(<TableViewer table={users} />)
     const rows = screen.getAllByRole('row')
 
-    // Header plus two data rows.
     expect(rows).toHaveLength(3)
     expect(within(rows[1]).getByText('Ana')).toBeInTheDocument()
     expect(within(rows[2]).getByText('Bruno, Jr.')).toBeInTheDocument()
 
-    // First cell of each row is its number, independent of the id column.
     expect(rows[1].querySelector('td')?.textContent).toBe('1')
     expect(rows[2].querySelector('td')?.textContent).toBe('2')
   })
@@ -77,7 +74,6 @@ describe('TableViewer', () => {
     const pane = container.querySelector('.overflow-auto')
 
     expect(pane).not.toBeNull()
-    // Scrolling stays available; only the scrollbar chrome is hidden.
     expect(pane).toHaveClass('no-scrollbar')
   })
 
@@ -95,12 +91,8 @@ describe('TableViewer', () => {
 
     render(<TableViewer table={big} />)
 
-    // The component formats the count with toLocaleString(), which groups
-    // thousands per the host locale ("5,000" in en-US, "5.000" in pt-BR).
-    // Build the expected text the same way rather than pinning one locale.
     const rowCount = `${(5000).toLocaleString()} rows`
     expect(screen.getByText(rowCount, { exact: false })).toBeInTheDocument()
-    // Header + a window of rows + two spacer rows, nowhere near 5000.
     expect(screen.getAllByRole('row').length).toBeLessThan(60)
   })
 })

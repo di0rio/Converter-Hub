@@ -58,16 +58,13 @@ const FORMATS = [
   },
 ]
 
-/** Rows a preview shows. Enough to judge the data, never the whole table. */
 const PREVIEW_ROWS = 200
 
 export function SqliteConverter({
   selection,
   onFiles,
 }: {
-  /** Files the SQL tool routed here as a database. Loaded when they change. */
   selection?: File[] | undefined
-  /** Hands a new pick back to the SQL tool, which decides who reads it. */
   onFiles?: ((files: File[]) => void) | undefined
 } = {}) {
   const {

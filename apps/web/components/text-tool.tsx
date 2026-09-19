@@ -34,17 +34,13 @@ import { Textarea } from '@/components/ui/textarea'
 type Mode = { label: string; convert: (text: string) => string }
 
 type TextToolSpec = {
-  /** The label over the input box: what to paste. */
   input: string
-  /** One mode means no choice to offer, so no picker is drawn. */
   modes: Mode[]
   filename: string
   type: string
-  /** Extensions a file may be opened with instead of pasting, if any. */
   file?: string[]
 }
 
-/** Pasted-sized text: a sample to describe, not a data dump. */
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 
 const CASE_LABELS: Record<CaseStyle, string> = {
@@ -64,14 +60,6 @@ const READ_AS: Record<TimestampRead, string> = {
   'iso-assumed-utc': 'ISO 8601 without an offset, read as UTC',
 }
 
-/**
- * The text tools differ only in what they call: paste text, maybe pick a
- * mode, read the result as you type. Each is one entry here.
- *
- * Only JSON to TypeScript is on the hub. Encoding, case, timestamp and color
- * are parked: their specs stay so their pages in app/_parked still build, but
- * their registry entries in lib/tools.ts are commented out.
- */
 const SPECS = {
   encoding: {
     input: 'Text',
@@ -180,15 +168,12 @@ export function TextTool({ id }: { id: TextToolId }) {
     spec.modes.find((candidate) => candidate.label === modeLabel) ??
     (spec.modes[0] as Mode)
 
-  // Converted on every render: every conversion here is a pass over the text,
-  // far cheaper than the render itself.
   let output = ''
   let error: string | null = null
   if (text) {
     try {
       output = mode.convert(text)
     } catch (caught) {
-      // Only our own messages are shown: anything else could quote the input.
       error =
         caught instanceof DataFormatError
           ? caught.message

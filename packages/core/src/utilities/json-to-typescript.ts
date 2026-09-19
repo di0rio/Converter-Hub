@@ -1,20 +1,5 @@
 import { parseJson } from '../records/index.js'
 
-/**
- * TypeScript types that describe a JSON sample.
- *
- * Every value in the sample is folded into one shape per position: a field
- * seen as a number and as a string becomes `number | string`, the objects of
- * a list merge into one interface, and a field some of those objects lack
- * becomes optional. A list with nothing in it gives `unknown[]` - the sample
- * says nothing about it, and `any` would claim more than that.
- *
- * Interfaces are named after the key they sit under (`user` → `User`, a list
- * item under `people` → `PeopleItem`), in the order they are met, with a
- * number added when a name is taken. A key that is not an identifier is
- * quoted. The same sample always gives the same text.
- */
-
 type Kind = 'string' | 'number' | 'boolean' | 'null' | 'object' | 'array'
 
 type Shape = { kinds: Kind[]; object?: ObjectShape; items?: Shape }
@@ -97,8 +82,6 @@ class Writer {
 
   interface(object: ObjectShape, hint: string): string {
     const name = this.unique(typeName(hint))
-    // The slot is taken before the fields are written, so an interface is
-    // declared before the ones nested inside it.
     const slot = this.declarations.push('') - 1
     const lines = [...object.fields].map(([key, field]) => {
       const property = IDENTIFIER.test(key) ? key : JSON.stringify(key)

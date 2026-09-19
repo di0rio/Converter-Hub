@@ -14,7 +14,6 @@ interface SheetSelectProps {
   selected: string[]
   allSelected: boolean
   someSelected: boolean
-  /** Sheets that currently have a preview open. */
   previewed: string[]
   onToggle: (name: string) => void
   onToggleAll: () => void
@@ -34,8 +33,6 @@ export function SheetSelect({
 }: SheetSelectProps) {
   const totalRows = sheets.reduce((sum, sheet) => sum + sheet.rows, 0)
 
-  // The live drag ghost, removed on dragend rather than on the next frame: a
-  // rAF can run before the browser has taken its snapshot.
   const ghostRef = useRef<HTMLElement | null>(null)
   const removeGhost = () => {
     ghostRef.current?.remove()
@@ -83,8 +80,6 @@ export function SheetSelect({
               key={sheet.name}
               draggable={!sheet.empty}
               onDragStart={(event) => {
-                // A private type, so only the workspace reacts and a drop onto
-                // an unrelated text target does nothing.
                 event.dataTransfer.setData(PREVIEW_DRAG_TYPE, sheet.name)
                 event.dataTransfer.effectAllowed = 'copy'
 
@@ -113,8 +108,6 @@ export function SheetSelect({
               >
                 <Checkbox
                   checked={selected.includes(sheet.name)}
-                  // An empty sheet would produce an empty file, so it is listed
-                  // for transparency but cannot be exported.
                   disabled={sheet.empty}
                   onCheckedChange={() => onToggle(sheet.name)}
                 />
@@ -126,10 +119,6 @@ export function SheetSelect({
                 {rowLabel}
               </span>
 
-              {/* The same affordance the SQL tool uses. Always visible below
-                  the desktop breakpoint, because a touch screen has no hover to
-                  reveal it with. Kept visible on focus so it is reachable by
-                  keyboard, not only by pointer. */}
               <button
                 type="button"
                 onClick={() => onPreview(sheet.name)}

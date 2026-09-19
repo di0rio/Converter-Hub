@@ -7,9 +7,6 @@ import {
 } from '../src/parser/firebird/index.js'
 import type { SqlDump, Table } from '../src/types/index.js'
 
-// The registry (parser/index.ts) does not wire up 'firebird' yet, so the
-// parser is exercised directly rather than through parseDump/getParser.
-
 const samplePath = resolve(
   import.meta.dirname,
   '../../../examples/firebird/sample.sql',
@@ -27,12 +24,10 @@ function table(dump: SqlDump, name: string): Table {
   return found
 }
 
-/** Column names, read the same way `tabular/index.ts` would via a registered parser. */
 function columnsOf(t: Table): string[] {
   return firebirdParser.readColumns(t.createStatement)
 }
 
-/** Row count, summed across every data-carrying statement. */
 function rowCountOf(t: Table): number {
   let total = 0
   for (const stmt of t.dataStatements)
@@ -40,7 +35,6 @@ function rowCountOf(t: Table): number {
   return total
 }
 
-/** Decoded value tuples from every data statement, in statement order. */
 function rowsOf(t: Table): (string | null)[][] {
   const rows: (string | null)[][] = []
   for (const stmt of t.dataStatements)
@@ -185,9 +179,7 @@ describe('parseFirebirdDump', () => {
 
     it('decodes a NULL value as null rather than the text NULL', () => {
       const rows = rowsOf(table(dump, 'AUTHORS'))
-      // Row 2: (2, 'Bob Example', NULL, 'Ships to São Paulo') -> EMAIL is NULL
       expect(rows[1]?.[2]).toBeNull()
-      // Row 3: EMAIL and NOTES are both NULL
       expect(rows[2]?.[2]).toBeNull()
       expect(rows[2]?.[3]).toBeNull()
     })
@@ -200,7 +192,6 @@ describe('parseFirebirdDump', () => {
     it('keeps a semicolon inside a string value from ending the statement', () => {
       const rows = rowsOf(table(dump, 'AUTHORS'))
       expect(rows[0]?.[3]).toBe('Prefers email; not phone.')
-      // The statement after it still parsed as its own row.
       expect(rowCountOf(table(dump, 'AUTHORS'))).toBe(3)
     })
 
@@ -228,11 +219,9 @@ describe('parseFirebirdDump', () => {
         s.includes('CREATE TRIGGER AUTHORS_BI'),
       )
       expect(trigger).toBeDefined()
-      // The whole BEGIN...END body, semicolons and all, is one statement.
       expect(trigger).toContain('GEN_ID(GEN_AUTHORS_ID, 1)')
       expect(trigger).toContain("NEW.EMAIL = 'unknown@example.test'")
       expect(trigger).toContain('END')
-      // At least two internal semicolons survived inside the one statement.
       expect((trigger?.match(/;/g) ?? []).length).toBeGreaterThanOrEqual(2)
     })
 
@@ -241,8 +230,6 @@ describe('parseFirebirdDump', () => {
     })
 
     it('restores the default terminator after SET TERM ; ^, so later statements split normally', () => {
-      // The INSERT statements after the SET TERM block parsed as three separate
-      // rows, not as one statement glued together.
       expect(rowCountOf(table(dump, 'AUTHORS'))).toBe(3)
     })
 

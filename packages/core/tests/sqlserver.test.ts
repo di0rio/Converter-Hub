@@ -21,7 +21,6 @@ function table(dump: SqlDump, schemaName: string, name: string): Table {
   return found
 }
 
-/** Row count for a table, the way `tabular/index.ts` computes it. */
 function countRows(t: Table): number {
   let total = 0
   for (const statement of t.dataStatements)
@@ -29,9 +28,6 @@ function countRows(t: Table): number {
   return total
 }
 
-/** Flatten a table's data statements into columns and rows, ignoring the
- * registry-backed helpers in `tabular/index.ts` since the sqlserver parser is
- * not wired into it yet. */
 function tabularRows(t: Table): (string | null)[][] {
   const columns = sqlserverParser.readColumns(t.createStatement)
   const rows: (string | null)[][] = []
@@ -214,7 +210,6 @@ describe('sqlserverParser', () => {
     it('does not let GO on its own line inside a string end the batch', () => {
       const rows = tabularRows(table(dump, 'sales', 'customers'))
       expect(rows[1][2]).toBe('first line\nGO\nsecond line')
-      // Proof the batch kept going: the third row parsed at all.
       expect(rows.length).toBe(3)
     })
 
