@@ -4,6 +4,7 @@ import {
   parseJson,
   parseJsonl,
   recordsToTable,
+  recordsToTables,
   tableToRecords,
   toJsonl,
 } from '../src/records/index.js'
@@ -43,12 +44,11 @@ describe('recordsToTable', () => {
     expect(table.rows).toEqual([['1'], ['2']])
   })
 
-  it('refuses shapes that are not a table, rather than flattening them', () => {
+  it('refuses shapes that are not a table', () => {
     const refuse = (value: unknown) =>
       expect(() => recordsToTable('t', value)).toThrow(DataFormatError)
 
     refuse({ foo: { bar: { baz: true } } })
-    refuse([{ a: { nested: 1 } }])
     refuse([{ a: [1, 2] }])
     refuse([1, 2, 3])
     refuse([{ a: 1 }, 'text'])
@@ -114,5 +114,56 @@ describe('toJsonl', () => {
 
     expect(text).toBe('{"a":1,"b":"x\\ny"}\n{"a":null}\n')
     expect(parseJsonl(text)).toEqual(values)
+  })
+})
+
+describe('recordsToTables', () => {
+  it('spells a nested group out as group.field columns', () => {
+    const [table] = recordsToTables('t', [
+      { id: 1, price: { cost: 2, tax: null }, stock: { cost: 3 } },
+    ])
+    expect(table?.columns).toEqual(['id', 'price.cost', 'price.tax', 'stock.cost'])
+    expect(table?.rows).toEqual([['1', '2', null, '3']])
+  })
+
+  // ERP exports name each record element apart: <PROD_1>, <PROD_7>, …
+  it('reads numbered sibling elements as the records of one list', () => {
+    const [table] = recordsToTables('t', {
+      items: { ITEM_1: { code: 'a' }, ITEM_7: { code: 'b' } },
+    })
+    expect(table?.rows).toEqual([['a'], ['b']])
+  })
+
+  it('does not take an ordinary record with numbered fields for a list', () => {
+    expect(() =>
+      recordsToTables('t', { line1: 'street', line2: 'city' }),
+    ).toThrow(DataFormatError)
+  })
+
+  it('makes one table per list when a document holds several', () => {
+    const tables = recordsToTables('export', {
+      export: {
+        added: { ROW_1: { id: 1, group: { a: 'x' } }, ROW_2: { id: 2 } },
+        removed: { ROW_5: { id: 5, date: 'd' } },
+      },
+    })
+    expect(tables.map((t) => t.name)).toEqual(['added', 'removed'])
+    expect(tables[0]?.columns).toEqual(['id', 'group.a'])
+    expect(tables[0]?.rows).toEqual([['1', 'x'], ['2', null]])
+    expect(tables[1]?.rows).toEqual([['5', 'd']])
+  })
+
+  it('leaves an empty list out instead of failing the document', () => {
+    const tables = recordsToTables('t', {
+      added: [{ id: 1 }],
+      removed: '',
+    })
+    expect(tables.map((t) => t.name)).toEqual(['added'])
+  })
+
+  it('refuses a document with several lists as a single table', () => {
+    expect(() =>
+      recordsToTable('t', { a: [{ x: 1 }], b: [{ y: 2 }] }),
+    ).toThrow(DataFormatError)
   })
 })

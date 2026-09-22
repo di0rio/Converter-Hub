@@ -46,50 +46,100 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 // Also stops a cycle built from YAML aliases.
 const MAX_WRAPPERS = 32
 
-function collection(value: unknown): unknown[] {
-  let current = value
-  for (let depth = 0; depth < MAX_WRAPPERS && isRecord(current); depth++) {
-    const fields = Object.values(current)
-    if (fields.length !== 1) break
-    current = fields[0]
+const NUMBERED = /^(.*?)\d+$/
+
+// ERP exports write <PROD_1>, <PROD_7>… instead of repeating one element. Every
+// key must share the prefix and hold a record, so line1/line2 is not a list.
+function numbered(value: Record<string, unknown>): unknown[] | null {
+  const keys = Object.keys(value)
+  const prefix = keys[0] === undefined ? undefined : NUMBERED.exec(keys[0])?.[1]
+  if (prefix === undefined) return null
+  for (const key of keys) {
+    if (NUMBERED.exec(key)?.[1] !== prefix || !isRecord(value[key])) return null
   }
-  if (Array.isArray(current)) return current
-  throw new DataFormatError(NOT_A_TABLE)
+  return Object.values(value)
 }
 
-export function recordsToTable(name: string, value: unknown): TabularTable {
-  const records = collection(value)
-  if (records.length === 0) {
+interface Collection {
+  name: string
+  records: unknown[]
+}
+
+// One property is a wrapper and keeps the outer name; several are one list each.
+function collections(name: string, value: unknown, depth = 0): Collection[] {
+  if (Array.isArray(value)) return [{ name, records: value }]
+  if (value === '') return []
+  if (!isRecord(value) || depth >= MAX_WRAPPERS) {
+    throw new DataFormatError(NOT_A_TABLE)
+  }
+  const list = numbered(value)
+  if (list) return [{ name, records: list }]
+
+  const entries = Object.entries(value)
+  const [only] = entries
+  if (entries.length === 1 && only) {
+    return collections(name, only[1], depth + 1)
+  }
+  return entries.flatMap(([key, field]) => collections(key, field, depth + 1))
+}
+
+function flatten(
+  record: Record<string, unknown>,
+  into: Map<string, unknown>,
+  prefix = '',
+  depth = 0,
+): void {
+  for (const [key, field] of Object.entries(record)) {
+    const column = prefix ? `${prefix}.${key}` : key
+    if (Array.isArray(field) || depth >= MAX_WRAPPERS) {
+      throw new DataFormatError(NOT_A_TABLE)
+    }
+    if (isRecord(field)) flatten(field, into, column, depth + 1)
+    else into.set(column, field)
+  }
+}
+
+function toTable({ name, records }: Collection): TabularTable {
+  const columns: string[] = []
+  const seen = new Set<string>()
+  const flat = records.map((record) => {
+    if (!isRecord(record)) throw new DataFormatError(NOT_A_TABLE)
+    const fields = new Map<string, unknown>()
+    flatten(record, fields)
+    for (const column of fields.keys()) {
+      if (!seen.has(column)) {
+        seen.add(column)
+        columns.push(column)
+      }
+    }
+    return fields
+  })
+
+  const rows = flat.map((fields) =>
+    columns.map((column) => {
+      const field = fields.get(column)
+      return field === null || field === undefined ? null : String(field)
+    }),
+  )
+  return { name, columns, rows }
+}
+
+export function recordsToTables(name: string, value: unknown): TabularTable[] {
+  const tables = collections(name, value)
+    .filter((collection) => collection.records.length > 0)
+    .map(toTable)
+  if (tables.length === 0) {
     throw new DataFormatError(
       'This data holds no records to make a table from.',
     )
   }
+  return tables
+}
 
-  const columns: string[] = []
-  const seen = new Set<string>()
-  for (const record of records) {
-    if (!isRecord(record)) throw new DataFormatError(NOT_A_TABLE)
-    for (const [key, field] of Object.entries(record)) {
-      if (typeof field === 'object' && field !== null) {
-        throw new DataFormatError(NOT_A_TABLE)
-      }
-      if (!seen.has(key)) {
-        seen.add(key)
-        columns.push(key)
-      }
-    }
-  }
-
-  const rows = records.map((record) =>
-    columns.map((column) => {
-      const field = Object.prototype.hasOwnProperty.call(record, column)
-        ? (record as Record<string, unknown>)[column]
-        : null
-      return field === null || field === undefined ? null : String(field)
-    }),
-  )
-
-  return { name, columns, rows }
+export function recordsToTable(name: string, value: unknown): TabularTable {
+  const [table, ...rest] = recordsToTables(name, value)
+  if (!table || rest.length > 0) throw new DataFormatError(NOT_A_TABLE)
+  return table
 }
 
 export function tableToRecords(
