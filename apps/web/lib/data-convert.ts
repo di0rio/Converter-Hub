@@ -1,17 +1,20 @@
 import {
+  createZip,
   DataFormatError,
   detectDelimiter,
   parseCsv,
   parseJson,
   parseJsonl,
-  recordsToTable,
+  recordsToTables,
   tableToRecords,
   toCsv,
   toFileName,
   toJsonl,
   toSqlInserts,
   toXlsx,
+  uniqueName,
   type CsvDelimiter,
+  type TabularTable,
 } from '@sql-extractor/core'
 import { toMarkdown } from '@/lib/sheet-writers'
 import { parseXml } from '@/lib/xml'
@@ -47,6 +50,8 @@ export async function readData(
       return parseXml(text)
     case 'yaml': {
       const { parse } = await loadYaml()
+      // The library's default alias limit refuses a document that expands
+      // into a huge graph from a few bytes of anchors.
       try {
         return parse(text)
       } catch {
@@ -78,19 +83,34 @@ export async function writeData(
       return toJsonl(value)
   }
 
-  const table = recordsToTable(name, value)
-  switch (format) {
-    case 'csv':
-      return toCsv(table, { delimiter })
-    case 'tsv':
-      return toCsv(table, { delimiter: '\t' })
-    case 'markdown':
-      return toMarkdown(table)
-    case 'sql':
-      return toSqlInserts(table, { tableName: name })
-    case 'xlsx':
-      return toXlsx([table])
+  const tables = recordsToTables(name, value)
+  if (format === 'xlsx') return toXlsx(tables)
+
+  const write = (table: TabularTable): string => {
+    switch (format) {
+      case 'csv':
+        return toCsv(table, { delimiter })
+      case 'tsv':
+        return toCsv(table, { delimiter: '\t' })
+      case 'markdown':
+        return toMarkdown(table)
+      case 'sql':
+        return toSqlInserts(table, { tableName: table.name })
+    }
   }
+  const [only] = tables
+  if (tables.length === 1 && only) return write(only)
+
+  // Table names come from the file; cleaned and deduplicated they are safe
+  // ZIP entry names.
+  const taken = new Set<string>()
+  const extension = FILE_FORMATS[format].extensions[0]
+  return createZip(
+    tables.map((table) => ({
+      name: `${uniqueName(toFileName(table.name, 'table'), taken)}${extension}`,
+      content: new TextEncoder().encode(write(table)),
+    })),
+  )
 }
 
 export async function convertData(
@@ -106,11 +126,13 @@ export async function convertData(
     name,
     options,
   )
+  // Bytes from anything but XLSX can only be the ZIP of several tables.
+  const zipped = typeof content !== 'string' && output !== 'xlsx'
   const format = FILE_FORMATS[output]
   return {
-    filename: `${toFileName(name, 'data')}${format.extensions[0]}`,
+    filename: `${toFileName(name, 'data')}${zipped ? '.zip' : format.extensions[0]}`,
     bytes:
       typeof content === 'string' ? new TextEncoder().encode(content) : content,
-    type: format.type,
+    type: zipped ? 'application/zip' : format.type,
   }
 }

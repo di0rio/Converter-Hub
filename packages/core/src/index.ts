@@ -108,6 +108,7 @@ export {
   parseJsonl,
   toJsonl,
   recordsToTable,
+  recordsToTables,
   tableToRecords,
 } from './records/index.js'
 export {

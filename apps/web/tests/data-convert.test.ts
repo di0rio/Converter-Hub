@@ -169,3 +169,37 @@ describe('convertData', () => {
     ])
   })
 })
+
+// The shape ERP exports write: two lists at the root, records told apart by a
+// number in their element name, each record split into groups.
+describe('an XML export with several lists', () => {
+  const xml = `<Export>
+    <Changed>
+      <ITEM_3><Main><Code>A1</Code><Name>Widget</Name></Main><Cost><Code>A1</Code><Value>9</Value></Cost></ITEM_3>
+      <ITEM_8><Main><Code>B2</Code><Name>Gadget</Name></Main><Cost><Code>B2</Code><Value>4</Value></Cost></ITEM_8>
+    </Changed>
+    <Removed><ITEM_1><Code>Z9</Code><Date>2024-01-01</Date></ITEM_1></Removed>
+  </Export>`
+
+  it('writes one CSV per list, groups flattened, in a ZIP', async () => {
+    const result = await convertData(xml, 'xml', 'csv', 'export')
+    expect(result.filename).toBe('export.zip')
+    expect(result.type).toBe('application/zip')
+
+    const files = unzipSync(result.bytes)
+    expect(Object.keys(files)).toEqual(['Changed.csv', 'Removed.csv'])
+    const changed = text(files['Changed.csv'] as Uint8Array)
+    expect(changed).toContain('Main.Code,Main.Name,Cost.Code,Cost.Value')
+    expect(changed).toContain('A1,Widget,A1,9')
+    expect(text(files['Removed.csv'] as Uint8Array)).toContain('Z9,2024-01-01')
+  })
+
+  it('writes one workbook with a sheet per list', async () => {
+    const result = await convertData(xml, 'xml', 'xlsx', 'export')
+    expect(result.filename).toBe('export.xlsx')
+    const sheets = Object.keys(unzipSync(result.bytes)).filter((name) =>
+      name.startsWith('xl/worksheets/sheet'),
+    )
+    expect(sheets).toHaveLength(2)
+  })
+})
