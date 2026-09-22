@@ -54,7 +54,7 @@ const OUTPUT_DETAILS: Record<DataOutput, { hint: string; Icon: LucideIcon }> = {
   yaml: { hint: 'Any shape', Icon: FileCode },
   markdown: { hint: 'A table in text', Icon: FileText },
   sql: { hint: 'CREATE TABLE and INSERTs', Icon: Database },
-  xlsx: { hint: 'One sheet', Icon: FileSpreadsheet },
+  xlsx: { hint: 'One sheet per table', Icon: FileSpreadsheet },
 }
 
 const OUTPUT_OPTIONS = DATA_OUTPUTS.map((id) => ({
