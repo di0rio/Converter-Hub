@@ -1,7 +1,7 @@
 import { SqliteReadError } from '../sqlite/index.js'
 
 // Layouts follow Firebird's own source (ods.h, sqz.cpp, dpm.epp, tpc.cpp,
-// blb.cpp): 2.5 for ODS 11, 5.0 for ODS 13. The file is untrusted, so every read is bounds-checked.
+// blb.cpp): 2.5 for ODS 11, 3.0 for ODS 12, 5.0 for ODS 13. The file is untrusted, so every read is bounds-checked.
 
 export class FdbReadError extends SqliteReadError {
   readonly detail: string
@@ -63,17 +63,17 @@ const HDR_FILE = 3
  * Where `hdr_data` begins — the clumplets that say whether the database
  * continues in other files.
  *
- * The header page grew in ODS 13: Firebird 4 added `hdr_crypt_plugin`,
- * `hdr_att_high` and the high words of the transaction counters ahead of it.
- * Reading the clumplets from the old offset would walk into those fields and
- * see whatever they happen to contain.
+ * The header page grew in ODS 12: Firebird 3 added the encryption fields,
+ * `hdr_att_high` and the high words of the transaction counters ahead of it,
+ * and Firebird 4 dropped `hdr_top_crypt` again. Reading the clumplets from the
+ * wrong offset would walk into those fields and see whatever they contain.
  */
 function headerDataOffset(major: number): number {
-  return major >= 13 ? 128 : 96
+  return major >= 13 ? 128 : major === 12 ? 132 : 96
 }
 
 /** On-disk structures this reader knows how to walk. */
-const SUPPORTED_ODS = new Set([11, 13])
+const SUPPORTED_ODS = new Set([11, 12, 13])
 
 const MAX_RECORD = 65536
 
@@ -121,12 +121,12 @@ export function readHeader(bytes: Uint8Array): FdbHeader {
   const major = ods & 0x7fff
   if (!(ods & 0x8000)) {
     throw new FdbReadError(
-      'This database was written by InterBase, not Firebird. This tool reads Firebird 2.x and 4/5 databases (ODS 11 and 13).',
+      'This database was written by InterBase, not Firebird. This tool reads Firebird 2.x, 3, 4 and 5 databases (ODS 11 to 13).',
     )
   }
   if (!SUPPORTED_ODS.has(major)) {
     throw new FdbReadError(
-      `This Firebird database was written by ${writtenBy(major)} (ODS ${major}). This tool reads ODS 11 and ODS 13 — Firebird 2.x, 4 and 5.`,
+      `This Firebird database was written by ${writtenBy(major)} (ODS ${major}). This tool reads ODS 11 to 13 — Firebird 2.x, 3, 4 and 5.`,
     )
   }
 
@@ -143,11 +143,14 @@ export function readHeader(bytes: Uint8Array): FdbHeader {
     p += 2 + (bytes[p + 1] as number)
   }
 
+  // ODS 12 turned the old implementation word into single bytes and dropped
+  // the original minor version, so offset 64 is the one minor it keeps.
+  const minor = v.getUint16(major >= 12 ? 64 : 62, true)
   return {
     pageSize,
     odsMajor: major,
-    odsMinor: v.getUint16(62, true),
-    odsMinorOriginal: v.getUint16(64, true),
+    odsMinor: minor,
+    odsMinorOriginal: major >= 12 ? minor : v.getUint16(64, true),
     pagesPointer: v.getUint32(20, true),
     oldestTransaction: v.getUint32(28, true),
     nextTransaction: v.getUint32(36, true),
@@ -158,13 +161,12 @@ export function readHeader(bytes: Uint8Array): FdbHeader {
  * Undo the run-length encoding a record is stored in.
  *
  * A negative control byte is a run of one repeated byte, a positive one a
- * literal stretch. Firebird 3 extended that: because its compressor never
- * emits a run shorter than a few bytes, it was free to give -1 and -2 a new
- * meaning — a run whose length follows as a 16- or 32-bit number, which lets
- * one control byte cover a run longer than 127. Reading an ODS 12+ record with
- * the older rules walks straight off the end of the buffer, and reading an
- * ODS 11 record with the newer ones would turn a legitimate run of one into an
- * escape, so which rules apply is decided by the database, not guessed.
+ * literal stretch. Firebird 5 extended that for ODS 13.1: because no
+ * compressor ever emits a run shorter than a few bytes, it was free to give -1
+ * and -2 a new meaning — a run whose length follows as a 16- or 32-bit number,
+ * which lets one control byte cover a run longer than 127. Firebird 5 reads
+ * every ODS 13 record that way, so this does too, and keeps the original rules
+ * for the older structures whose own engines never knew the escapes.
  */
 export function decompress(
   input: Uint8Array,
@@ -374,9 +376,9 @@ export class FdbFile {
     }
   }
 
-  /** ODS 12 introduced the extended run-length escapes. */
+  /** Firebird 5 reads every ODS 13 record with the long run escapes. */
   private get extendedRle(): boolean {
-    return this.header.odsMajor >= 12
+    return this.header.odsMajor >= 13
   }
 
   /** The bytes of one record or fragment, packed or not. */
