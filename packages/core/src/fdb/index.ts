@@ -215,7 +215,7 @@ interface Format {
   defaults: Map<number, Default>
 }
 
-interface FieldInfo {
+export interface FieldInfo {
   computed: boolean
   type: number
   subType: number
@@ -656,11 +656,11 @@ function blobOf(context: DecodeContext, id: Uint8Array): Uint8Array {
   return context.blob(v.getUint16(0, true), number).data
 }
 
-function quote(name: string): string {
+export function quote(name: string): string {
   return `"${name.replace(/"/g, '""')}"`
 }
 
-function declaredType(field: FieldInfo): string {
+export function declaredType(field: FieldInfo): string {
   const { type, scale, subType, precision } = field
   const chars = field.charLength ?? field.length
   if ((type === 7 || type === 8 || type === 16 || type === 26) && scale < 0) {

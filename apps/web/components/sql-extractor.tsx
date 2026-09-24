@@ -14,7 +14,6 @@ import {
 import {
   SUPPORTED_FORMATS,
   countRows,
-  fbkGuidance,
   isOversizedDump,
   oversizedDumpMessage,
 } from '@sql-extractor/core'
@@ -22,7 +21,7 @@ import type { FormatConfidence, FormatDescriptor } from '@sql-extractor/core'
 import { useSqlDump, type DumpExportFormat } from '@/hooks/use-sql-dump'
 import { usePreviewWindows } from '@/hooks/use-preview-windows'
 import { findTool } from '@/lib/tools'
-import { describeBackup, SQL_TOOL_EXTENSIONS } from '@/lib/sqlite-files'
+import { SQL_TOOL_EXTENSIONS } from '@/lib/sqlite-files'
 import { FileSelect, listExtensions } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
 import { FormatCaveat } from '@/components/format-caveat'
@@ -72,7 +71,7 @@ const SUPPORTED_SUMMARY = (() => {
     labels.some((label) => label.includes(name)),
   )
 
-  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, SQLite database files with their -wal, and Firebird 2.x to 5 databases.`
+  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, SQLite database files with their -wal, Firebird 2.x to 5 databases and their gbak backups.`
 })()
 
 function describeSource(
@@ -164,16 +163,9 @@ export function SqlExtractor({
     (file: File) => {
       const name = file.name.toLowerCase()
       if (!SQL_TOOL_EXTENSIONS.some((extension) => name.endsWith(extension))) {
-        // A gbak backup is intact and one step from readable, so it is worth
-        // naming rather than filing under "unsupported". The header record is
-        // in the first few hundred bytes; nothing else is read.
-        void describeBackup(file).then((backup) => {
-          reportFileError(
-            backup
-              ? fbkGuidance(backup)
-              : `That file type is not supported. Choose a ${listExtensions(SQL_TOOL_EXTENSIONS)} file.`,
-          )
-        })
+        reportFileError(
+          `That file type is not supported. Choose a ${listExtensions(SQL_TOOL_EXTENSIONS)} file.`,
+        )
         return
       }
 
