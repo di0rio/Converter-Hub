@@ -20,12 +20,17 @@
 /** Record types, from Firebird's `burp.h`. Only the header is read here. */
 const REC_BURP = 0
 
-/** Attributes of the header record. */
+/**
+ * Attributes of the header record, from `att_type` in Firebird's `burp.h`.
+ *
+ * The numbering restarts at 1 for each record type — `SERIES` in that header —
+ * so attribute 6 means one thing here and something else in the next record.
+ * Only the header record is read, so only the header's names are needed.
+ */
 const ATT_END = 0
 const ATT_BACKUP_DATE = 1
 const ATT_BACKUP_FORMAT = 2
 const ATT_BACKUP_FILE = 7
-const ATT_PAGE_SIZE = 6
 
 /**
  * Enough bytes to decide. The version attribute sits at a fixed offset, so the
@@ -66,8 +71,6 @@ export function isFbkFile(head: Uint8Array): boolean {
 export interface FbkDescription {
   /** The backup format version gbak wrote. */
   format: number
-  /** Page size of the database it was taken from, when the header says. */
-  pageSize?: number
   /** Path of the database it was taken from, as it was on that machine. */
   sourceFile?: string
   /** When the backup ran, in gbak's own wording. */
@@ -99,9 +102,7 @@ export function describeFbk(bytes: Uint8Array): FbkDescription | null {
     const value = bytes.subarray(at + 2, at + 2 + length)
     if (value.length < length) break
 
-    if (attribute === ATT_PAGE_SIZE && length === 4) {
-      description.pageSize = int32(bytes, at + 2)
-    } else if (attribute === ATT_BACKUP_FILE) {
+    if (attribute === ATT_BACKUP_FILE) {
       description.sourceFile = text.decode(value)
     } else if (attribute === ATT_BACKUP_DATE) {
       description.backupDate = text.decode(value)
