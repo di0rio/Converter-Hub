@@ -29,11 +29,28 @@ export { FdbReadError, isFdbFile, FDB_HEADER_BYTES } from './binary.js'
 
 type Field = readonly [dtype: number, length: number]
 
-const TEXT: Field = [DTYPE.text, 31]
 const SHORT: Field = [DTYPE.short, 2]
 const LONG: Field = [DTYPE.long, 4]
 const BLOB: Field = [DTYPE.blob, 8]
+const BOOLEAN: Field = [DTYPE.boolean, 1]
 const varchar = (length: number): Field => [DTYPE.varying, length]
+
+/**
+ * How many bytes a metadata identifier occupies in the system tables.
+ *
+ * Firebird 4 raised identifiers from 31 characters to 63 and moved the
+ * metadata character set from UNICODE_FSS to UTF-8, so the same column is 31
+ * bytes wide in ODS 11 and 252 in ODS 13. Every field after the first one
+ * shifts with it, which is most of what separates the two layouts.
+ */
+function identifierBytes(major: number): number {
+  return major >= 13 ? 63 * 4 : 31
+}
+
+/** The character set those identifiers are written in. */
+function metadataCharset(major: number): number {
+  return major >= 13 ? CHARSET_IDS.UTF8 : UNICODE_FSS
+}
 
 const RDB_PAGES = 0
 const RDB_DATABASE = 1
@@ -42,92 +59,126 @@ const RDB_RELATION_FIELDS = 5
 const RDB_RELATIONS = 6
 const RDB_FORMATS = 8
 
-const SYSTEM: Record<number, readonly Field[]> = {
-  [RDB_PAGES]: [LONG, SHORT, LONG, SHORT],
-  [RDB_DATABASE]: [BLOB, SHORT, TEXT, TEXT],
-  [RDB_FIELDS]: [
-    TEXT,
-    TEXT,
-    BLOB,
-    BLOB,
-    BLOB,
-    BLOB,
-    BLOB,
-    BLOB,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    BLOB,
-    BLOB,
-    BLOB,
-    SHORT,
-    BLOB,
-    SHORT,
-    varchar(127),
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-  ],
-  [RDB_RELATION_FIELDS]: [
-    TEXT,
-    TEXT,
-    TEXT,
-    TEXT,
-    TEXT,
-    varchar(127),
-    SHORT,
-    BLOB,
-    SHORT,
-    SHORT,
-    SHORT,
-    BLOB,
-    BLOB,
-    SHORT,
-    TEXT,
-    TEXT,
-    SHORT,
-    BLOB,
-    SHORT,
-  ],
-  [RDB_RELATIONS]: [
-    BLOB,
-    BLOB,
-    BLOB,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    SHORT,
-    TEXT,
-    TEXT,
-    varchar(255),
-    BLOB,
-    BLOB,
-    TEXT,
-    TEXT,
-    SHORT,
-    SHORT,
-  ],
-  [RDB_FORMATS]: [SHORT, SHORT, BLOB],
+/**
+ * The system tables this reader walks, as their fields are laid out on disk.
+ *
+ * Firebird gates each system column on the ODS that introduced it — the
+ * `FIELD(..., ODS_x_y)` entries in its own `relations.h` — and every column
+ * added since ODS 11 was appended, so a newer database is the ODS 11 layout
+ * with more on the end and wider identifiers.
+ */
+function systemTables(major: number): Record<number, readonly Field[]> {
+  const TEXT: Field = [DTYPE.text, identifierBytes(major)]
+  const ods12 = major >= 12
+  const ods13 = major >= 13
+
+  return {
+    [RDB_PAGES]: [LONG, SHORT, LONG, SHORT],
+    [RDB_DATABASE]: [
+      BLOB,
+      SHORT,
+      TEXT,
+      TEXT,
+      // RDB$LINGER, then RDB$SQL_SECURITY.
+      ...(ods12 ? [LONG] : []),
+      ...(ods13 ? [BOOLEAN] : []),
+    ],
+    [RDB_FIELDS]: [
+      TEXT,
+      TEXT,
+      BLOB,
+      BLOB,
+      BLOB,
+      BLOB,
+      BLOB,
+      BLOB,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      BLOB,
+      BLOB,
+      BLOB,
+      SHORT,
+      BLOB,
+      SHORT,
+      varchar(127),
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      // RDB$SECURITY_CLASS, then RDB$OWNER_NAME.
+      ...(ods12 ? [TEXT, TEXT] : []),
+    ],
+    [RDB_RELATION_FIELDS]: [
+      TEXT,
+      TEXT,
+      TEXT,
+      TEXT,
+      TEXT,
+      varchar(127),
+      SHORT,
+      BLOB,
+      SHORT,
+      SHORT,
+      SHORT,
+      BLOB,
+      BLOB,
+      SHORT,
+      TEXT,
+      TEXT,
+      SHORT,
+      BLOB,
+      SHORT,
+      // RDB$GENERATOR_NAME, then RDB$IDENTITY_TYPE.
+      ...(ods12 ? [TEXT, SHORT] : []),
+    ],
+    [RDB_RELATIONS]: [
+      BLOB,
+      BLOB,
+      BLOB,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      SHORT,
+      TEXT,
+      TEXT,
+      varchar(255),
+      BLOB,
+      BLOB,
+      TEXT,
+      TEXT,
+      SHORT,
+      // RDB$RELATION_TYPE arrived in ODS 11.1 and is dropped below for 11.0.
+      SHORT,
+      // RDB$SQL_SECURITY.
+      ...(ods13 ? [BOOLEAN] : []),
+    ],
+    [RDB_FORMATS]: [SHORT, SHORT, BLOB],
+  }
 }
 
 const UNICODE_FSS = 3
 
+/**
+ * Lay out a system table's record. `varyingPrefix` says whether a varchar's
+ * stored length counts its 2-byte length prefix, which it does from ODS 11.2.
+ */
 export function systemFormat(
   fields: readonly Field[],
-  odsMinorOriginal: number,
+  varyingPrefix: boolean,
+  charset = UNICODE_FSS,
 ): Descriptor[] {
   let offset = ((fields.length + 32) & ~31) >> 3
   return fields.map(([dtype, declared]) => {
     const length =
-      dtype === DTYPE.varying && odsMinorOriginal >= 2 ? declared + 2 : declared
+      dtype === DTYPE.varying && varyingPrefix ? declared + 2 : declared
     const align =
       dtype === DTYPE.text
         ? 1
@@ -139,8 +190,7 @@ export function systemFormat(
       dtype,
       scale: 0,
       length,
-      subType:
-        dtype === DTYPE.text || dtype === DTYPE.varying ? UNICODE_FSS : 0,
+      subType: dtype === DTYPE.text || dtype === DTYPE.varying ? charset : 0,
       offset,
     }
     offset += length
@@ -151,6 +201,18 @@ export function systemFormat(
 interface Row {
   data: Uint8Array
   format: Descriptor[]
+  version: number
+}
+
+/** A column's default, stored with the format that added the column. */
+interface Default {
+  desc: Descriptor
+  data: Uint8Array
+}
+
+interface Format {
+  fields: Descriptor[]
+  defaults: Map<number, Default>
 }
 
 interface FieldInfo {
@@ -190,13 +252,14 @@ export interface FdbReadOptions {
 class Reader {
   private readonly pointers = new Map<number, number[]>()
   private readonly formatBlobs = new Map<string, Uint8Array>()
-  private readonly formats = new Map<string, Descriptor[]>()
+  private readonly formats = new Map<string, Format>()
   readonly context: DecodeContext
 
   constructor(private readonly file: FdbFile) {
     this.context = {
       defaultCharset: WIN1252,
-      blobCharsetInHeader: file.header.odsMinorOriginal >= 1,
+      blobCharsetInHeader:
+        file.header.odsMajor >= 12 || file.header.odsMinorOriginal >= 1,
       blob: (relation, number) => {
         const pointers = this.pointers.get(relation)
         if (!pointers) throw damaged(`blob in unknown relation ${relation}`)
@@ -205,36 +268,92 @@ class Reader {
     }
   }
 
-  format(relation: number, number: number): Descriptor[] {
+  format(relation: number, number: number): Format {
     const key = `${relation}:${number}`
     const cached = this.formats.get(key)
     if (cached) return cached
-    let format: Descriptor[]
-    const system = SYSTEM[relation]
+    const format: Format = { fields: [], defaults: new Map() }
+    const { odsMajor, odsMinorOriginal } = this.file.header
+    const system = systemTables(odsMajor)[relation]
     if (system && number === 0) {
-      format = systemFormat(
-        relation === RDB_RELATIONS && this.file.header.odsMinorOriginal < 1
-          ? system.slice(0, -1)
-          : system,
-        this.file.header.odsMinorOriginal,
+      // RDB$RELATION_TYPE arrived in ODS 11.1, and it is the last column only
+      // while nothing newer has been appended after it.
+      const dropRelationType =
+        relation === RDB_RELATIONS && odsMajor === 11 && odsMinorOriginal < 1
+      format.fields = systemFormat(
+        dropRelationType ? system.slice(0, -1) : system,
+        odsMajor >= 12 || odsMinorOriginal >= 2,
+        metadataCharset(odsMajor),
       )
     } else {
       const id = this.formatBlobs.get(key)
       if (!id) throw damaged(`no format ${number} for relation ${relation}`)
       const blob = blobOf(this.context, id)
-      if (blob.length % 12 !== 0)
-        throw damaged('format blob has a partial descriptor')
       const v = new DataView(blob.buffer, blob.byteOffset, blob.byteLength)
-      format = Array.from({ length: blob.length / 12 }, (_, i) => ({
-        dtype: v.getUint8(i * 12),
-        scale: v.getInt8(i * 12 + 1),
-        length: v.getUint16(i * 12 + 2, true),
-        subType: v.getInt16(i * 12 + 4, true),
-        offset: v.getUint32(i * 12 + 8, true),
-      }))
+      const descriptor = (at: number): Descriptor => {
+        if (at + 12 > blob.length)
+          throw damaged('format blob has a partial descriptor')
+        return {
+          dtype: v.getUint8(at),
+          scale: v.getInt8(at + 1),
+          length: v.getUint16(at + 2, true),
+          subType: v.getInt16(at + 4, true),
+          offset: v.getUint32(at + 8, true),
+        }
+      }
+      if (odsMajor < 12) {
+        if (blob.length % 12 !== 0)
+          throw damaged('format blob has a partial descriptor')
+        format.fields = Array.from({ length: blob.length / 12 }, (_, i) =>
+          descriptor(i * 12),
+        )
+      } else {
+        // ODS 12 counts the descriptors, then appends the defaults of columns
+        // added with this format: each is the column id, a descriptor and the
+        // value itself.
+        if (blob.length < 2) throw damaged('format blob is truncated')
+        const count = v.getUint16(0, true)
+        format.fields = Array.from({ length: count }, (_, i) =>
+          descriptor(2 + i * 12),
+        )
+        let p = 2 + count * 12
+        if (p + 2 <= blob.length) {
+          let defaults = v.getUint16(p, true)
+          p += 2
+          while (defaults-- > 0) {
+            if (p + 2 > blob.length) throw damaged('format blob is truncated')
+            const column = v.getUint16(p, true)
+            const desc = descriptor(p + 2)
+            const nullFlag = v.getUint16(p + 8, true) & 1
+            p += 14
+            if (p + desc.length > blob.length)
+              throw damaged('format blob is truncated')
+            if (!nullFlag) {
+              format.defaults.set(column, {
+                desc: { ...desc, offset: 0 },
+                data: blob.slice(p, p + desc.length),
+              })
+            }
+            p += desc.length
+          }
+        }
+      }
     }
     this.formats.set(key, format)
     return format
+  }
+
+  /**
+   * The value Firebird shows for a column the record's format predates: the
+   * default stored by the first format from the record's own onward that has
+   * one, or null when none does.
+   */
+  private defaultOf(relation: number, version: number, column: number) {
+    for (let n = version; this.formatBlobs.has(`${relation}:${n}`); n++) {
+      const found = this.format(relation, n).defaults.get(column)
+      if (found) return found
+    }
+    return null
   }
 
   private visible(
@@ -277,7 +396,8 @@ class Reader {
           if (visible) {
             yield {
               data: visible.data,
-              format: this.format(relation, visible.format),
+              format: this.format(relation, visible.format).fields,
+              version: visible.format,
             }
           }
         }
@@ -456,8 +576,13 @@ class Reader {
       rows.push(
         stored.map(({ column }) => {
           const desc = row.format[column.id]
-          if (!desc || desc.dtype === 0 || isNull(row.data, column.id))
-            return null
+          if (!desc || desc.dtype === 0) {
+            const found = this.defaultOf(relation.id, row.version, column.id)
+            return found
+              ? decodeValue(found.data, found.desc, this.context)
+              : null
+          }
+          if (isNull(row.data, column.id)) return null
           return decodeValue(row.data, desc, this.context)
         }),
       )
@@ -538,8 +663,9 @@ function quote(name: string): string {
 function declaredType(field: FieldInfo): string {
   const { type, scale, subType, precision } = field
   const chars = field.charLength ?? field.length
-  if ((type === 7 || type === 8 || type === 16) && scale < 0) {
-    const digits = precision || (type === 7 ? 4 : type === 8 ? 9 : 18)
+  if ((type === 7 || type === 8 || type === 16 || type === 26) && scale < 0) {
+    const digits =
+      precision || (type === 7 ? 4 : type === 8 ? 9 : type === 16 ? 18 : 38)
     return `${subType === 2 ? 'DECIMAL' : 'NUMERIC'}(${digits},${-scale})`
   }
   switch (type) {
@@ -549,6 +675,10 @@ function declaredType(field: FieldInfo): string {
       return 'INTEGER'
     case 16:
       return 'BIGINT'
+    case 26:
+      return 'INT128'
+    case 23:
+      return 'BOOLEAN'
     case 10:
       return 'FLOAT'
     case 11:

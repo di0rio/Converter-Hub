@@ -1,7 +1,7 @@
 import { SqliteReadError } from '../sqlite/index.js'
 
-// Layouts follow Firebird 2.5's own source (ods.h, sqz.cpp, dpm.epp, tpc.cpp,
-// blb.cpp). The file is untrusted, so every read is bounds-checked.
+// Layouts follow Firebird's own source (ods.h, sqz.cpp, dpm.epp, tpc.cpp,
+// blb.cpp): 2.5 for ODS 11, 5.0 for ODS 13. The file is untrusted, so every read is bounds-checked.
 
 export class FdbReadError extends SqliteReadError {
   readonly detail: string
@@ -33,14 +33,47 @@ export const RHD = {
   stream: 32,
   delta: 32,
   damaged: 128,
+  /** Transaction id needs 64 bits, so the header carries its high half. */
+  longTranum: 1024,
+  /** The record did not compress, so it is stored as it is. */
+  notPacked: 2048,
 } as const
 
 const RHD_SIZE = 13
+/** `rhd` plus the high half of the transaction id, aligned. */
+const RHDE_SIZE = 16
 const RHDF_SIZE = 22
+
+/**
+ * How much of a record slot is header rather than data.
+ *
+ * A fragment always carries the full header, because it has to point at the
+ * next piece. Otherwise Firebird 3 and later widen it by two bytes when the
+ * transaction id no longer fits in 32 bits.
+ */
+function headerSize(flags: number): number {
+  if (flags & RHD.incomplete) return RHDF_SIZE
+  return flags & RHD.longTranum ? RHDE_SIZE : RHD_SIZE
+}
 const BLH_SIZE = 28
 const BLP_SIZE = 28
-const HDR_DATA = 96
 const HDR_FILE = 3
+
+/**
+ * Where `hdr_data` begins — the clumplets that say whether the database
+ * continues in other files.
+ *
+ * The header page grew in ODS 13: Firebird 4 added `hdr_crypt_plugin`,
+ * `hdr_att_high` and the high words of the transaction counters ahead of it.
+ * Reading the clumplets from the old offset would walk into those fields and
+ * see whatever they happen to contain.
+ */
+function headerDataOffset(major: number): number {
+  return major >= 13 ? 128 : 96
+}
+
+/** On-disk structures this reader knows how to walk. */
+const SUPPORTED_ODS = new Set([11, 13])
 
 const MAX_RECORD = 65536
 
@@ -73,6 +106,7 @@ export function isFdbFile(head: Uint8Array): boolean {
 
 function writtenBy(major: number): string {
   if (major === 10) return 'Firebird 1.x'
+  if (major === 11) return 'Firebird 2.x'
   if (major === 12) return 'Firebird 3'
   if (major === 13) return 'Firebird 4 or 5'
   return 'an older InterBase'
@@ -87,18 +121,18 @@ export function readHeader(bytes: Uint8Array): FdbHeader {
   const major = ods & 0x7fff
   if (!(ods & 0x8000)) {
     throw new FdbReadError(
-      'This database was written by InterBase, not Firebird. This tool reads Firebird 2.x databases (ODS 11).',
+      'This database was written by InterBase, not Firebird. This tool reads Firebird 2.x and 4/5 databases (ODS 11 and 13).',
     )
   }
-  if (major !== 11) {
+  if (!SUPPORTED_ODS.has(major)) {
     throw new FdbReadError(
-      `This Firebird database was written by ${writtenBy(major)} (ODS ${major}). This tool reads Firebird 2.x databases (ODS 11).`,
+      `This Firebird database was written by ${writtenBy(major)} (ODS ${major}). This tool reads ODS 11 and ODS 13 — Firebird 2.x, 4 and 5.`,
     )
   }
 
   const pageSize = v.getUint16(16, true)
   const end = Math.min(v.getUint16(66, true), pageSize)
-  for (let p = HDR_DATA; p + 1 < end; ) {
+  for (let p = headerDataOffset(major); p + 1 < end; ) {
     const type = bytes[p] as number
     if (type === 0) break
     if (type === HDR_FILE) {
@@ -120,16 +154,40 @@ export function readHeader(bytes: Uint8Array): FdbHeader {
   }
 }
 
-export function decompress(input: Uint8Array, limit = MAX_RECORD): Uint8Array {
+/**
+ * Undo the run-length encoding a record is stored in.
+ *
+ * A negative control byte is a run of one repeated byte, a positive one a
+ * literal stretch. Firebird 3 extended that: because its compressor never
+ * emits a run shorter than a few bytes, it was free to give -1 and -2 a new
+ * meaning — a run whose length follows as a 16- or 32-bit number, which lets
+ * one control byte cover a run longer than 127. Reading an ODS 12+ record with
+ * the older rules walks straight off the end of the buffer, and reading an
+ * ODS 11 record with the newer ones would turn a legitimate run of one into an
+ * escape, so which rules apply is decided by the database, not guessed.
+ */
+export function decompress(
+  input: Uint8Array,
+  limit = MAX_RECORD,
+  extended = false,
+): Uint8Array {
   const out = new Uint8Array(limit)
+  const v = view(input)
   let o = 0
   let i = 0
   while (i < input.length) {
     const len = ((input[i++] as number) << 24) >> 24
     if (len < 0) {
-      if (i >= input.length || o - len > limit) throw damaged('rle overrun')
-      out.fill(input[i++] as number, o, o - len)
-      o -= len
+      let run = -len
+      if (extended && (len === -1 || len === -2)) {
+        const width = len === -1 ? 2 : 4
+        if (i + width > input.length) throw damaged('rle overrun')
+        run = len === -1 ? v.getUint16(i, true) : v.getUint32(i, true)
+        i += width
+      }
+      if (i >= input.length || o + run > limit) throw damaged('rle overrun')
+      out.fill(input[i++] as number, o, o + run)
+      o += run
     } else {
       if (o + len > limit || i + len > input.length) {
         throw damaged('rle overrun')
@@ -162,7 +220,12 @@ export function applyDifferences(
       p -= l
     }
   }
-  if (p > out.length || d < diff.length) throw damaged('bad difference record')
+  // Firebird pads a difference record with zeros; only a non-zero tail is a
+  // sign that something is wrong.
+  while (d < diff.length) {
+    if (diff[d++] !== 0) throw damaged('bad difference record')
+  }
+  if (p > out.length) throw damaged('bad difference record')
   return out.subarray(0, p)
 }
 
@@ -210,7 +273,12 @@ export class FdbFile {
     this.v = view(bytes)
     const size = header.pageSize
     this.maxRecords = Math.floor((size - 28) / (4 + RHD_SIZE))
-    this.dpPerPp = Math.floor(((size - 32) * 8) / 34)
+    // ODS 12 widened the per-data-page flags from 2 bits to 8 and rounded the
+    // count down to whole extents of 8 pages.
+    this.dpPerPp =
+      header.odsMajor >= 12
+        ? Math.floor(((size - 32) * 8) / 40) & ~7
+        : Math.floor(((size - 32) * 8) / 34)
     this.transPerTip = (size - 20) * 4
   }
 
@@ -290,7 +358,7 @@ export class FdbFile {
     const r = slot.at
     const flags = this.u16(r + 10)
     const incomplete = (flags & RHD.incomplete) !== 0
-    const size = incomplete ? RHDF_SIZE : RHD_SIZE
+    const size = headerSize(flags)
     if (slot.length < size) throw damaged(`record ${page}:${line} is truncated`)
     return {
       page,
@@ -306,8 +374,20 @@ export class FdbFile {
     }
   }
 
+  /** ODS 12 introduced the extended run-length escapes. */
+  private get extendedRle(): boolean {
+    return this.header.odsMajor >= 12
+  }
+
+  /** The bytes of one record or fragment, packed or not. */
+  private unpack(record: RawRecord, limit = MAX_RECORD): Uint8Array {
+    return record.flags & RHD.notPacked
+      ? record.data.subarray(0, Math.min(record.data.length, limit))
+      : decompress(record.data, limit, this.extendedRle)
+  }
+
   expand(record: RawRecord): Uint8Array {
-    const parts = [decompress(record.data)]
+    const parts = [this.unpack(record)]
     let total = parts[0]?.length ?? 0
     const seen = new Set<string>()
     for (let r = record; r.flags & RHD.incomplete; ) {
@@ -319,7 +399,7 @@ export class FdbFile {
       if (!next || !(next.flags & RHD.fragment)) {
         throw damaged('missing record fragment')
       }
-      const part = decompress(next.data, MAX_RECORD - total)
+      const part = this.unpack(next, MAX_RECORD - total)
       total += part.length
       parts.push(part)
       r = next
