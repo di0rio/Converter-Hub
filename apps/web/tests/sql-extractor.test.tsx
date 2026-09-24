@@ -472,3 +472,73 @@ describe('SqlExtractor: source formats', () => {
     expect(screen.getByText('shop.')).toBeInTheDocument()
   })
 })
+
+describe('SqlExtractor: gbak backups', () => {
+  /** The opening of a gbak backup: rec_burp, then its header attributes. */
+  function backupFile(name = 'LINKO_DB.FBK'): File {
+    const ascii = (text: string) => [...new TextEncoder().encode(text)]
+    const int32 = (n: number) => [
+      n & 0xff,
+      (n >> 8) & 0xff,
+      (n >> 16) & 0xff,
+      (n >> 24) & 0xff,
+    ]
+
+    const bytes = [
+      0, // rec_burp
+      2,
+      4,
+      ...int32(9), // att_backup_format
+      6,
+      4,
+      ...int32(8192), // att_page_size
+      7,
+      30,
+      ...ascii('C:\\CR\\LINKO_DB\\DB\\LINKO_DB.FDB'),
+      1,
+      24,
+      ...ascii('Mon Aug 25 13:24:31 2025'),
+      0, // att_end
+    ]
+    return new File([new Uint8Array(bytes)], name)
+  }
+
+  function choose(container: HTMLElement, file: File) {
+    const input = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement
+    fireEvent.change(input, { target: { files: [file] } })
+  }
+
+  it('names the backup and the step that makes it readable', async () => {
+    const reportFileError = vi.fn()
+    mockedUseSqlDump.mockReturnValue(baseHookState({ reportFileError }))
+
+    const { container } = render(<SqlExtractor />)
+    choose(container, backupFile())
+
+    await waitFor(() => expect(reportFileError).toHaveBeenCalled())
+    const [message] = reportFileError.mock.calls[0]
+
+    // Not "unsupported": the file is intact and one command from readable.
+    expect(message).toMatch(/gbak backup/i)
+    expect(message).toContain('LINKO_DB.FDB')
+    expect(message).toContain('Mon Aug 25 13:24:31 2025')
+    expect(message).toMatch(/gbak -c/)
+    expect(message).not.toMatch(/not supported/i)
+  })
+
+  it('still refuses an unrelated file the ordinary way', async () => {
+    const reportFileError = vi.fn()
+    mockedUseSqlDump.mockReturnValue(baseHookState({ reportFileError }))
+
+    const { container } = render(<SqlExtractor />)
+    choose(
+      container,
+      new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], 'a.pdf'),
+    )
+
+    await waitFor(() => expect(reportFileError).toHaveBeenCalled())
+    expect(reportFileError.mock.calls[0][0]).toMatch(/not supported/i)
+  })
+})

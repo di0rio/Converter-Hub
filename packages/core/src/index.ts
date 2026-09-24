@@ -25,6 +25,13 @@ export {
 } from './generator/writers.js'
 export { toSqlInserts } from './generator/sql-inserts.js'
 export {
+  describeFbk,
+  fbkGuidance,
+  isFbkFile,
+  FBK_HEADER_BYTES,
+} from './fbk/index.js'
+export type { FbkDescription } from './fbk/index.js'
+export {
   CATALOG,
   DATABASE_FORMATS,
   SUPPORTED_FORMATS,
