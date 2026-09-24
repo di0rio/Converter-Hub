@@ -1,5 +1,11 @@
 import type { SqliteValue } from '../sqlite/index.js'
 import { damaged, type Blob } from './binary.js'
+import {
+  decodeDecFloat,
+  TIME_TZ_BASE_DATE,
+  zoneLabel,
+  zoneOffset,
+} from './modern.js'
 
 export const DTYPE = {
   text: 1,
@@ -18,7 +24,11 @@ export const DTYPE = {
   array: 18,
   int64: 19,
   boolean: 21,
+  dec64: 22,
+  dec128: 23,
   int128: 24,
+  timeTz: 25,
+  timestampTz: 26,
 } as const
 
 export interface Descriptor {
@@ -223,6 +233,24 @@ export function decodeValue(
       return formatTime(v.getUint32(0, true))
     case DTYPE.timestamp:
       return `${formatDate(v.getInt32(0, true))} ${formatTime(v.getUint32(4, true))}`
+    case DTYPE.dec64:
+      return decodeDecFloat(v, 8)
+    case DTYPE.dec128:
+      return decodeDecFloat(v, 16)
+    case DTYPE.timeTz:
+      return withTimeZone(
+        TIME_TZ_BASE_DATE,
+        v.getUint32(0, true),
+        v.getUint16(4, true),
+        false,
+      )
+    case DTYPE.timestampTz:
+      return withTimeZone(
+        v.getInt32(0, true),
+        v.getUint32(4, true),
+        v.getUint16(8, true),
+        true,
+      )
     case DTYPE.blob: {
       const relation = v.getUint16(0, true)
       const number = v.getUint32(4, true) + v.getUint8(3) * 2 ** 32
@@ -235,6 +263,35 @@ export function decodeValue(
     default:
       throw damaged(`unsupported field type ${desc.dtype}`)
   }
+}
+
+const DAY = 864_000_000
+
+/**
+ * A UTC date-time shown in its own zone, as isql shows it. A region the
+ * runtime has no rules for is shown in GMT instead, which is the same instant.
+ */
+function withTimeZone(
+  date: number,
+  time: number,
+  zone: number,
+  withDate: boolean,
+): string {
+  const offset = zoneOffset(zone, (date - 40587) * 86_400_000 + time / 10)
+  let local = time + (offset ?? 0) * 600_000
+  let day = date
+  while (local < 0) {
+    local += DAY
+    day--
+  }
+  while (local >= DAY) {
+    local -= DAY
+    day++
+  }
+  const shown = withDate
+    ? `${formatDate(day)} ${formatTime(local)}`
+    : formatTime(local)
+  return `${shown} ${offset === null ? 'GMT' : zoneLabel(zone)}`
 }
 
 function trimPad(value: SqliteValue): SqliteValue {

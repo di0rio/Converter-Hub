@@ -677,6 +677,14 @@ function declaredType(field: FieldInfo): string {
       return 'BIGINT'
     case 26:
       return 'INT128'
+    case 24:
+      return 'DECFLOAT(16)'
+    case 25:
+      return 'DECFLOAT(34)'
+    case 28:
+      return 'TIME WITH TIME ZONE'
+    case 29:
+      return 'TIMESTAMP WITH TIME ZONE'
     case 23:
       return 'BOOLEAN'
     case 10:

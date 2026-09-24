@@ -15,10 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tables, the long run-length escapes and uncompressed records, 64-bit
   transaction headers, eight flag bits per data page on pointer pages, and
   format descriptors that are counted and carry the defaults of columns added
-  later, which older rows now show instead of null. BOOLEAN, INT128 and
-  NUMERIC/DECIMAL above 18 digits are decoded. DECFLOAT and the WITH TIME ZONE
-  types are not yet: a table using them is listed as unreadable. Firebird 3
-  (ODS 12) is still refused.
+  later, which older rows now show instead of null. BOOLEAN, INT128,
+  NUMERIC/DECIMAL above 18 digits, DECFLOAT(16) and DECFLOAT(34) are decoded,
+  and TIME and TIMESTAMP WITH TIME ZONE come out as isql shows them: local time
+  followed by the region or offset, converted with the browser's own time zone
+  rules. Firebird 3 (ODS 12) is still refused.
 - **Firebird 2.x database files in the SQL tool.** A `.fdb` or `.gdb` file
   written by Firebird 2.0, 2.1 or 2.5 (ODS 11) opens like a SQLite database and
   exports the same way, read by a new dependency-free reader in

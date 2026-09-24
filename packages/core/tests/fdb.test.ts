@@ -15,6 +15,8 @@ import {
   type Descriptor,
 } from '../src/fdb/values.js'
 import { readFdbDatabase, systemFormat } from '../src/fdb/index.js'
+import { decodeDecFloat, zoneLabel } from '../src/fdb/modern.js'
+import { TIME_ZONES } from '../src/fdb/time-zones.js'
 
 const hex = (text: string) =>
   Uint8Array.from(text.replace(/\s+/g, '').match(/../g) ?? [], (b) =>
@@ -168,6 +170,75 @@ describe('Firebird values', () => {
     }
     expect(decodeValue(Uint8Array.of(1), bool, context)).toBe(1)
     expect(decodeValue(Uint8Array.of(0), bool, context)).toBe(0)
+  })
+
+  it('reads DECFLOAT in its densely packed encoding', () => {
+    const dec64 = (bits: bigint) => {
+      const v = new DataView(new ArrayBuffer(8))
+      v.setBigUint64(0, bits, true)
+      return decodeDecFloat(v, 8)
+    }
+    expect(dec64(0x2238000000000001n)).toBe('1')
+    expect(dec64(0x22380000000000a3n)).toBe('123')
+    expect(dec64(0x22300000000000a3n)).toBe('1.23')
+    expect(dec64(0xa238000000000000n)).toBe('-0')
+    expect(dec64(0x77fcff3fcff3fcffn)).toBe('9.999999999999999E+384')
+    expect(dec64(0x7800000000000000n)).toBe('Infinity')
+    expect(dec64(0xfc00000000000000n)).toBe('-NaN')
+    const v = new DataView(new ArrayBuffer(16))
+    v.setBigUint64(8, 0x2208000000000000n, true)
+    v.setBigUint64(0, 1n, true)
+    expect(decodeDecFloat(v, 16)).toBe('1')
+  })
+
+  it('reads a date-time with its time zone as isql shows it', () => {
+    const context = {
+      defaultCharset: 0,
+      blobCharsetInHeader: true,
+      blob: () => {
+        throw new Error('no blobs here')
+      },
+    }
+    const saoPaulo = 65535 - TIME_ZONES.indexOf('America/Sao_Paulo')
+    expect(zoneLabel(1439 - 180)).toBe('-03:00')
+    expect(zoneLabel(1439 + 330)).toBe('+05:30')
+    expect(zoneLabel(65535)).toBe('GMT')
+    expect(zoneLabel(saoPaulo)).toBe('America/Sao_Paulo')
+    const timestampTz = (date: number, time: number, zone: number) => {
+      const data = new Uint8Array(12)
+      const view = new DataView(data.buffer)
+      view.setInt32(0, date, true)
+      view.setUint32(4, time, true)
+      view.setUint16(8, zone, true)
+      const desc = {
+        dtype: DTYPE.timestampTz,
+        scale: 0,
+        length: 12,
+        subType: 0,
+        offset: 0,
+      }
+      return decodeValue(data, desc, context)
+    }
+    // 2024-07-01 03:15 UTC and 2024-01-16 02:30:00.1234 UTC.
+    expect(timestampTz(60492, 117_000_000, 1439 - 180)).toBe(
+      '2024-07-01 00:15:00.0000 -03:00',
+    )
+    expect(timestampTz(60325, 90_001_234, saoPaulo)).toBe(
+      '2024-01-15 23:30:00.1234 America/Sao_Paulo',
+    )
+    const timeTz = new Uint8Array(8)
+    new DataView(timeTz.buffer).setUint32(0, 13 * 36_000_000, true)
+    new DataView(timeTz.buffer).setUint16(4, saoPaulo, true)
+    const desc = {
+      dtype: DTYPE.timeTz,
+      scale: 0,
+      length: 8,
+      subType: 0,
+      offset: 0,
+    }
+    expect(decodeValue(timeTz, desc, context)).toBe(
+      '10:00:00.0000 America/Sao_Paulo',
+    )
   })
 
   it('keeps scaled numbers exact', () => {
