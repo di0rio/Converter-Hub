@@ -8,6 +8,7 @@ import {
 } from '../src/fdb/binary.js'
 import {
   DTYPE,
+  decodeValue,
   formatDate,
   formatTime,
   scaled,
@@ -53,7 +54,6 @@ describe('Firebird header', () => {
 
   it.each([
     [12, /Firebird 3 \(ODS 12\)/],
-    [13, /Firebird 4 or 5 \(ODS 13\)/],
     [10, /Firebird 1\.x \(ODS 10\)/],
   ])('refuses ODS %i by name', (major, message) => {
     const bytes = headerWith((b) => {
@@ -78,6 +78,17 @@ describe('Firebird header', () => {
     expect(() => readHeader(bytes)).toThrow(/other files/)
   })
 
+  it('reads a Firebird 4/5 header and its clumplets at the ODS 13 offset', () => {
+    const ods13 = (at: number) =>
+      headerWith((b) => {
+        b[18] = 13
+        b[66] = 0x90
+        b.set([3, 4, 0x61, 0x62, 0x63, 0x64], at)
+      })
+    expect(readHeader(ods13(96)).odsMajor).toBe(13)
+    expect(() => readHeader(ods13(128))).toThrow(/other files/)
+  })
+
   it('does not take other files for a database', () => {
     expect(isFdbFile(new TextEncoder().encode('SQLite format 3\0'))).toBe(false)
     expect(isFdbFile(new Uint8Array(20))).toBe(false)
@@ -89,6 +100,15 @@ describe('record compression', () => {
     expect([
       ...decompress(Int8Array.from([3, 1, 2, 3, -4, 9]) as never),
     ]).toEqual([1, 2, 3, 9, 9, 9, 9])
+  })
+
+  it('reads the long runs Firebird 3 and later write', () => {
+    const run16 = Uint8Array.from([0xff, 0x2c, 0x01, 7])
+    expect(decompress(run16, 1000, true)).toEqual(new Uint8Array(300).fill(7))
+    const run32 = Uint8Array.from([0xfe, 0x90, 0x01, 0, 0, 5])
+    expect(decompress(run32, 1000, true)).toEqual(new Uint8Array(400).fill(5))
+    // The same bytes in an ODS 11 record are a run of one.
+    expect([...decompress(Uint8Array.from([0xff, 7]))]).toEqual([7])
   })
 
   it('refuses input that overruns', () => {
@@ -112,6 +132,42 @@ describe('Firebird values', () => {
     expect(formatDate(0)).toBe('1858-11-17')
     expect(formatDate(40587)).toBe('1970-01-01')
     expect(formatTime(123_456_789)).toBe('03:25:45.6789')
+  })
+
+  it('reads Firebird 4 booleans and 128-bit integers', () => {
+    const context = {
+      defaultCharset: 0,
+      blobCharsetInHeader: true,
+      blob: () => {
+        throw new Error('no blobs here')
+      },
+    }
+    const int128 = (value: bigint, scale = 0) => {
+      const data = new Uint8Array(16)
+      const v = new DataView(data.buffer)
+      v.setBigUint64(0, BigInt.asUintN(64, value), true)
+      v.setBigInt64(8, value >> 64n, true)
+      const desc = {
+        dtype: DTYPE.int128,
+        scale,
+        length: 16,
+        subType: 0,
+        offset: 0,
+      }
+      return decodeValue(data, desc, context)
+    }
+    expect(int128(2n ** 127n - 1n)).toBe(2n ** 127n - 1n)
+    expect(int128(-12345678901234567890123n)).toBe(-12345678901234567890123n)
+    expect(int128(125000n, -4)).toBe('12.5000')
+    const bool = {
+      dtype: DTYPE.boolean,
+      scale: 0,
+      length: 1,
+      subType: 0,
+      offset: 0,
+    }
+    expect(decodeValue(Uint8Array.of(1), bool, context)).toBe(1)
+    expect(decodeValue(Uint8Array.of(0), bool, context)).toBe(0)
   })
 
   it('keeps scaled numbers exact', () => {
@@ -265,8 +321,8 @@ function buildDatabase(): Uint8Array {
   const L = [DTYPE.long, 4] as const
   const B = [DTYPE.blob, 8] as const
   const V = (n: number) => [DTYPE.varying, n] as const
-  const PAGES = systemFormat([L, S, L, S], 2)
-  const DATABASE = systemFormat([B, S, T, T], 2)
+  const PAGES = systemFormat([L, S, L, S], true)
+  const DATABASE = systemFormat([B, S, T, T], true)
   const FIELDS = systemFormat(
     [
       T,
@@ -298,17 +354,17 @@ function buildDatabase(): Uint8Array {
       S,
       S,
     ],
-    2,
+    true,
   )
   const RFR = systemFormat(
     [T, T, T, T, T, V(127), S, B, S, S, S, B, B, S, T, T, S, B, S],
-    2,
+    true,
   )
   const RELATIONS = systemFormat(
     [B, B, B, S, S, S, S, S, T, T, V(255), B, B, T, T, S, S],
-    2,
+    true,
   )
-  const FORMATS = systemFormat([S, S, B], 2)
+  const FORMATS = systemFormat([S, S, B], true)
 
   put(0, [
     ...relations

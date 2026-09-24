@@ -10,7 +10,7 @@ SQL from your files is ever executed.
 |-------|------------|
 | `/` | The hub - pick a tool |
 | `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
-| `/sql` | Extract tables out of a SQL dump, a SQLite database or a Firebird 2.x database |
+| `/sql` | Extract tables out of a SQL dump, a SQLite database or a Firebird 2.x, 4 or 5 database |
 | `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML, XML) to another format |
 | `/markdown` | Turn a Markdown document into an HTML file, or an HTML page into Markdown |
 | `/json-to-typescript` | Generate TypeScript types from a JSON sample |
@@ -51,7 +51,7 @@ convert → download a ZIP. `components/sql-tool.tsx` reads the first bytes of
 the pick: a SQLite header or a `-wal`/`-shm` companion goes to the SQLite reader
 (a real SQLite build in WebAssembly, read-only), anything else to the dump
 parser in `@sql-extractor/core`, which reads it with `file.text()`. A Firebird
-2.x database (`.fdb`, `.gdb`) is recognised by its header too and takes the
+2.x, 4 or 5 database (`.fdb`, `.gdb`) is recognised by its header too and takes the
 database flow, read by `readFdbDatabase` in the core instead of a SQLite engine.
 
 **Data:** choose a CSV, TSV, JSON, JSON Lines, YAML or XML file (XML read with

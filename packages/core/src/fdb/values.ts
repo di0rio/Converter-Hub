@@ -17,6 +17,8 @@ export const DTYPE = {
   blob: 17,
   array: 18,
   int64: 19,
+  boolean: 21,
+  int128: 24,
 } as const
 
 export interface Descriptor {
@@ -203,6 +205,13 @@ export function decodeValue(
     case DTYPE.int64:
     case DTYPE.quad:
       return scaled(v.getBigInt64(0, true), desc.scale)
+    case DTYPE.int128:
+      return scaled(
+        (v.getBigInt64(8, true) << 64n) | v.getBigUint64(0, true),
+        desc.scale,
+      )
+    case DTYPE.boolean:
+      return v.getUint8(0) ? 1 : 0
     case DTYPE.real:
       return v.getFloat32(0, true)
     case DTYPE.double:

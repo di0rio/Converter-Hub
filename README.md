@@ -20,7 +20,7 @@ does not exist yet.
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
-| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x database files | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
+| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x, 4 and 5 database files | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript | Writes types that describe a JSON sample |
@@ -61,9 +61,10 @@ code, emphasis and strong text. Scripts, styles and the head are left out, and
 any other element keeps its text. Arbitrary HTML does not convert perfectly.
 
 A Firebird database file (`.fdb` or `.gdb`) is read by the SQL tool too, with
-no Firebird engine: the core parses the file itself, following Firebird 2.5's
-own source for the on-disk structure. Only Firebird 2.0, 2.1 and 2.5 files
-(ODS 11) are read; any other version is refused with its version named. Only
+no Firebird engine: the core parses the file itself, following Firebird's own
+source for the on-disk structure. Firebird 2.0, 2.1 and 2.5 files (ODS 11) and
+Firebird 4 and 5 files (ODS 13) are read; any other version, Firebird 3's
+ODS 12 included, is refused with its version named. Only
 committed rows are shown - a row changed by a transaction that never
 committed is shown as it was before - and NUMERIC and DECIMAL values stay
 exact. Text is decoded in each column's character set; a column in NONE is
