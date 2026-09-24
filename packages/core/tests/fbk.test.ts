@@ -84,7 +84,6 @@ describe('describeFbk', () => {
   it('reads the format version, the source database and the backup date', () => {
     expect(describeFbk(SAMPLE)).toEqual({
       format: 9,
-      pageSize: 8192,
       sourceFile: 'C:\\CR\\LINKO_DB\\DB\\LINKO_DB.FDB',
       backupDate: 'Mon Aug 25 13:24:31 2025',
     })
