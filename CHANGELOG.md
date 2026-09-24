@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Firebird 3 database files in the SQL tool.** ODS 12 files open too, read
+  after Firebird 3's own source: the header page's clumplets start at 132,
+  identifiers stay 31 bytes of UNICODE_FSS, records keep the original
+  run-length rules, and the rest is what ODS 13 already shares with it.
 - **Firebird 4 and 5 database files in the SQL tool.** ODS 13 files open like
   Firebird 2.x ones. The reader follows Firebird 5's source for what changed
   since ODS 11: the wider header page, 252-byte UTF-8 identifiers in the system
@@ -19,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NUMERIC/DECIMAL above 18 digits, DECFLOAT(16) and DECFLOAT(34) are decoded,
   and TIME and TIMESTAMP WITH TIME ZONE come out as isql shows them: local time
   followed by the region or offset, converted with the browser's own time zone
-  rules. Firebird 3 (ODS 12) is still refused.
+  rules.
 - **Firebird 2.x database files in the SQL tool.** A `.fdb` or `.gdb` file
   written by Firebird 2.0, 2.1 or 2.5 (ODS 11) opens like a SQLite database and
   exports the same way, read by a new dependency-free reader in

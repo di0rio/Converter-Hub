@@ -54,16 +54,16 @@ describe('Firebird header', () => {
     expect(isFdbFile(DADOS_HEADER)).toBe(true)
   })
 
-  it.each([
-    [12, /Firebird 3 \(ODS 12\)/],
-    [10, /Firebird 1\.x \(ODS 10\)/],
-  ])('refuses ODS %i by name', (major, message) => {
-    const bytes = headerWith((b) => {
-      b[18] = major
-    })
-    expect(isFdbFile(bytes)).toBe(true)
-    expect(() => readHeader(bytes)).toThrow(message)
-  })
+  it.each([[10, /Firebird 1\.x \(ODS 10\)/]])(
+    'refuses ODS %i by name',
+    (major, message) => {
+      const bytes = headerWith((b) => {
+        b[18] = major
+      })
+      expect(isFdbFile(bytes)).toBe(true)
+      expect(() => readHeader(bytes)).toThrow(message)
+    },
+  )
 
   it('refuses an InterBase database', () => {
     const bytes = headerWith((b) => {
@@ -78,6 +78,21 @@ describe('Firebird header', () => {
       b.set([3, 4, 0x61, 0x62, 0x63, 0x64], 96)
     })
     expect(() => readHeader(bytes)).toThrow(/other files/)
+  })
+
+  it('reads a Firebird 3 header and its clumplets at the ODS 12 offset', () => {
+    const ods12 = (at: number) =>
+      headerWith((b) => {
+        b[18] = 12
+        b[66] = 0x90
+        b.set([0, 0], 62)
+        b.set([3, 4, 0x61, 0x62, 0x63, 0x64], at)
+      })
+    const header = readHeader(ods12(128))
+    expect(header.odsMajor).toBe(12)
+    expect(header.odsMinor).toBe(2)
+    expect(header.odsMinorOriginal).toBe(2)
+    expect(() => readHeader(ods12(132))).toThrow(/other files/)
   })
 
   it('reads a Firebird 4/5 header and its clumplets at the ODS 13 offset', () => {
