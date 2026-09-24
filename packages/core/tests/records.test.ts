@@ -122,7 +122,12 @@ describe('recordsToTables', () => {
     const [table] = recordsToTables('t', [
       { id: 1, price: { cost: 2, tax: null }, stock: { cost: 3 } },
     ])
-    expect(table?.columns).toEqual(['id', 'price.cost', 'price.tax', 'stock.cost'])
+    expect(table?.columns).toEqual([
+      'id',
+      'price.cost',
+      'price.tax',
+      'stock.cost',
+    ])
     expect(table?.rows).toEqual([['1', '2', null, '3']])
   })
 
@@ -149,7 +154,10 @@ describe('recordsToTables', () => {
     })
     expect(tables.map((t) => t.name)).toEqual(['added', 'removed'])
     expect(tables[0]?.columns).toEqual(['id', 'group.a'])
-    expect(tables[0]?.rows).toEqual([['1', 'x'], ['2', null]])
+    expect(tables[0]?.rows).toEqual([
+      ['1', 'x'],
+      ['2', null],
+    ])
     expect(tables[1]?.rows).toEqual([['5', 'd']])
   })
 
@@ -162,8 +170,8 @@ describe('recordsToTables', () => {
   })
 
   it('refuses a document with several lists as a single table', () => {
-    expect(() =>
-      recordsToTable('t', { a: [{ x: 1 }], b: [{ y: 2 }] }),
-    ).toThrow(DataFormatError)
+    expect(() => recordsToTable('t', { a: [{ x: 1 }], b: [{ y: 2 }] })).toThrow(
+      DataFormatError,
+    )
   })
 })
