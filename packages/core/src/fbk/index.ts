@@ -2,15 +2,9 @@
  * Recognising a gbak backup.
  *
  * A `.fbk` is not a database and not a script: it is the serialisation `gbak`
- * writes, which only `gbak` restores. Reading one end to end means implementing
- * Firebird's backup format — a record stream whose types are `rec_burp`,
- * `rec_relation`, `rec_data` and so on, each a list of attributes. That work is
- * not done here.
- *
- * What is done here is telling the difference. A backup handed to a tool that
- * reads databases used to be refused as an unknown file type, which is true but
- * useless: the file is intact, it is simply one step away from being readable.
- * Naming it, and naming the step, is worth the forty lines this costs.
+ * writes, a record stream whose types are `rec_burp`, `rec_relation`,
+ * `rec_data` and so on, each a list of attributes. `reader.ts` reads it end to
+ * end; this file only tells a backup from anything else and names it.
  *
  * The header record is enough for that, and it is the one part of the format
  * that is unambiguous: a record type byte, then `attribute, length, value`
@@ -114,21 +108,5 @@ export function describeFbk(bytes: Uint8Array): FbkDescription | null {
   return description
 }
 
-/**
- * What to tell someone who handed us a backup.
- *
- * It names the database and the date, because a backup file name rarely does,
- * and then names the one command that turns it into something this tool reads.
- * No path from the backup is echoed into a shell snippet — the restore line is
- * written against the file the user chose, not against a string out of the
- * file.
- */
-export function fbkGuidance(description: FbkDescription): string {
-  const taken = description.backupDate ? ` taken ${description.backupDate}` : ''
-  const of = description.sourceFile ? ` of ${description.sourceFile}` : ''
-
-  return (
-    `That is a gbak backup${of}${taken}, not a database. ` +
-    'Restore it first — `gbak -c backup.fbk database.fdb` — and open the .fdb.'
-  )
-}
+export { FbkReadError, readFbkDatabase } from './reader.js'
+export type { FbkReadOptions } from './reader.js'

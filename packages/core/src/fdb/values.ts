@@ -124,7 +124,7 @@ export function readableCharset(id: number): boolean {
 
 const decoders = new Map<string, TextDecoder>()
 
-function decodeText(bytes: Uint8Array, charset: number): SqliteValue {
+export function decodeText(bytes: Uint8Array, charset: number): SqliteValue {
   if (charset === 1) return bytes.slice()
   const label = LABELS[charset]
   if (!label) throw damaged(`unsupported character set ${charset}`)
@@ -271,7 +271,7 @@ const DAY = 864_000_000
  * A UTC date-time shown in its own zone, as isql shows it. A region the
  * runtime has no rules for is shown in GMT instead, which is the same instant.
  */
-function withTimeZone(
+export function withTimeZone(
   date: number,
   time: number,
   zone: number,
@@ -294,6 +294,6 @@ function withTimeZone(
   return `${shown} ${offset === null ? 'GMT' : zoneLabel(zone)}`
 }
 
-function trimPad(value: SqliteValue): SqliteValue {
+export function trimPad(value: SqliteValue): SqliteValue {
   return typeof value === 'string' ? value.replace(/ +$/, '') : value
 }

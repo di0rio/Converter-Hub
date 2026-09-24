@@ -75,6 +75,16 @@ describe('isSqliteSelection', () => {
     )
   })
 
+  it('takes a gbak backup for a database, whatever it is called', async () => {
+    const backup = Uint8Array.from([0, 2, 4, 9, 0, 0, 0, 0])
+    expect(await isSqliteSelection([new File([backup], 'LINKO.FBK')])).toBe(
+      true,
+    )
+    expect(await isSqliteSelection([new File([backup], 'nightly.bak')])).toBe(
+      true,
+    )
+  })
+
   it('takes a text file for a dump', async () => {
     expect(
       await isSqliteSelection([new File(['CREATE TABLE t (a int);'], 'a.sql')]),

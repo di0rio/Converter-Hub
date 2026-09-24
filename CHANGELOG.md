@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **gbak backups in the SQL tool.** A `.fbk` or `.gbk` opens like a database,
+  with no restore: `packages/core/src/fbk/reader.ts` walks the backup's record
+  stream after Firebird's `restore.epp` and decodes rows from gbak's XDR
+  encoding, blobs and every Firebird 4 type included. Backups from gbak 2.x to
+  5 are read, and `-zip` ones through a small inflater of its own, because gbak
+  never finishes its zlib stream and the browser's decoder then drops output.
+  Encrypted and `-nt` backups are refused by name. The hint that told people to
+  restore a backup first is gone.
 - **Firebird 3 database files in the SQL tool.** ODS 12 files open too, read
   after Firebird 3's own source: the header page's clumplets start at 132,
   identifiers stay 31 bytes of UNICODE_FSS, records keep the original

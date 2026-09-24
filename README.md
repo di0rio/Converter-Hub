@@ -20,7 +20,7 @@ does not exist yet.
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
-| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x to 5 database files | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
+| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x to 5 database files and gbak backups | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript | Writes types that describe a JSON sample |
@@ -73,6 +73,12 @@ with an ARRAY column, an external file, temporary rows or a character set the
 browser cannot decode is listed as unreadable rather than guessed at. To check
 a file from the command line without printing any of its rows, build the core
 and run `node scripts/fdb-probe.mjs <file.fdb>`.
+
+A gbak backup (`.fbk` or `.gbk`) opens the same way, without restoring it:
+the core walks the backup's record stream after Firebird's own reader of it,
+`restore.epp`, and decodes each row from gbak's portable XDR encoding. Backups
+from gbak 2.x to 5 are read, `-zip` ones included; an encrypted backup, or one
+taken with `-nt`, is refused with the reason named.
 
 JSON to TypeScript takes a pasted JSON sample or a `.json` file, writes the
 types as you type, and offers them to copy or download as a `.ts` file. It
