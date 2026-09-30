@@ -17,3 +17,9 @@ apps/web/public/wa-sqlite.wasm
 # Written by `next dev`; kept out like the other editor tooling (a423804).
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
+
+# SQL Server backups and database files - real data, never committed
+*.jnmbak
+*.mdf
+*.ndf
+*.ldf
