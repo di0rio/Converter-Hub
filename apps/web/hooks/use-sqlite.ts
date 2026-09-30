@@ -2,10 +2,13 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import {
+  BAK_HEADER_BYTES,
+  isBakFile,
   isFbkFile,
   isFdbFile,
   readFbkDatabase,
   readFdbDatabase,
+  readMssqlBackupBlob,
   readSqliteDatabase,
   SqliteReadError,
 } from '@sql-extractor/core'
@@ -26,6 +29,15 @@ export type SqliteStatus = 'idle' | 'reading' | 'converting' | 'done'
 
 export const MAX_SQLITE_BYTES = 256 * 1024 * 1024
 
+/**
+ * A SQL Server backup is streamed from the file and only its data pages are
+ * kept, so the file can be far larger than a database that has to be read
+ * whole. What bounds it is the table data inside, which is held to its own
+ * limit and refused with a message past it.
+ */
+export const MAX_BACKUP_BYTES = 8 * 1024 * 1024 * 1024
+export const MAX_BACKUP_DATA_BYTES = 512 * 1024 * 1024
+
 export const MAX_ROWS_PER_TABLE = 200_000
 
 const GENERIC =
@@ -33,6 +45,31 @@ const GENERIC =
 
 function safeMessage(cause: unknown): string {
   return cause instanceof SqliteReadError ? cause.message : GENERIC
+}
+
+async function readDatabase(bytes: {
+  main: Uint8Array
+  wal?: Uint8Array | undefined
+}): Promise<SqliteDatabase> {
+  if (isFdbFile(bytes.main)) {
+    return readFdbDatabase(bytes.main, { rowLimit: MAX_ROWS_PER_TABLE })
+  }
+  if (isFbkFile(bytes.main)) {
+    return readFbkDatabase(bytes.main, { rowLimit: MAX_ROWS_PER_TABLE })
+  }
+  return readSqliteDatabase(
+    bytes,
+    async () => {
+      const response = await fetch('/wa-sqlite.wasm')
+      if (!response.ok) {
+        throw new SqliteReadError(
+          'The SQLite engine could not be loaded. Reload the page and try again.',
+        )
+      }
+      return response.arrayBuffer()
+    },
+    { rowLimit: MAX_ROWS_PER_TABLE },
+  )
 }
 
 export function useSqlite() {
@@ -77,37 +114,30 @@ export function useSqlite() {
       setStatus('reading')
       try {
         const selection = groupSqliteFiles(files)
+        const head = new Uint8Array(
+          await selection.main.slice(0, BAK_HEADER_BYTES).arrayBuffer(),
+        )
+        const backup = isBakFile(head)
+        const ceiling = backup ? MAX_BACKUP_BYTES : MAX_SQLITE_BYTES
         const total = selection.main.size + (selection.wal?.size ?? 0)
-        if (total > MAX_SQLITE_BYTES) {
+        if (total > ceiling) {
           throw new SqliteReadError(
-            `This database is larger than ${Math.round(MAX_SQLITE_BYTES / 1024 / 1024)} MB, which is more than a browser tab can hold. Use the command line tool for a database this size.`,
+            `This database is larger than ${Math.round(ceiling / 1024 / 1024)} MB, which is more than a browser tab can hold. Use the command line tool for a database this size.`,
           )
         }
 
-        const bytes = await readSelection(selection)
-        const read = isFdbFile(bytes.main)
-          ? readFdbDatabase(bytes.main, { rowLimit: MAX_ROWS_PER_TABLE })
-          : isFbkFile(bytes.main)
-            ? await readFbkDatabase(bytes.main, {
-                rowLimit: MAX_ROWS_PER_TABLE,
-              })
-            : await readSqliteDatabase(
-                bytes,
-                async () => {
-                  const response = await fetch('/wa-sqlite.wasm')
-                  if (!response.ok) {
-                    throw new SqliteReadError(
-                      'The SQLite engine could not be loaded. Reload the page and try again.',
-                    )
-                  }
-                  return response.arrayBuffer()
-                },
-                { rowLimit: MAX_ROWS_PER_TABLE },
-              )
+        // A backup is streamed from the file; everything else is read whole.
+        const bytes = backup ? null : await readSelection(selection)
+        const read = bytes
+          ? await readDatabase(bytes)
+          : await readMssqlBackupBlob(selection.main, {
+              rowLimit: MAX_ROWS_PER_TABLE,
+              maxDataBytes: MAX_BACKUP_DATA_BYTES,
+            })
 
         setDatabase(read)
         setFileName(selection.main.name)
-        setWalApplied(Boolean(bytes.wal))
+        setWalApplied(Boolean(bytes?.wal))
         setTruncated(
           read.tables
             .filter((t) => t.rowCount > t.rows.length)

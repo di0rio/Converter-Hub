@@ -56,6 +56,7 @@ describe('tool registry', () => {
       'SQLite databases',
       'Firebird databases',
       'Firebird backups',
+      'SQL Server backups',
     ])
     expect(sql.output).toEqual([
       'SQL',

@@ -85,6 +85,15 @@ describe('isSqliteSelection', () => {
     )
   })
 
+  it('takes a SQL Server backup for a database, whatever it is called', async () => {
+    const tape = new Uint8Array(128)
+    tape.set([0x54, 0x41, 0x50, 0x45])
+    new DataView(tape.buffer).setUint16(84, 1024, true)
+    expect(await isSqliteSelection([new File([tape], 'nightly.jnmbak')])).toBe(
+      true,
+    )
+  })
+
   it('takes a text file for a dump', async () => {
     expect(
       await isSqliteSelection([new File(['CREATE TABLE t (a int);'], 'a.sql')]),
