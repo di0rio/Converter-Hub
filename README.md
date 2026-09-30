@@ -88,15 +88,23 @@ page, sweeps the file once for data pages and reads the catalog from them:
 `sysschobjs` and `syscolpars` like any other table. Pages the database had
 freed are skipped, a page the backup wrote twice is read from its later copy,
 and only the first backup set in a file is read. The file is streamed and only
-its data pages are kept. The common in-row types are decoded, with DECIMAL,
-NUMERIC and MONEY kept exact and VARCHAR read as Windows-1252; a CLR type
-(hierarchyid, geometry, geography) comes out as its bytes. Values stored off
-the row - TEXT, NTEXT, IMAGE, XML, SQL_VARIANT and anything pushed to
-row-overflow pages - come out as NULL, computed columns are left out since
-they are not stored, and primary keys and NOT NULL are not carried into the
-CREATE TABLE. A table with row or page compression is listed as unreadable,
-and a compressed, encrypted or transaction log backup is refused with that
-named.
+its data and text pages are kept, both counting toward the memory limit, so a
+backup heavy with large values reaches it sooner. The common in-row types are
+decoded, with DECIMAL, NUMERIC and MONEY kept exact and VARCHAR read as
+Windows-1252; a CLR type (hierarchyid, geometry, geography) comes out as its
+bytes. Values stored off the row are followed to their text pages: the 16-byte
+text pointer of TEXT, NTEXT and IMAGE, and the inline root of VARCHAR(max),
+NVARCHAR(max), VARBINARY(max) and row-overflow columns, through the
+SMALL_ROOT, LARGE_ROOT_YUKON, INTERNAL and DATA structures. TEXT reads in the
+same code page as VARCHAR, NTEXT and NVARCHAR(max) as UTF-16 and IMAGE and
+VARBINARY(max) as bytes. A pointer that leads to a missing or freed page, the
+wrong kind of record, a loop or a tree deeper than any real one comes out as
+NULL, and so does any value past the point where the values read would hold
+more bytes than the text pages do, which only a damaged file reaches. XML and
+SQL_VARIANT still come out as NULL, computed columns are left out since they
+are not stored, and primary keys and NOT NULL are not carried into the CREATE
+TABLE. A table with row or page compression is listed as unreadable, and a
+compressed, encrypted or transaction log backup is refused with that named.
 
 JSON to TypeScript takes a pasted JSON sample or a `.json` file, writes the
 types as you type, and offers them to copy or download as a `.ts` file. It

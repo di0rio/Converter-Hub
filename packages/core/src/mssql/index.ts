@@ -31,6 +31,7 @@ import {
   IMAGE_SEARCH_BYTES,
   isAllocated,
   isDataPage,
+  isLobPage,
   isNullAt,
   isPfsPage,
   isSetStart,
@@ -45,11 +46,13 @@ import {
   slotOffsets,
   type Record as PageRecord,
 } from './pages.js'
+import { Lobs } from './lob.js'
 import {
   decodeValue,
   declaredType,
   fixedWidth,
   isLargeObject,
+  isOpaque,
   minimumBytes,
   typeInfo,
   type TypeInfo,
@@ -132,6 +135,8 @@ type PageStore = Map<number, Uint8Array[]>
 interface Sweep {
   /** Data pages by address. A later copy of a page replaces an earlier one. */
   data: Map<number, Uint8Array>
+  /** Text pages, which hold the values kept off the row, the same way. */
+  lob: Map<number, Uint8Array>
   /** The PFS pages, by address, to tell pages in use from freed ones. */
   pfs: Map<number, Uint8Array>
   /** Reached the start of another backup set in the same file. */
@@ -140,7 +145,7 @@ interface Sweep {
 }
 
 function sweep(limit = Number.POSITIVE_INFINITY): Sweep {
-  return { data: new Map(), pfs: new Map(), done: false, limit }
+  return { data: new Map(), lob: new Map(), pfs: new Map(), done: false, limit }
 }
 
 const TOO_LARGE =
@@ -149,7 +154,7 @@ const TOO_LARGE =
 /**
  * Keeps the pages of one stretch of the database image that the reader needs.
  *
- * Data pages are a fraction of a backup — the rest is indexes, large values,
+ * Data and text pages are a fraction of a backup — the rest is indexes,
  * allocation maps and the log — so keeping only these is what lets a backup
  * far larger than a tab's memory be read at all. `copy` decides whether they
  * are kept as views into `chunk` or cut loose from it.
@@ -157,6 +162,19 @@ const TOO_LARGE =
 function collect(into: Sweep, chunk: Uint8Array, copy: boolean): void {
   const keep = (at: number) =>
     copy ? chunk.slice(at, at + PAGE_SIZE) : chunk.subarray(at, at + PAGE_SIZE)
+  // A page reused for the other kind between two copies is only the later.
+  const hold = (
+    pages: Map<number, Uint8Array>,
+    other: Map<number, Uint8Array>,
+    at: number,
+  ) => {
+    const address = pageAddress(chunk, at)
+    pages.set(address, keep(at))
+    other.delete(address)
+    if ((into.data.size + into.lob.size) * PAGE_SIZE > into.limit) {
+      throw new MssqlReadError(TOO_LARGE, 'data pages past the limit')
+    }
+  }
 
   for (let at = 0; at + PAGE_SIZE <= chunk.length; at += PAGE_SIZE) {
     // A new backup set is where this one ends. Its blocks sit on 512-byte
@@ -171,33 +189,54 @@ function collect(into: Sweep, chunk: Uint8Array, copy: boolean): void {
     if (isPfsPage(chunk, at)) {
       into.pfs.set(pageAddress(chunk, at), keep(at))
     } else if (isDataPage(chunk, at)) {
-      into.data.set(pageAddress(chunk, at), keep(at))
-      if (into.data.size * PAGE_SIZE > into.limit) {
-        throw new MssqlReadError(TOO_LARGE, 'data pages past the limit')
-      }
+      hold(into.data, into.lob, at)
+    } else if (isLobPage(chunk, at)) {
+      hold(into.lob, into.data, at)
     }
   }
 }
 
-/** The kept data pages that are still in use, grouped by allocation unit. */
-function inUse(kept: Sweep): PageStore {
-  const store: PageStore = new Map()
-  for (const [address, page] of kept.data) {
+interface Kept {
+  pages: PageStore
+  lobs: Lobs
+}
+
+/**
+ * The kept pages that are still in use: data pages grouped by allocation
+ * unit, text pages by address for the pointers that lead to them.
+ */
+function inUse(kept: Sweep): Kept {
+  const allocated = (address: number) => {
     const file = Math.floor(address / 2 ** 32)
     const pageId = address % 2 ** 32
     const pfs = kept.pfs.get(file * 2 ** 32 + pfsPageFor(pageId))
-    if (pfs && !isAllocated(pfs, pageId)) continue
-
-    const stamp = pageStamp(page)
-    const list = store.get(stamp)
-    if (list) list.push(page)
-    else store.set(stamp, [page])
+    return !pfs || isAllocated(pfs, pageId)
   }
-  return store
+
+  const pages: PageStore = new Map()
+  for (const [address, page] of kept.data) {
+    if (!allocated(address)) continue
+    const stamp = pageStamp(page)
+    const list = pages.get(stamp)
+    if (list) list.push(page)
+    else pages.set(stamp, [page])
+  }
+
+  const text = new Map<number, Uint8Array>()
+  for (const [address, page] of kept.lob) {
+    if (allocated(address)) text.set(address, page)
+  }
+  return { pages, lobs: new Lobs(text) }
 }
 
 class Reader {
-  constructor(private readonly pages: PageStore) {}
+  private readonly pages: PageStore
+  private readonly lobs: Lobs
+
+  constructor({ pages, lobs }: Kept) {
+    this.pages = pages
+    this.lobs = lobs
+  }
 
   /** Every live record of an allocation unit, in the order its pages sit. */
   private *records(stamp: number): Generator<[PageRecord, DataView]> {
@@ -287,7 +326,7 @@ class Reader {
     const rows: SqliteValue[][] = []
     if (limit <= 0) return rows
     for (const [record] of this.records(stamp)) {
-      rows.push(row(record, columns, codePage))
+      rows.push(row(record, columns, codePage, this.lobs))
       if (rows.length >= limit) break
     }
     return rows
@@ -298,17 +337,18 @@ function row(
   record: PageRecord,
   columns: readonly Column[],
   codePage: string,
+  lobs: Lobs,
 ): SqliteValue[] {
   const values: SqliteValue[] = []
 
   for (const { info, offset, nullBit, bitPosition } of columns) {
-    if (isNullAt(record, nullBit) || isLargeObject(info.xtype)) {
+    if (isNullAt(record, nullBit) || isOpaque(info.xtype)) {
       values.push(null)
       continue
     }
 
     if (offset < 0) {
-      const stored = record.variable[-offset - 1]
+      const stored = variableBytes(record, -offset - 1, info, lobs)
       const present = stored && stored.length >= minimumBytes(info)
       values.push(present ? decodeValue(stored, info, 0, codePage) : null)
       continue
@@ -332,6 +372,32 @@ function row(
   }
 
   return values
+}
+
+/** The size of the text pointer a legacy large-object column holds. */
+const TEXT_POINTER_BYTES = 16
+
+/**
+ * A variable column's value, followed to wherever the row says it went.
+ *
+ * `text`, `ntext` and `image` hold a text pointer, complex or not. A complex
+ * column of any other type holds a text pointer too if its values were
+ * pushed out of the row, and an inline root otherwise. Anything else is the
+ * value itself. A pointer that leads nowhere gives no value.
+ */
+function variableBytes(
+  record: PageRecord,
+  slot: number,
+  info: TypeInfo,
+  lobs: Lobs,
+): Uint8Array | null {
+  const stored = record.variable[slot]
+  if (!stored) return null
+  const complex = record.complex[slot] === true
+  if (!complex && !isLargeObject(info.xtype)) return stored
+
+  if (stored.length === TEXT_POINTER_BYTES) return lobs.fromTextPointer(stored)
+  return complex ? lobs.fromInlineRoot(stored) : null
 }
 
 export function readMssqlBackup(
@@ -389,8 +455,8 @@ function guarded<T>(read: () => T): T {
   }
 }
 
-function build(store: PageStore, options: MssqlReadOptions): SqliteDatabase {
-  const reader = new Reader(store)
+function build(kept: Kept, options: MssqlReadOptions): SqliteDatabase {
+  const reader = new Reader(kept)
   const codePage = options.codePage ?? 'windows-1252'
   const limit = options.rowLimit ?? Number.POSITIVE_INFINITY
   const catalog = reader.catalog()

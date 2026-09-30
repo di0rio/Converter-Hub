@@ -61,15 +61,20 @@ export function typeInfo(ti: number): TypeInfo {
   }
 }
 
-/** Columns whose value lives on its own pages, not in the row. */
+/**
+ * The legacy large-object types, whose row holds only a text pointer to the
+ * value's own pages.
+ */
 export function isLargeObject(xtype: number): boolean {
-  return (
-    xtype === TYPE.text ||
-    xtype === TYPE.ntext ||
-    xtype === TYPE.image ||
-    xtype === TYPE.xml ||
-    xtype === TYPE.variant
-  )
+  return xtype === TYPE.text || xtype === TYPE.ntext || xtype === TYPE.image
+}
+
+/**
+ * Types stored in a format of their own this reader does not decode: xml in
+ * its binary form, and sql_variant with a type header ahead of each value.
+ */
+export function isOpaque(xtype: number): boolean {
+  return xtype === TYPE.xml || xtype === TYPE.variant
 }
 
 /** How many bytes a decimal of this precision occupies: a sign and an integer. */
@@ -143,6 +148,9 @@ export function minimumBytes(info: TypeInfo): number {
     case TYPE.nvarchar:
     case TYPE.binary:
     case TYPE.varbinary:
+    case TYPE.text:
+    case TYPE.ntext:
+    case TYPE.image:
       return 0
     default:
       return fixedWidth(info)
@@ -321,12 +329,15 @@ export function decodeValue(
       return guid(v, 0)
     case TYPE.char:
     case TYPE.varchar:
+    case TYPE.text:
       return decodeText(bytes, collationCodePage).replace(/\0+$/, '')
     case TYPE.nchar:
     case TYPE.nvarchar:
+    case TYPE.ntext:
       return decodeText(bytes, 'utf-16le').replace(/\0+$/, '')
     case TYPE.binary:
     case TYPE.varbinary:
+    case TYPE.image:
     case TYPE.timestamp:
       return bytes.slice()
 
