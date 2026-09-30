@@ -35,6 +35,18 @@ function walDatabase(): File[] {
   return files
 }
 
+function searchDatabase(withNotes = true): File[] {
+  const path = join(mkdtempSync(join(tmpdir(), 'sqlite-ui-')), 'notes.db')
+  const db = new DatabaseSync(path)
+  if (withNotes) {
+    db.exec(`CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT);
+             INSERT INTO notes VALUES (1, 'hello');`)
+  }
+  db.exec('CREATE VIRTUAL TABLE notes_search USING fts5(body);')
+  db.close()
+  return [new File([readFileSync(path)], 'notes.db')]
+}
+
 function select(container: HTMLElement, files: File[]) {
   const input = container.querySelector('input[type="file"]')
   if (!input) throw new Error('no file input')
@@ -114,6 +126,40 @@ describe('SqliteConverter', () => {
     expect(sql).toContain('CREATE TABLE crew (id INTEGER PRIMARY KEY')
     expect(sql).toContain("(1,'Ada',X'00ff')")
     expect(sql).toContain("(2,'Grace',NULL)")
+  })
+
+  it('explains a table it could not read instead of hiding it', async () => {
+    const { container } = render(<SqliteConverter />)
+    select(container, searchDatabase())
+
+    const note = await screen.findByText(
+      /1 table could not be read/i,
+      undefined,
+      {
+        timeout: 10_000,
+      },
+    )
+    expect(note.closest('[role="status"]')).toHaveTextContent(
+      /notes_search is a virtual table/,
+    )
+    expect(
+      screen.getByRole('checkbox', { name: /^notes$/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('says so when no table in the file can be read', async () => {
+    const { container } = render(<SqliteConverter />)
+    select(container, searchDatabase(false))
+
+    const note = await screen.findByText(
+      /1 table could not be read/i,
+      undefined,
+      { timeout: 10_000 },
+    )
+    expect(note.closest('[role="status"]')).toHaveTextContent(
+      /Nothing in this file can be exported/,
+    )
+    expect(screen.queryByRole('checkbox')).toBeNull()
   })
 
   it('asks for the database when only its companion files are chosen', async () => {

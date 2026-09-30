@@ -155,6 +155,7 @@ export function useSqlite() {
   )
 
   const tables = useMemo(() => database?.tables ?? [], [database])
+  const unreadable = useMemo(() => database?.unreadable ?? [], [database])
 
   const toggleTable = useCallback((name: string) => {
     setSelectedTables((current) =>
@@ -198,6 +199,7 @@ export function useSqlite() {
   return {
     database,
     tables,
+    unreadable,
     fileName,
     walApplied,
     truncated,
