@@ -35,8 +35,18 @@ const HEADER_SIZE = 96
 const SECTOR_SIZE = 512
 const SECTORS = PAGE_SIZE / SECTOR_SIZE
 
-/** Page types this reader cares about. The rest are allocation bookkeeping. */
-export const PAGE = { data: 1, pfs: 11, fileHeader: 15 }
+/**
+ * Page types this reader cares about. The rest are allocation bookkeeping.
+ * Large values live on the two text page types: small ones share a mixed
+ * page, and the tree above a large one sits on text tree pages.
+ */
+export const PAGE = {
+  data: 1,
+  textMix: 3,
+  textTree: 4,
+  pfs: 11,
+  fileHeader: 15,
+}
 
 /** `m_flagBits`: the page ends each sector with torn-page bits, not data. */
 const TORN_PAGE = 0x0100
@@ -137,7 +147,19 @@ export function pageStamp(page: Uint8Array, at = 0): number {
  * container's own blocks, so the header has to be self-consistent as well.
  */
 export function isDataPage(bytes: Uint8Array, at: number): boolean {
-  if (bytes[at] !== 1 || bytes[at + 1] !== PAGE.data) return false
+  return bytes[at + 1] === PAGE.data && isRecordPage(bytes, at)
+}
+
+/** The same, for a page holding pieces of large values. */
+export function isLobPage(bytes: Uint8Array, at: number): boolean {
+  const type = bytes[at + 1]
+  return (
+    (type === PAGE.textMix || type === PAGE.textTree) && isRecordPage(bytes, at)
+  )
+}
+
+function isRecordPage(bytes: Uint8Array, at: number): boolean {
+  if (bytes[at] !== 1) return false
   const v = new DataView(bytes.buffer, bytes.byteOffset + at, HEADER_SIZE)
   const slots = v.getUint16(22, true)
   const freeData = v.getUint16(30, true)
@@ -232,7 +254,21 @@ export function slotOffsets(page: DataView, count: number): number[] {
   return offsets
 }
 
-/** The high bit of a variable column's end offset: the value lives elsewhere. */
+/**
+ * Where the record in one slot begins, or -1 if the slot is out of range or
+ * points nowhere sensible. Pointers to large values name a slot by number.
+ */
+export function slotAt(page: DataView, count: number, slot: number): number {
+  if (slot < 0 || slot >= Math.min(count, (PAGE_SIZE - HEADER_SIZE) / 2))
+    return -1
+  const at = page.getUint16(PAGE_SIZE - 2 - slot * 2, true)
+  return at >= HEADER_SIZE && at + 4 <= PAGE_SIZE ? at : -1
+}
+
+/**
+ * The high bit of a variable column's end offset: a complex column, which
+ * holds not the value but a structure — usually a pointer to where it went.
+ */
 const COMPLEX = 0x8000
 
 /** `status bits A`, which says what the rest of the record looks like. */
@@ -248,12 +284,13 @@ export interface Record {
   /** How many columns the row was written with — older rows have fewer. */
   columnCount: number
   nullBitmap: Uint8Array | null
+  /** The variable-length columns' bytes, in the order they are stored. */
+  variable: Uint8Array[]
   /**
-   * The variable-length columns, in the order they are stored. `null` stands
-   * for a value kept off the row — row-overflow or a large object — whose slot
-   * holds only a pointer to where it went.
+   * Which of them are complex. For those the bytes are a pointer to a value
+   * kept off the row — row-overflow or a large object — not the value.
    */
-  variable: (Uint8Array | null)[]
+  complex: boolean[]
 }
 
 export function readRecord(
@@ -273,6 +310,7 @@ export function readRecord(
     columnCount: 0,
     nullBitmap: null,
     variable: [],
+    complex: [],
   }
 
   let cursor = at + fixedEnd
@@ -297,9 +335,8 @@ export function readRecord(
       const entry = view.getUint16(cursor + i * 2, true)
       const end = entry & 0x7fff
       if (end < start || at + end > PAGE_SIZE) return null
-      record.variable.push(
-        entry & COMPLEX ? null : page.subarray(at + start, at + end),
-      )
+      record.variable.push(page.subarray(at + start, at + end))
+      record.complex.push((entry & COMPLEX) !== 0)
       start = end
     }
   }

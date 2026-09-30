@@ -32,7 +32,11 @@ const TI = {
   char2: TYPE.char | (2 << 8),
   sysname: TYPE.nvarchar | (256 << 8),
   varchar50: TYPE.varchar | (50 << 8),
+  varchar100: TYPE.varchar | (100 << 8),
   decimal92: TYPE.decimal | (9 << 8) | (2 << 16),
+  ntext: TYPE.ntext | (16 << 8),
+  image: TYPE.image | (16 << 8),
+  nvarcharMax: TYPE.nvarchar | (0xffff << 8),
 }
 
 function bytes(size: number, write: (v: DataView) => void): Uint8Array {
@@ -45,6 +49,8 @@ interface RecordSpec {
   fixed: Uint8Array
   columns: number
   variable?: Uint8Array[]
+  /** Which variable columns hold a pointer rather than the value. */
+  complex?: boolean[]
   kind?: number
 }
 
@@ -53,6 +59,7 @@ function record({
   fixed,
   columns,
   variable = [],
+  complex = [],
   kind = 0,
 }: RecordSpec): Uint8Array {
   const bitmap = new Uint8Array(Math.ceil(columns / 8))
@@ -72,7 +79,9 @@ function record({
   let at = head + 2 + bitmap.length
   if (variable.length) {
     view.setUint16(at, variable.length, true)
-    ends.forEach((e, i) => view.setUint16(at + 2 + i * 2, e, true))
+    ends.forEach((e, i) =>
+      view.setUint16(at + 2 + i * 2, e | (complex[i] ? 0x8000 : 0), true),
+    )
     at += varHead
     for (const v of variable) {
       out.set(v, at)
@@ -83,11 +92,16 @@ function record({
 }
 
 /** A data page stamped with an allocation unit, holding these records. */
-function dataPage(stamp: number, pageId: number, records: Uint8Array[]) {
+function dataPage(
+  stamp: number,
+  pageId: number,
+  records: Uint8Array[],
+  type = 1,
+) {
   const page = new Uint8Array(PAGE_SIZE)
   const view = new DataView(page.buffer)
   page[0] = 1
-  page[1] = 1
+  page[1] = type
   view.setUint16(22, records.length, true)
   view.setUint32(24, stamp, true)
   view.setUint32(32, pageId, true)
@@ -397,6 +411,201 @@ function setStart(): Uint8Array {
   return block
 }
 
+/**
+ * Large values, kept off the row on text pages.
+ *
+ * Every piece is a blob fragment — record kind 4, all of it in the fixed
+ * part — that opens with an 8-byte blob id and a 2-byte structure type.
+ */
+const LOB = { smallRoot: 0, internal: 2, data: 3, largeRoot: 5 }
+const TEXT_MIX = 3
+const TEXT_TREE = 4
+
+function fragment(type: number, body: Uint8Array): Uint8Array {
+  const out = new Uint8Array(14 + body.length)
+  const view = new DataView(out.buffer)
+  out[0] = 4 << 1
+  view.setUint16(2, out.length, true)
+  view.setBigUint64(4, 0x1234n << 16n, true)
+  view.setUint16(12, type, true)
+  out.set(body, 14)
+  return out
+}
+
+interface Link {
+  end: number
+  page: number
+  slot: number
+}
+
+/** Page, file and slot: where a pointer or a link leads. */
+const rowId = (page: number, slot: number) =>
+  bytes(8, (v) => {
+    v.setUint32(0, page, true)
+    v.setUint16(4, 1, true)
+    v.setUint16(6, slot, true)
+  })
+
+const link = ({ end, page, slot }: Link) =>
+  new Uint8Array([...int32(end), ...rowId(page, slot)])
+
+const lobData = (data: Uint8Array) => fragment(LOB.data, data)
+
+const smallRoot = (data: Uint8Array) =>
+  fragment(
+    LOB.smallRoot,
+    new Uint8Array([
+      ...bytes(6, (v) => v.setUint16(0, data.length, true)),
+      ...data,
+      ...new Uint8Array(64 - data.length),
+    ]),
+  )
+
+/** Max links, cur links and level, then the links. */
+function linkHeader(links: number, level: number, pad: number) {
+  return bytes(6 + pad, (v) => {
+    v.setUint16(0, 5, true)
+    v.setUint16(2, links, true)
+    v.setUint16(4, level, true)
+  })
+}
+
+const largeRoot = (links: Link[], level = 0) =>
+  fragment(
+    LOB.largeRoot,
+    new Uint8Array([
+      ...linkHeader(links.length, level, 4),
+      ...links.flatMap((l) => [...link(l)]),
+    ]),
+  )
+
+const internal = (links: Link[], level = 0) =>
+  fragment(
+    LOB.internal,
+    new Uint8Array([
+      ...linkHeader(links.length, level, 0),
+      ...links.flatMap((l) => [
+        ...bytes(8, (v) => v.setBigUint64(0, BigInt(l.end), true)),
+        ...rowId(l.page, l.slot),
+      ]),
+    ]),
+  )
+
+/** The 16 bytes a text, ntext or image column keeps in the row. */
+const textPointer = (page: number, slot: number) =>
+  new Uint8Array([...new Uint8Array(8), ...rowId(page, slot)])
+
+/** The complex column a max or row-overflow value leaves in the row. */
+const inlineRoot = (kind: number, links: Link[]) =>
+  new Uint8Array([
+    kind,
+    ...new Uint8Array(11),
+    ...links.flatMap((l) => [...link(l)]),
+  ])
+
+const ROW_OVERFLOW = 2
+const INLINE_ROOT = 4
+
+const BODY = latin1('Açaí must flow')
+const IMAGE = new Uint8Array([0, 1, 2, 0xff, 0xfe, 0xfd])
+
+/** Page 40 holds small pieces and data; page 41, the rest of the trees. */
+const TEXT_PAGE = [
+  lobData(BODY.subarray(0, 10)),
+  largeRoot([
+    { end: 10, page: 40, slot: 0 },
+    { end: 14, page: 41, slot: 0 },
+  ]),
+  smallRoot(utf16('Olá, mundo')),
+  lobData(IMAGE.subarray(0, 4)),
+  internal([
+    { end: 4, page: 40, slot: 3 },
+    { end: 6, page: 41, slot: 1 },
+  ]),
+  largeRoot([{ end: 6, page: 40, slot: 4 }], 1),
+  lobData(utf16('Hello, ')),
+  lobData(utf16('world')),
+  lobData(latin1('overflowed')),
+]
+const TREE_PAGE = [
+  lobData(BODY.subarray(10)),
+  lobData(IMAGE.subarray(4)),
+  largeRoot([{ end: 6, page: 41, slot: 2 }]),
+]
+
+const textPages = (mix = TEXT_PAGE, tree = TREE_PAGE) => [
+  dataPage(80, 40, mix, TEXT_MIX),
+  dataPage(81, 41, tree, TEXT_TREE),
+]
+
+const DOCS = 1200
+const DOC_COLUMNS: ColumnSpec[] = [
+  { ti: TI.int, offset: 4, name: 'id' },
+  { ti: TI.text, offset: -1, name: 'body' },
+  { ti: TI.ntext, offset: -2, name: 'note' },
+  { ti: TI.image, offset: -3, name: 'scan' },
+  { ti: TI.nvarcharMax, offset: -4, name: 'summary' },
+  { ti: TI.varchar100, offset: -5, name: 'tail' },
+]
+
+const doc = (id: number, variable: Uint8Array[]) =>
+  record({
+    columns: 6,
+    fixed: int32(id),
+    variable,
+    complex: [false, false, false, true, true],
+  })
+
+const GOOD_DOC = [
+  textPointer(40, 1),
+  textPointer(40, 2),
+  textPointer(40, 5),
+  inlineRoot(INLINE_ROOT, [
+    { end: 14, page: 40, slot: 6 },
+    { end: 24, page: 40, slot: 7 },
+  ]),
+  inlineRoot(ROW_OVERFLOW, [{ end: 10, page: 40, slot: 8 }]),
+]
+
+/** Every pointer broken a different way. */
+const BROKEN_DOC = [
+  // A page the backup does not hold.
+  textPointer(99, 0),
+  // A data page, not a text page.
+  textPointer(10, 0),
+  // A root that links to itself.
+  textPointer(41, 2),
+  // A link promising more than its fragment holds.
+  inlineRoot(INLINE_ROOT, [{ end: 100, page: 40, slot: 6 }]),
+  // A complex column that is no pointer at all.
+  inlineRoot(5, [{ end: 10, page: 40, slot: 8 }]),
+]
+
+const docsTable = (rows: Uint8Array[]): Table => ({
+  objectId: DOCS,
+  name: 'Docs',
+  stamp: 70,
+  indexId: 0,
+  columns: DOC_COLUMNS,
+  pages: [rows],
+})
+
+function lobBackup(
+  rows = [doc(1, GOOD_DOC), doc(2, BROKEN_DOC)],
+  pages = textPages(),
+) {
+  return backup([...TABLES, docsTable(rows)], (all) => all.push(...pages))
+}
+
+const GOOD_ROW = [
+  1,
+  'Açaí must flow',
+  'Olá, mundo',
+  IMAGE,
+  'Hello, world',
+  'overflowed',
+]
+
 const tableNamed = (db: ReturnType<typeof readMssqlBackup>, name: string) =>
   db.tables.find((t) => t.name === name)
 
@@ -589,6 +798,166 @@ describe('readMssqlBackupBlob', () => {
   })
 })
 
+describe('values kept off the row', () => {
+  const docs = (bak: Uint8Array) => tableNamed(readMssqlBackup(bak), 'Docs')
+
+  it('follows text pointers and inline roots to the value', () => {
+    const table = docs(lobBackup())
+    expect(table?.rows[0]).toEqual(GOOD_ROW)
+    expect(table?.columns.map((c) => c.declaredType)).toEqual([
+      'INT',
+      'TEXT',
+      'NTEXT',
+      'IMAGE',
+      'NVARCHAR(max)',
+      'VARCHAR(100)',
+    ])
+  })
+
+  it('gives NULL for a pointer that leads nowhere sensible', () => {
+    expect(docs(lobBackup())?.rows[1]).toEqual([
+      2,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ])
+  })
+
+  it('reads the same from a Blob as from bytes', async () => {
+    const whole = lobBackup()
+    expect(await readMssqlBackupBlob(new Blob([whole]))).toEqual(
+      readMssqlBackup(whole),
+    )
+  })
+
+  it('keeps the later copy of a text page the backup wrote twice', () => {
+    const [mix, tree] = textPages()
+    const later = dataPage(
+      81,
+      41,
+      [lobData(latin1('FLOW')), ...TREE_PAGE.slice(1)],
+      TEXT_TREE,
+    )
+    const table = docs(lobBackup(undefined, [mix!, tree!, later]))
+    expect(table?.rows[0]?.[1]).toBe('Açaí must FLOW')
+  })
+
+  it('leaves out a text page its PFS page says is free', () => {
+    const pages = [...textPages(), pfsPage([2, 3, 4, 5, 6, 10, 11, 12, 41])]
+    const table = docs(lobBackup([doc(1, GOOD_DOC)], pages))
+    expect(table?.rows).toEqual([[1, null, null, null, null, null]])
+  })
+
+  /** The body column of one row whose body pointer is `pointer`. */
+  const bodyOf = (pointer: Uint8Array, pages: Uint8Array[]) =>
+    docs(lobBackup([doc(1, [pointer, ...BROKEN_DOC.slice(1)])], pages))
+      ?.rows[0]?.[1]
+
+  it('reads a tree with more than one INTERNAL node', () => {
+    const mix = ['ab', 'cd', 'ef', 'gh'].map((s) => lobData(latin1(s)))
+    const tree = [
+      largeRoot(
+        [
+          { end: 4, page: 41, slot: 1 },
+          { end: 8, page: 41, slot: 2 },
+        ],
+        1,
+      ),
+      internal([
+        { end: 2, page: 40, slot: 0 },
+        { end: 4, page: 40, slot: 1 },
+      ]),
+      // Offsets counted from the value's start rather than the node's: the
+      // data is the same either way.
+      internal([
+        { end: 6, page: 40, slot: 2 },
+        { end: 8, page: 40, slot: 3 },
+      ]),
+    ]
+    expect(bodyOf(textPointer(41, 0), textPages(mix, tree))).toBe('abcdefgh')
+  })
+
+  it('gives up on a tree deeper than any real one', () => {
+    const chain = (depth: number) => [
+      ...Array.from({ length: depth }, (_, i) =>
+        internal([{ end: 4, page: 40, slot: i + 1 }]),
+      ),
+      lobData(latin1('deep')),
+    ]
+    const read = (depth: number) =>
+      bodyOf(textPointer(40, 0), textPages(chain(depth)))
+    expect(read(16)).toBe('deep')
+    expect(read(17)).toBeNull()
+  })
+
+  it('will not build a value out of one fragment named by many slots', () => {
+    const mix = dataPage(80, 40, [lobData(new Uint8Array(4000))], TEXT_MIX)
+    const view = new DataView(mix.buffer)
+    view.setUint16(22, 1900, true)
+    for (let slot = 0; slot < 1900; slot++)
+      view.setUint16(PAGE_SIZE - 2 - slot * 2, 96, true)
+    const links = Array.from({ length: 490 }, (_, slot) => ({
+      end: (slot + 1) * 4000,
+      page: 40,
+      slot,
+    }))
+    const tree = dataPage(81, 41, [internal(links)], TEXT_TREE)
+    expect(bodyOf(textPointer(41, 0), [mix, tree])).toBeNull()
+  })
+
+  it('stops once the rows ask for more than the text pages hold', () => {
+    const pages = textPages([lobData(new Uint8Array(4000).fill(0x61))], [])
+    const rows = Array.from({ length: 6 }, (_, i) =>
+      doc(i + 1, [textPointer(40, 0), ...BROKEN_DOC.slice(1)]),
+    )
+    const bodies = docs(lobBackup(rows, pages))?.rows.map((r) => r[1])
+    // Two text pages hold 16 KB, room for four copies of 4000 bytes.
+    expect(bodies?.filter((b) => b !== null)).toHaveLength(4)
+    expect(bodies?.slice(4)).toEqual([null, null])
+  })
+
+  it('never throws on damaged roots or pointers, only loses the value', () => {
+    const recordAt = (slot: number) =>
+      TEXT_PAGE.slice(0, slot).reduce((at, r) => at + r.length, 96)
+
+    /** Flip one byte of the text page, or of a row's pointer, at a time. */
+    const targets = [
+      { column: 1, slot: 1, bytes: TEXT_PAGE[1]!.length },
+      // Past its header, a SMALL_ROOT is the data itself.
+      { column: 2, slot: 2, bytes: 20 },
+      { column: 3, slot: 4, bytes: TEXT_PAGE[4]!.length },
+      { column: 3, slot: 5, bytes: TEXT_PAGE[5]!.length },
+      { column: 1, pointer: 0 },
+      { column: 4, pointer: 3 },
+      { column: 5, pointer: 4 },
+    ]
+
+    for (const target of targets) {
+      const seen = new Set<unknown>()
+      const flips =
+        target.pointer === undefined
+          ? target.bytes
+          : GOOD_DOC[target.pointer]!.length
+      for (let i = 0; i < flips; i++) {
+        const [mix, tree] = textPages()
+        const pointers = GOOD_DOC.map((p) => p.slice())
+        if (target.pointer === undefined)
+          mix![recordAt(target.slot) + i] ^= 0xff
+        else pointers[target.pointer]![i] ^= 0xff
+
+        const row = docs(lobBackup([doc(1, pointers)], [mix!, tree!]))?.rows[0]
+        const value = row?.[target.column]
+        expect([GOOD_ROW[target.column], null]).toContainEqual(value)
+        seen.add(value === null ? 'lost' : 'kept')
+      }
+      // Both outcomes happen: the check is not passing on one alone.
+      expect(seen).toEqual(new Set(['kept', 'lost']))
+    }
+  })
+})
+
 describe('readPage', () => {
   it('puts back the bits torn-page detection displaced', () => {
     const page = dataPage(50, 1, [])
@@ -634,7 +1003,7 @@ describe('slotOffsets and readRecord', () => {
     expect(readRecord(page, view, PAGE_SIZE - 100)).toBeNull()
   })
 
-  it('gives no bytes for a value kept off the row', () => {
+  it('keeps the pointer of a value kept off the row, marked complex', () => {
     const bytes = record({
       columns: 2,
       fixed: new Uint8Array(0),
@@ -649,7 +1018,8 @@ describe('slotOffsets and readRecord', () => {
     page.set(bytes, 96)
     const parsed = readRecord(page, new DataView(page.buffer), 96)
     expect(parsed?.variable[0]).toEqual(latin1('here'))
-    expect(parsed?.variable[1]).toBeNull()
+    expect(parsed?.variable[1]).toEqual(new Uint8Array(24))
+    expect(parsed?.complex).toEqual([false, true])
   })
 })
 
@@ -720,6 +1090,12 @@ describe('decodeValue', () => {
   it('reads varchar in the database code page and nvarchar as UTF-16', () => {
     expect(decode(TYPE.varchar, '53c34f')).toBe('SÃO')
     expect(decode(TYPE.nvarchar, '53000301')).toBe('Să')
+  })
+
+  it('reads text, ntext and image as their in-row cousins', () => {
+    expect(decode(TYPE.text, '53c34f')).toBe('SÃO')
+    expect(decode(TYPE.ntext, '53000301')).toBe('Să')
+    expect(decode(TYPE.image, '0102')).toEqual(new Uint8Array([1, 2]))
   })
 
   it('hands back the bytes of a type only its own code can read', () => {
