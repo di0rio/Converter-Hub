@@ -10,7 +10,7 @@ SQL from your files is ever executed.
 |-------|------------|
 | `/` | The hub - pick a tool |
 | `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
-| `/sql` | Extract tables out of a SQL dump, a SQLite database, a Firebird 2.x to 5 database or a gbak backup |
+| `/sql` | Extract tables out of a SQL dump, a SQLite database, a Firebird 2.x to 5 database, a gbak backup or a SQL Server backup |
 | `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML, XML) to another format |
 | `/markdown` | Turn a Markdown document into an HTML file, or an HTML page into Markdown |
 | `/json-to-typescript` | Generate TypeScript types from a JSON sample |
@@ -53,7 +53,12 @@ the pick: a SQLite header or a `-wal`/`-shm` companion goes to the SQLite reader
 parser in `@sql-extractor/core`, which reads it with `file.text()`. A Firebird
 2.x to 5 database (`.fdb`, `.gdb`) is recognised by its header too and takes the
 database flow, read by `readFdbDatabase` in the core instead of a SQLite engine,
-and so is a gbak backup (`.fbk`, `.gbk`), read by `readFbkDatabase`.
+and so is a gbak backup (`.fbk`, `.gbk`), read by `readFbkDatabase`. A SQL
+Server backup (`.bak`, `.jnmbak`) is recognised by its MTF `TAPE` header and
+never read whole: `readMssqlBackupBlob` slices the `File` a chunk at a time and
+keeps only the data pages, which is why its size limit (8 GB) is far above the
+256 MB every other database is held to. The data pages kept are held to 512 MB,
+past which the backup is refused with a message instead of crashing the tab.
 
 **Data:** choose a CSV, TSV, JSON, JSON Lines, YAML or XML file (XML read with
 `DOMParser` in `lib/xml.ts`) → choose CSV (with

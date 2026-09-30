@@ -20,7 +20,7 @@ does not exist yet.
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
-| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x to 5 database files and gbak backups | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
+| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x to 5 database files and gbak backups, SQL Server backups | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript | Writes types that describe a JSON sample |
@@ -79,6 +79,24 @@ the core walks the backup's record stream after Firebird's own reader of it,
 `restore.epp`, and decodes each row from gbak's portable XDR encoding. Backups
 from gbak 2.x to 5 are read, `-zip` ones included; an encrypted backup, or one
 taken with `-nt`, is refused with the reason named.
+
+A SQL Server backup (`.bak`, or the same file renamed, such as `.jnmbak`) is
+read without restoring it too. A full backup is a Microsoft Tape Format
+container around the database's own 8 KB pages, so the core finds the first
+page, sweeps the file once for data pages and reads the catalog from them:
+`sysallocunits`, `sysrowsets` and `sysrscols` at their fixed layouts, then
+`sysschobjs` and `syscolpars` like any other table. Pages the database had
+freed are skipped, a page the backup wrote twice is read from its later copy,
+and only the first backup set in a file is read. The file is streamed and only
+its data pages are kept. The common in-row types are decoded, with DECIMAL,
+NUMERIC and MONEY kept exact and VARCHAR read as Windows-1252; a CLR type
+(hierarchyid, geometry, geography) comes out as its bytes. Values stored off
+the row - TEXT, NTEXT, IMAGE, XML, SQL_VARIANT and anything pushed to
+row-overflow pages - come out as NULL, computed columns are left out since
+they are not stored, and primary keys and NOT NULL are not carried into the
+CREATE TABLE. A table with row or page compression is listed as unreadable,
+and a compressed, encrypted or transaction log backup is refused with that
+named.
 
 JSON to TypeScript takes a pasted JSON sample or a `.json` file, writes the
 types as you type, and offers them to copy or download as a `.ts` file. It

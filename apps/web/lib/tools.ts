@@ -56,6 +56,7 @@ export const TOOLS: ConverterTool[] = [
       'SQLite databases',
       'Firebird databases',
       'Firebird backups',
+      'SQL Server backups',
     ],
     output: ['SQL', 'CSV', 'XLSX', 'JSON', 'JSON Lines', 'Markdown'],
     heading: 'Extract from a database',

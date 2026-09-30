@@ -1,7 +1,9 @@
 import {
+  BAK_HEADER_BYTES,
   FBK_HEADER_BYTES,
   FDB_HEADER_BYTES,
   groupSqliteFiles,
+  isBakFile,
   isFbkFile,
   isFdbFile,
   isSqliteFile,
@@ -32,6 +34,8 @@ export const SQL_TOOL_EXTENSIONS = [
   '.gdb',
   '.fbk',
   '.gbk',
+  '.bak',
+  '.jnmbak',
 ]
 
 export async function isSqliteSelection(
@@ -44,9 +48,16 @@ export async function isSqliteSelection(
     await first
       .slice(
         0,
-        Math.max(SQLITE_HEADER_BYTES, FDB_HEADER_BYTES, FBK_HEADER_BYTES),
+        Math.max(
+          SQLITE_HEADER_BYTES,
+          FDB_HEADER_BYTES,
+          FBK_HEADER_BYTES,
+          BAK_HEADER_BYTES,
+        ),
       )
       .arrayBuffer(),
   )
-  return isSqliteFile(head) || isFdbFile(head) || isFbkFile(head)
+  return (
+    isSqliteFile(head) || isFdbFile(head) || isFbkFile(head) || isBakFile(head)
+  )
 }

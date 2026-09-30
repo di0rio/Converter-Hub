@@ -94,7 +94,7 @@ describe('SqlExtractor', () => {
     expect(input).not.toBeNull()
     expect(input.type).toBe('file')
     expect(input.accept).toBe(
-      '.sql,.txt,.db,.sqlite,.sqlite3,.db3,.fdb,.gdb,.fbk,.gbk',
+      '.sql,.txt,.db,.sqlite,.sqlite3,.db3,.fdb,.gdb,.fbk,.gbk,.bak,.jnmbak',
     )
     expect(
       screen.getByRole('region', {
