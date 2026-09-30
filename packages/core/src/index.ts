@@ -88,6 +88,14 @@ export {
   SQLITE_HEADER_BYTES,
 } from './sqlite/reader.js'
 export {
+  readMssqlBackup,
+  readMssqlBackupBlob,
+  isBakFile,
+  MssqlReadError,
+  BAK_HEADER_BYTES,
+} from './mssql/index.js'
+export type { BlobLike, MssqlReadOptions } from './mssql/index.js'
+export {
   readFdbDatabase,
   isFdbFile,
   FdbReadError,
