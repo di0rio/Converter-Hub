@@ -20,6 +20,7 @@ import type { SqliteExportFormat } from '@/lib/sqlite-export'
 import { FileSelect } from '@/components/file-select'
 import { ToolHeader } from '@/components/tool-header'
 import { TableSelect } from '@/components/table-select'
+import { UnreadableTables } from '@/components/unreadable-tables'
 import { Workspace } from '@/components/workspace'
 import { DataGrid } from '@/components/data-grid'
 import { FormatOptions } from '@/components/format-options'
@@ -69,6 +70,7 @@ export function SqliteConverter({
 } = {}) {
   const {
     tables,
+    unreadable,
     fileName,
     walApplied,
     truncated,
@@ -200,6 +202,8 @@ export function SqliteConverter({
             </AlertDescription>
           </Alert>
         )}
+
+        <UnreadableTables tables={unreadable} readableCount={tables.length} />
 
         {tables.length > 0 && (
           <div className="motion-safe:animate-step-in">
