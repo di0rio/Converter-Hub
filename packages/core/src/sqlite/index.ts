@@ -29,7 +29,14 @@ export interface SqliteDatabase {
 
 export interface UnreadableTable {
   name: string
-  reason: 'virtual' | 'array' | 'external' | 'temporary' | 'charset' | 'damaged'
+  reason:
+    | 'virtual'
+    | 'array'
+    | 'external'
+    | 'temporary'
+    | 'charset'
+    | 'compressed'
+    | 'damaged'
   detail?: string
 }
 
