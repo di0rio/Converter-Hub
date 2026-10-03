@@ -29,8 +29,6 @@ export function SiteHeader(): React.ReactElement {
           aria-label="Converter Hub, home"
           className="flex min-w-0 items-center gap-2.5 rounded-md font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- static 20px icon */}
-          <img src="/logo.svg" alt="" width={20} height={20} className="size-5 shrink-0 rounded" />
           <span className="font-bold text-foreground">
             cd<span className="text-brand-foreground">/</span>hub
           </span>
