@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import type { CsvDelimiter } from '@sql-extractor/core'
+import { DataFormatError, type CsvDelimiter } from '@sql-extractor/core'
 import { listExtensions } from '@/components/file-select'
 import {
   ACCEPTED_EXTENSIONS,
@@ -63,12 +63,14 @@ export function useWorkbook() {
       if (next.sheets.length === 0) {
         setError('This file has no sheets in it.')
       }
-    } catch {
+    } catch (cause) {
       setLoaded(null)
       setSelected([])
       setLoadStatus('idle')
       setError(
-        `That file could not be read. Check that it is a valid ${listExtensions(ACCEPTED_EXTENSIONS)} file.`,
+        cause instanceof DataFormatError
+          ? cause.message
+          : `That file could not be read. Check that it is a valid ${listExtensions(ACCEPTED_EXTENSIONS)} file.`,
       )
     }
   }, [])

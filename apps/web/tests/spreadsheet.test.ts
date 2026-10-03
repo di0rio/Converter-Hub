@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { unzipSync, strFromU8 } from 'fflate'
+import { unzipSync, strFromU8, zipSync } from 'fflate'
 import * as XLSX from 'xlsx'
 import {
   MAX_WORKBOOK_BYTES,
@@ -7,6 +7,7 @@ import {
   isOversizedWorkbook,
   oversizedWorkbookMessage,
   readSheetRows,
+  unpackedSize,
   readWorkbook,
   toFileName,
   type LoadedWorkbook,
@@ -83,6 +84,29 @@ describe('workbook size ceiling', () => {
     const message = oversizedWorkbookMessage(200 * 1024 * 1024)
     expect(message).toContain('200 MB')
     expect(message).toContain('100 MB')
+  })
+})
+
+describe('a ZIP that claims to unpack to gigabytes', () => {
+  function forged(claim: number): Uint8Array {
+    const bytes = zipSync({ 'xl/sheet.xml': new Uint8Array(100) })
+    const view = new DataView(bytes.buffer)
+    for (let i = 0; i < bytes.length - 4; i++) {
+      if (view.getUint32(i, true) === 0x02014b50) view.setUint32(i + 24, claim, true)
+    }
+    return bytes
+  }
+
+  it('reports the size its directory claims, without inflating anything', () => {
+    expect(unpackedSize(zipSync({ a: new Uint8Array(100) }))).toBe(100)
+    expect(unpackedSize(forged(0xfffffff0))).toBe(0xfffffff0)
+    expect(unpackedSize(new Uint8Array(40))).toBeNull()
+  })
+
+  it('is refused with a message, not read', async () => {
+    const file = new File([forged(0xfffffff0) as BlobPart], 'bomb.xlsx')
+
+    await expect(readWorkbook(file)).rejects.toThrow(/unpacks to more than/)
   })
 })
 

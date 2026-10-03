@@ -109,3 +109,24 @@ describe('htmlToMarkdown', () => {
     expect(md).toBe('click\n')
   })
 })
+
+describe('markdownToHtml: the file it writes', () => {
+  it('carries a policy that forbids script wherever it is opened', async () => {
+    const html = await markdownToHtml('# Hi', 'x')
+
+    expect(html).toMatch(
+      /<meta http-equiv="Content-Security-Policy" content="default-src 'none'; [^"]*">/,
+    )
+    expect(html).not.toMatch(/script-src[^"]*'unsafe-inline'/)
+  })
+
+  it('cannot be broken out of through the title, a link title or a code language', async () => {
+    const html = await markdownToHtml(
+      '[a](https://a.example "x\\" onmouseover=\\"alert(1)")\n\n```"><script>alert(1)</script>\n```',
+      '</title><script>alert(1)</script>',
+    )
+
+    expect(html).not.toContain('<script')
+    expect(html).not.toMatch(/ onmouseover="/)
+  })
+})

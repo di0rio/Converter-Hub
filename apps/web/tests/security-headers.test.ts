@@ -18,3 +18,31 @@ describe('Content Security Policy', () => {
     expect(await scriptSrc()).not.toMatch(/'unsafe-eval'/)
   })
 })
+
+async function headers(): Promise<Record<string, string>> {
+  const [rule] = (await nextConfig.headers?.()) ?? []
+  return Object.fromEntries(
+    (rule?.headers ?? []).map((header) => [header.key, header.value]),
+  )
+}
+
+describe('security headers', () => {
+  it('keeps file data in the browser: no connection but to this origin', async () => {
+    const csp = (await headers())['Content-Security-Policy'] ?? ''
+    const directives = csp.split('; ')
+
+    expect(directives).toContain("default-src 'self'")
+    expect(directives).toContain("connect-src 'self'")
+    expect(directives).toContain("frame-ancestors 'none'")
+    expect(directives).toContain("object-src 'none'")
+  })
+
+  it('sets the transport and sniffing headers', async () => {
+    const all = await headers()
+
+    expect(all['Strict-Transport-Security']).toMatch(/max-age=\d{7,}/)
+    expect(all['X-Content-Type-Options']).toBe('nosniff')
+    expect(all['Referrer-Policy']).toBe('no-referrer')
+    expect(all['Permissions-Policy']).toContain('camera=()')
+  })
+})

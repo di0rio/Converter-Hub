@@ -18,6 +18,10 @@ function safeUrl(href: string): string | null {
     : null
 }
 
+// Defence in depth: whatever opens the file runs no script, even if the
+// escaping below missed something.
+const CSP = "default-src 'none'; img-src http: https:; style-src 'unsafe-inline'"
+
 export async function markdownToHtml(
   markdown: string,
   title: string,
@@ -51,6 +55,7 @@ export async function markdownToHtml(
     '<head>',
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    `<meta http-equiv="Content-Security-Policy" content="${CSP}">`,
     `<title>${escapeHtml(title)}</title>`,
     '</head>',
     '<body>',
