@@ -335,3 +335,72 @@
     scale: 0.97;
   }
 }
+
+/* --- v2: identidade cd (a mesma do portfólio e do cd/ui) ---
+   Os componentes usam as variáveis do coss; aqui só trocam os valores. */
+:root {
+  --background: #f6f4ee;
+  --foreground: #262626;
+  --card: #fbfaf6;
+  --card-foreground: #262626;
+  --popover: #fbfaf6;
+  --popover-foreground: #262626;
+  --primary: #262626;
+  --primary-foreground: #f6f4ee;
+  --secondary: rgb(0 0 0 / 0.04);
+  --secondary-foreground: #262626;
+  --muted: rgb(0 0 0 / 0.04);
+  --muted-foreground: #686868;
+  --accent: rgb(0 0 0 / 0.04);
+  --accent-foreground: #262626;
+  --border: rgb(0 0 0 / 0.08);
+  --input: rgb(0 0 0 / 0.12);
+  --ring: #e0b320;
+  --brand: #ffd23f;
+  --brand-foreground: #7a5c00;
+  --brand-contrast: #1c1c1c;
+}
+.dark {
+  --background: #1c1c1c;
+  --foreground: #f5f5f5;
+  --card: #222220;
+  --card-foreground: #f5f5f5;
+  --popover: #222220;
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #1c1c1c;
+  --secondary: rgb(255 255 255 / 0.05);
+  --secondary-foreground: #f5f5f5;
+  --muted: rgb(255 255 255 / 0.04);
+  --muted-foreground: #8a8a8a;
+  --accent: rgb(255 255 255 / 0.06);
+  --accent-foreground: #f5f5f5;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.12);
+  --ring: #ffd23f;
+  --brand-foreground: #ffd23f;
+}
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-contrast: var(--brand-contrast);
+}
+@theme {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+::selection {
+  background: color-mix(in srgb, var(--brand) 45%, transparent);
+}
+html {
+  caret-color: var(--brand-foreground);
+}
+
+/* Área de soltar da home: a borda tracejada "acende" quando um arquivo passa por cima. */
+@keyframes caret {
+  0%, 70%, 100% { opacity: 1; }
+  20%, 50% { opacity: 0; }
+}
+@utility animate-caret {
+  animation: caret 1s ease-out infinite;
+}
