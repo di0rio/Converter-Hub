@@ -127,7 +127,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The hub lays its cards out in three columns on wide screens instead of two.
+- **The hub starts with a drop zone.** Drop any file, or choose one, and the
+  hub picks the tool by its extension and opens it with the file already
+  loaded (`apps/web/lib/handoff.ts`). The file stays in memory and is handed
+  over once; a file no tool reads gets a message and stays put. Tools below
+  are a plain list of rows, each showing what it reads and what it writes.
+- **Works offline and installs as an app.** A service worker (`public/sw.js`)
+  caches every tool page and the SQLite wasm on first visit: pages are network
+  first with the cached copy as fallback, hashed assets cache first. A web
+  manifest with maskable icons makes the hub installable.
+- **New look, and a dark theme.** Ubuntu and Ubuntu Mono, a cream and graphite
+  palette with one yellow accent, a header that reads like a prompt
+  (`cd/hub ~/sql $`) and a light/dark toggle that follows the system by
+  default.
 - Links no longer prefetch. The hub linked to every tool, so each visit
   downloaded every tool's code in the background.
 - The Markdown tool asks for the direction first, Markdown to HTML or HTML to
