@@ -1,5 +1,6 @@
 import {
   createZip,
+  DataFormatError,
   formatBytes,
   toCsv,
   toFileName as safeName,
@@ -56,6 +57,34 @@ export function isOversizedWorkbook(bytes: number): boolean {
 
 export function oversizedWorkbookMessage(bytes: number): string {
   return `That file is ${formatBytes(bytes)}. The largest spreadsheet this tool reads is ${formatBytes(MAX_WORKBOOK_BYTES)}.`
+}
+
+// A ZIP of a few megabytes can claim to hold gigabytes. The sizes are read from
+// the central directory, before anything is inflated.
+export const MAX_UNPACKED_BYTES = 1024 * 1024 * 1024
+
+export function unpackedSize(bytes: Uint8Array): number | null {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const lowest = Math.max(0, bytes.length - 22 - 0xffff)
+  let end = bytes.length - 22
+  while (end >= lowest && view.getUint32(end, true) !== 0x06054b50) end--
+  if (end < lowest) return null
+
+  const count = view.getUint16(end + 10, true)
+  let at = view.getUint32(end + 16, true)
+  let total = 0
+  for (let i = 0; i < count; i++) {
+    if (at + 46 > bytes.length || view.getUint32(at, true) !== 0x02014b50) {
+      return null
+    }
+    total += view.getUint32(at + 24, true)
+    at +=
+      46 +
+      view.getUint16(at + 28, true) +
+      view.getUint16(at + 30, true) +
+      view.getUint16(at + 32, true)
+  }
+  return total
 }
 
 const CONTROL = /[\x00-\x1F\x7F]/g
@@ -131,6 +160,11 @@ function readBinaryWorkbook(
     bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 3 && bytes[3] === 4
   if (ZIP_EXTENSIONS.includes(extension) && !zip) {
     throw new Error('Not the format its extension names.')
+  }
+  if (zip && (unpackedSize(bytes) ?? Infinity) > MAX_UNPACKED_BYTES) {
+    throw new DataFormatError(
+      `That file unpacks to more than the ${formatBytes(MAX_UNPACKED_BYTES)} this tool reads.`,
+    )
   }
 
   return XLSX.read(bytes, { type: 'array', cellDates: true })

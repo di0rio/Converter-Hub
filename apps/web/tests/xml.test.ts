@@ -84,3 +84,29 @@ describe('parseXml', () => {
     expect(JSON.stringify(value)).not.toContain('example.com')
   })
 })
+
+describe('parseXml: hostile input', () => {
+  it('refuses declared entities, which is how a small file expands', () => {
+    const bomb =
+      '<?xml version="1.0"?><!DOCTYPE l [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;&a;">]><l>&b;</l>'
+
+    expect(() => parseXml(bomb)).toThrow(DataFormatError)
+  })
+
+  it('reads an element named like an Object property as plain data', () => {
+    const value = parseXml(
+      '<r><constructor>1</constructor><constructor>2</constructor><__proto__><x>3</x></__proto__></r>',
+    )
+
+    expect(JSON.parse(JSON.stringify(value))).toEqual({
+      r: { constructor: ['1', '2'], ['__proto__']: { x: '3' } },
+    })
+    expect(({} as Record<string, unknown>).x).toBeUndefined()
+  })
+
+  it('refuses a document nested deeper than it will read', () => {
+    const deep = `${'<a>'.repeat(300)}${'</a>'.repeat(300)}`
+
+    expect(() => parseXml(deep)).toThrow(DataFormatError)
+  })
+})
