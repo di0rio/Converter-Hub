@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FileCheck2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
+import { takePendingFile } from '@/lib/handoff'
 
 interface FileSelectProps {
   id: string
@@ -43,7 +44,15 @@ export function FileSelect({
   const dragDepth = useRef(0)
   const [dragOver, setDragOver] = useState(false)
 
-  function handle(chosen: FileList | null | undefined) {
+  // A file dropped on the hub's home arrives here as if it had been chosen.
+  useEffect(() => {
+    const file = takePendingFile(accept)
+    if (file) handle([file])
+    // Runs once, on mount: the pending file is handed over a single time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handle(chosen: FileList | File[] | null | undefined) {
     const files = chosen ? Array.from(chosen) : []
     if (files.length === 0) return
 
