@@ -9,17 +9,24 @@ export interface ExportFile {
 const RESERVED = /[\\/:*?"<>|]/g
 const CONTROL = /[\x00-\x1F\x7F]/g
 
-const EDGES = /^[.\-\s]+|[.\-\s]+$/g
+// A loop instead of `/^[.\-\s]+|[.\-\s]+$/g`: the end-anchored branch is quadratic on a long run of dots or
+// hyphens that doesn't reach the end (CodeQL js/polynomial-redos).
+function trimEdges(text: string): string {
+  const edge = (char: string) => char === '.' || char === '-' || /\s/.test(char)
+  let start = 0
+  let end = text.length
+  while (start < end && edge(text[start] as string)) start++
+  while (end > start && edge(text[end - 1] as string)) end--
+  return text.slice(start, end)
+}
 
 export function toFileName(name: string, fallback: string): string {
-  const cleaned = name
+  const collapsed = name
     .replace(RESERVED, '-')
     .replace(CONTROL, '')
     .replace(/\s+/g, ' ')
     .replace(/-{2,}/g, '-')
-    .replace(EDGES, '')
-    .slice(0, 100)
-    .replace(EDGES, '')
+  const cleaned = trimEdges(trimEdges(collapsed).slice(0, 100))
 
   return cleaned.length > 0 ? cleaned : fallback
 }

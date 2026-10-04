@@ -185,7 +185,7 @@ function table(element: Element): string {
   const rows = Array.from(element.querySelectorAll('tr')).map((row) =>
     Array.from(row.children)
       .filter((cell) => /^T[HD]$/i.test(cell.tagName))
-      .map((cell) => inline(cell).trim().replace(/\|/g, '\\|')),
+      .map((cell) => inline(cell).trim().replace(/\\/g, '\\\\').replace(/\|/g, '\\|')),
   )
   const [header, ...body] = rows
   if (!header) return ''

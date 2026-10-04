@@ -21,6 +21,7 @@ export function toJson(table: TabularTable): string {
 
 function markdownCell(value: string): string {
   return neutralizeFormula(value)
+    .replace(/\\/g, '\\\\')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

@@ -19,7 +19,10 @@ export function bytesToBase64(bytes: Uint8Array): string {
 
 function base64ToBytes(text: string): Uint8Array {
   const clean = text.replace(/\s+/g, '')
-  const body = clean.replace(/=+$/, '')
+  // A loop instead of `/=+$/`: that regex is quadratic on a long run of `=` that doesn't end the string.
+  let end = clean.length
+  while (end > 0 && clean[end - 1] === '=') end--
+  const body = clean.slice(0, end)
   if (
     !/^[A-Za-z0-9+/]*$/.test(body) ||
     body.length % 4 === 1 ||
