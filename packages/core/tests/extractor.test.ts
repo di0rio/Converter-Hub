@@ -290,4 +290,28 @@ USE \`empty_db\`;
       expect(result.sql).not.toMatch(/INSERT INTO\s+`categories`/)
     })
   })
+
+  describe('names with line breaks', () => {
+    it('keeps a quoted identifier from breaking out of a comment', () => {
+      const injected = parseDump(
+        'CREATE TABLE public."a\nDROP DATABASE prod;--" (id int);\n',
+        { format: 'postgresql' },
+      )
+      const database = injected.databases[0]
+      expect(database.tables[0].name).toContain('\n')
+
+      const { sql } = extractDatabase(injected, {
+        database: database.name,
+        tables: 'all',
+      })
+
+      const lines = sql.split('\n')
+      expect(lines.filter((line) => line.startsWith('--'))).toEqual([
+        '-- Extracted from PostgreSQL dump',
+        '-- Schema: ' + database.name,
+        '-- Tables: 1',
+        '-- Table: aDROP DATABASE prod;--',
+      ])
+    })
+  })
 })

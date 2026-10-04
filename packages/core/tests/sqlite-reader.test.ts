@@ -11,7 +11,11 @@ import {
   isWalFile,
   SqliteReadError,
 } from '../src/sqlite/reader.js'
-import { sqliteToTabular, sqliteToSql } from '../src/sqlite/index.js'
+import {
+  sqliteToTabular,
+  sqliteToSql,
+  singleStatement,
+} from '../src/sqlite/index.js'
 import type { SqliteFileSet } from '../src/sqlite/reader.js'
 
 const require = createRequire(import.meta.url)
@@ -322,5 +326,79 @@ describe('a write-ahead log SQLite would skip without a word', () => {
     await expect(
       readSqliteDatabase({ main: files.main, wal }, wasm),
     ).rejects.toThrow(SqliteReadError)
+  })
+})
+
+describe('schema text SQLite stores but never runs', () => {
+  // node:sqlite runs in defensive mode and refuses writable_schema, so the
+  // stored text is patched in the file instead, at the same length.
+  function patched(files: SqliteFileSet, from: string, to: string) {
+    expect(to.length).toBe(from.length)
+    const text = Buffer.from(files.main).toString('latin1')
+    expect(text).toContain(from)
+    return {
+      ...files,
+      main: new Uint8Array(Buffer.from(text.replace(from, to), 'latin1')),
+    }
+  }
+
+  it('keeps a smuggled second statement out of the exported script', async () => {
+    const path = join(dir, 'smuggled.db')
+    const db = new DatabaseSync(path)
+    db.exec(`CREATE TABLE users (id INTEGER, name TEXT) STRICT;
+       CREATE INDEX users_name ON users (name) WHERE id > 0;
+       INSERT INTO users VALUES (1, 'Ada');`)
+    db.close()
+    const crafted = patched(
+      patched(
+        { main: readFileSync(path) },
+        ') STRICT',
+        ');DROP t',
+      ),
+      ') WHERE id > 0',
+      '); DELETE FROM',
+    )
+    const database = await readSqliteDatabase(crafted, wasm)
+    const sql = sqliteToSql(database.tables)
+
+    expect(sql).not.toMatch(/DROP/)
+    expect(sql).not.toMatch(/DELETE FROM/)
+    expect(sql).toContain('CREATE TABLE users (id INTEGER, name TEXT);')
+    expect(sql).toContain('CREATE INDEX users_name ON users (name);')
+    expect(sql).toContain('-- Warning:')
+    expect(sql).toContain("(1,'Ada')")
+  })
+})
+
+describe('singleStatement', () => {
+  it('leaves an ordinary statement alone', () => {
+    expect(singleStatement('CREATE TABLE t (a)')).toEqual({
+      sql: 'CREATE TABLE t (a)',
+      truncated: false,
+    })
+  })
+
+  it('ignores semicolons inside quotes, brackets and comments', () => {
+    const sql = `CREATE TABLE "a;b" ('x;' TEXT, [c;d] INT, \`e;f\` INT /* ; */) -- ;`
+    expect(singleStatement(sql)).toEqual({ sql, truncated: false })
+  })
+
+  it('accepts a trailing semicolon followed only by whitespace or comments', () => {
+    expect(singleStatement('CREATE TABLE t (a); -- done\n/* x */ ')).toEqual({
+      sql: 'CREATE TABLE t (a)',
+      truncated: false,
+    })
+  })
+
+  it('cuts at the first top-level semicolon and flags what followed', () => {
+    expect(singleStatement("CREATE TABLE t (a); DROP TABLE 'x;y'; --")).toEqual({
+      sql: 'CREATE TABLE t (a)',
+      truncated: true,
+    })
+  })
+
+  it('treats a doubled quote as an escape, not the end of the string', () => {
+    const sql = "CREATE TABLE t (a DEFAULT 'it''s; fine')"
+    expect(singleStatement(sql)).toEqual({ sql, truncated: false })
   })
 })

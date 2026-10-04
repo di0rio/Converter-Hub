@@ -131,3 +131,31 @@ describe('MariaDB', () => {
     expect(countRows(dump.databases[0].tables[2])).toBe(0)
   })
 })
+
+describe('detectFormat on adversarial input', () => {
+  const SIZE = 200 * 1024
+  const cases: Record<string, string> = {
+    'newlines only': '\n'.repeat(SIZE),
+    'spaces and newlines': ' \n'.repeat(SIZE / 2),
+    'unclosed neo4j relationship': '-[:a'.repeat(SIZE / 4),
+    'unclosed starrocks key': 'PRIMARY KEY ('.repeat(SIZE / 13),
+    'repeated CREATE SEQUENCE': 'CREATE SEQUENCE '.repeat(SIZE / 16),
+    'repeated backticks': '`'.repeat(SIZE),
+    'repeated dashes': '--\n'.repeat(SIZE / 3),
+    'repeated cypher create': 'CREATE (a'.repeat(SIZE / 9),
+  }
+
+  for (const [name, input] of Object.entries(cases)) {
+    it(`stays fast on ${name}`, () => {
+      const start = performance.now()
+      detectFormat(input)
+      expect(performance.now() - start).toBeLessThan(100)
+    })
+  }
+
+  it('only looks at a bounded prefix, cut at a line break', () => {
+    const tail = '-- MariaDB dump\n/*M!100000 x*/\n'
+    const huge = 'x'.repeat(300 * 1024) + '\n' + tail
+    expect(detectFormat(huge).format).not.toBe('mariadb')
+  })
+})

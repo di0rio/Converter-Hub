@@ -7,16 +7,16 @@ import type {
 export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
   mysql: [
     /\/\*!\d{5}/,
-    /^--\s*MySQL dump/im,
+    /^--[ \t]*MySQL dump/im,
     /\bLOCK TABLES\b/i,
     /\bUNLOCK TABLES\b/i,
     /\bENGINE\s*=\s*[A-Za-z]+/i,
     /\bAUTO_INCREMENT\b/i,
     /\bDEFAULT CHARSET\s*=/i,
-    /^(?!\s*(?:--|#)).*`[^`\n]+`/m,
+    /^(?![ \t]*(?:--|#)).*`[^`\n]+`/m,
   ],
   postgresql: [
-    /^--\s*PostgreSQL database dump/im,
+    /^--[ \t]*PostgreSQL database dump/im,
     /^\\connect\b/im,
     /\bFROM stdin;/i,
     /^\\\.$/m,
@@ -26,7 +26,7 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /\bpg_catalog\./i,
   ],
   sqlserver: [
-    /^\s*GO\s*$/im,
+    /^[ \t]*GO[ \t]*$/im,
     /\[dbo\]\s*\./i,
     /\bSET\s+IDENTITY_INSERT\b/i,
     /\bSET\s+ANSI_NULLS\b/i,
@@ -39,14 +39,14 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /^PRAGMA\s+foreign_keys\s*=/im,
     /\bsqlite_sequence\b/i,
     /\bsqlite_master\b/i,
-    /^BEGIN TRANSACTION;\s*$/im,
+    /^BEGIN TRANSACTION;[ \t]*$/im,
     /\bAUTOINCREMENT\b/i,
   ],
   firebird: [
     /\bSET\s+TERM\b/i,
     /\bCREATE\s+GENERATOR\b/i,
     /\bGEN_ID\s*\(/i,
-    /^\/\*\s*Firebird/im,
+    /^\/\*[ \t]*Firebird/im,
     /\bRDB\$/i,
   ],
   oracle: [
@@ -57,11 +57,11 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /\bFROM\s+dual\b/i,
     /\bNOCACHE\b/i,
   ],
-  elasticsearch: [/^\s*\{[^\n]*"_index"\s*:/m, /"_source"\s*:\s*\{/],
+  elasticsearch: [/^[ \t]*\{[^\n]*"_index"\s*:/m, /"_source"\s*:\s*\{/],
   neo4j: [
     /\b(CREATE|MERGE)\s*\(\s*[A-Za-z_]\w*\s*:\s*[A-Za-z_]\w*\s*\{/,
-    /-\s*\[\s*:[A-Za-z_][^\]]*\]\s*->/,
-    /^\s*MATCH\s*\(/im,
+    /-\s*\[\s*:[A-Za-z_][^\]]{0,100}\]\s*->/,
+    /^[ \t]*MATCH\s*\(/im,
   ],
   mongodb: [
     /\bdb\s*\.\s*[A-Za-z_][\w$]*\s*\.\s*(insertMany|insertOne)\s*\(/,
@@ -80,7 +80,7 @@ export const FAMILY_MARKERS: Record<DialectFamily, RegExp[]> = {
     /\bGENERATED\s+ALWAYS\s+AS\s+IDENTITY\b/i,
     /\bVALUES\s+NEXTVAL\s+FOR\b/i,
     /\bORGANIZE\s+BY\b/i,
-    /^--\s*DB2\b/im,
+    /^--[ \t]*DB2\b/im,
   ],
   none: [],
 }
@@ -135,7 +135,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'mysql',
     ...DATABASE,
-    markers: [/^--\s*MariaDB dump/im, /\/\*M!\d{5}/, /^--.*\bMariaDB\b/im],
+    markers: [/^--[ \t]*MariaDB dump/im, /\/\*M!\d{5}/, /^--.*\bMariaDB\b/im],
   },
 
   tidb: {
@@ -146,7 +146,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     ...DATABASE,
     markers: [
       /\/\*T!\[/,
-      /^--\s*Dumpling\b/im,
+      /^--[ \t]*Dumpling\b/im,
       /\btidb_version\b/i,
       /\btidb_rowid\b/i,
       /\bAUTO_RANDOM\b/i,
@@ -188,7 +188,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     ...DATABASE,
     markers: [
       /\bENGINE\s*=\s*OLAP\b/i,
-      /\b(DUPLICATE|AGGREGATE|PRIMARY)\s+KEY\s*\([^)]*\)\s*(COMMENT|DISTRIBUTED|PARTITION)/i,
+      /\b(DUPLICATE|AGGREGATE|PRIMARY)\s+KEY\s*\([^)]{0,200}\)\s*(COMMENT|DISTRIBUTED|PARTITION)/i,
       /\bBUCKETS\s+\d+/i,
       /\bStarRocks\b/i,
     ],
@@ -212,7 +212,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     markers: [
       /\bcrdb_internal\b/i,
       /\bunique_rowid\s*\(/i,
-      /^--\s*CockroachDB\b/im,
+      /^--[ \t]*CockroachDB\b/im,
       /\bFAMILY\s+"?primary"?\s*\(/i,
     ],
     note:
@@ -229,7 +229,7 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     status: 'supported',
     family: 'postgresql',
     ...SCHEMA,
-    markers: [/^--\s*YugabyteDB\b/im, /\byb_[a-z_]+\b/i, /\bSPLIT\s+INTO\b/i],
+    markers: [/^--[ \t]*YugabyteDB\b/im, /\byb_[a-z_]+\b/i, /\bSPLIT\s+INTO\b/i],
   },
 
   greenplum: {
@@ -327,9 +327,9 @@ export const CATALOG: Record<DatabaseFormat, FormatDescriptor> = {
     family: 'sqlite',
     ...DATABASE,
     markers: [
-      /^--\s*DuckDB\b/im,
+      /^--[ \t]*DuckDB\b/im,
       /\bduckdb_[a-z_]+\b/i,
-      /\bCREATE\s+SEQUENCE\b[\s\S]*\bSTART\s+\d+/i,
+      /\bCREATE\s+SEQUENCE\b[\s\S]{0,200}\bSTART\s+\d+/i,
     ],
   },
 

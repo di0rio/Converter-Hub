@@ -39,7 +39,10 @@ export type CsvOptions = {
   delimiter?: CsvDelimiter
 }
 
+const PLAIN_NUMBER = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/
+
 export function neutralizeFormula(value: string): string {
+  if (PLAIN_NUMBER.test(value)) return value
   return /^[=+\-@\t\r]/.test(value) ? "'" + value : value
 }
 

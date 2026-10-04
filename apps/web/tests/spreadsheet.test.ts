@@ -226,7 +226,8 @@ describe('buildArchive', () => {
 
     expect(csv).toContain("'=1+1")
     expect(csv).toContain("'+cmd")
-    expect(csv).toContain("'-2")
+    expect(csv).toMatch(/(^|[\r\n,])-2(?=[\r\n,]|$)/)
+    expect(csv).not.toContain("'-2")
     expect(csv).toContain("'@SUM(A1)")
     expect(csv).not.toMatch(/(^|[\r\n,])=1\+1/)
   })
@@ -425,6 +426,22 @@ describe('buildArchive: formulas', () => {
     expect(sheet.E2.f).toBe('A2*2')
     expect(sheet.G2.f).toBe('B!E2')
     expect(sheet.F2.f).toBe('"a!b"')
+  })
+
+  it('drops a very long formula without scanning it', async () => {
+    const source = linked()
+    source.workbook.Sheets.B.A2 = {
+      t: 'n',
+      v: 20,
+      f: 'B!E2' + '+1'.repeat(100_000),
+    }
+
+    const start = performance.now()
+    const sheet = await exportB(source)
+
+    expect(performance.now() - start).toBeLessThan(2000)
+    expect(sheet.A2.f).toBeUndefined()
+    expect(sheet.A2.v).toBe(20)
   })
 
   it('never changes the workbook it was given', async () => {

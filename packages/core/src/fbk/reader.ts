@@ -8,7 +8,7 @@ import {
 } from '../sqlite/index.js'
 import { declaredType, type FieldInfo, quote } from '../fdb/index.js'
 import { decodeDecFloat, TIME_TZ_BASE_DATE } from '../fdb/modern.js'
-import { inflateZlib } from './inflate.js'
+import { InflateLimitError, inflateZlib } from './inflate.js'
 import {
   CHARSET_IDS,
   decodeText,
@@ -176,6 +176,10 @@ class Stream {
     return this.at >= this.bytes.length
   }
 
+  get remaining(): number {
+    return this.bytes.length - this.at
+  }
+
   byte(): number {
     const value = this.bytes[this.at]
     if (value === undefined) throw damaged('backup ends early')
@@ -209,6 +213,11 @@ class Stream {
 
   /** Undo gbak's run-length encoding until `length` bytes come out. */
   expand(length: number): Uint8Array {
+    // Two input bytes make at most 128 output bytes, so a length past that
+    // ratio cannot be real: refuse it before allocating.
+    if (length < 0 || length > this.remaining * 64) {
+      throw damaged('row longer than the data that follows it')
+    }
     const out = new Uint8Array(length)
     let o = 0
     while (o < length) {
@@ -808,7 +817,10 @@ export async function readFbkDatabase(
     if ((integer(attributes, ATT.backupZip) ?? 0) !== 0) {
       try {
         body = inflateZlib(body)
-      } catch {
+      } catch (cause) {
+        if (cause instanceof InflateLimitError) {
+          throw damaged('compressed stream inflates past the size limit')
+        }
         throw damaged('compressed stream does not inflate')
       }
     }

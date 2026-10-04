@@ -241,6 +241,23 @@ describe('readFbkDatabase', () => {
     expect(db.tables[0]?.rows[0]?.[0]).toBe(7)
   })
 
+  it('refuses a row whose length no run-length data could fill', async () => {
+    const data = body()
+    // The first row record: type, rec_data length, then the XDR length.
+    const marker = [6, ...int(1, 64), 17, 4]
+    const at = data.findIndex((_, i) =>
+      marker.every((byte, j) => data[i + j] === byte),
+    )
+    expect(at).toBeGreaterThan(-1)
+    data.splice(at + marker.length, 4, ...le32(0x40000000))
+
+    await expect(
+      readFbkDatabase(new Uint8Array([...header(), ...data])),
+    ).rejects.toMatchObject({
+      detail: 'row longer than the data that follows it',
+    })
+  })
+
   it('refuses a backup cut short, and one it cannot read', async () => {
     const whole = [...header(), ...body()]
     await expect(

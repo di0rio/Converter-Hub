@@ -210,6 +210,10 @@ export async function readSheetRows(
 
 const STRING_LITERAL = /"(?:[^"]|"")*"/g
 
+// Longer formulas are not scanned: the patterns below backtrack, and no real
+// formula comes close. They are treated as reading outside the sheet.
+const MAX_SCANNED_FORMULA = 8192
+
 const SHEET_REFERENCE = /(?:'((?:[^']|'')+)'|([^\s'!"(),;=+\-*/&^<>:%{}]+))!/g
 
 function definedNames(workbook: WorkBook): RegExp | null {
@@ -227,6 +231,7 @@ function readsOutside(
   sheetName: string,
   names: RegExp | null,
 ): boolean {
+  if (formula.length > MAX_SCANNED_FORMULA) return true
   const code = formula.replace(STRING_LITERAL, '""')
   if (code.includes('[')) return true
   if (names?.test(code)) return true

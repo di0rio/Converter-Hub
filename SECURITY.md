@@ -6,7 +6,7 @@ If you discover a security vulnerability in SQL Database Extractor, please repor
 
 **Do NOT open a public GitHub issue for security vulnerabilities.**
 
-Instead, please email the maintainers directly (see the repository's contact information or GitHub profile). Include:
+Instead, use GitHub's private vulnerability reporting: <https://github.com/di0rio/Converter-Hub/security/advisories/new>. Only the maintainers can see the report. Include:
 
 1. A description of the vulnerability
 2. Steps to reproduce

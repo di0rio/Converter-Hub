@@ -58,6 +58,17 @@ const GENERIC_SQL = /\b(CREATE\s+TABLE|INSERT\s+INTO)\b/i
 
 const DECISIVE_LEAD = 2
 
+// The markers are regexes run over the whole text. Looking at a bounded
+// prefix caps the cost of adversarial input (dumps go up to 250 MB).
+export const DETECT_PREFIX_LIMIT = 256 * 1024
+
+function detectionPrefix(sql: string): string {
+  if (sql.length <= DETECT_PREFIX_LIMIT) return sql
+  const head = sql.slice(0, DETECT_PREFIX_LIMIT)
+  const cut = head.lastIndexOf('\n')
+  return cut > 0 ? head.slice(0, cut) : head
+}
+
 const FAMILIES = Object.keys(FAMILY_MARKERS) as DialectFamily[]
 
 function countMatches(sql: string, markers: RegExp[]): number {
@@ -89,7 +100,8 @@ function memberOf(
   return { format: best ?? FAMILY_DEFAULT[family], hits: bestHits }
 }
 
-export function detectFormat(sql: string): FormatDetection {
+export function detectFormat(input: string): FormatDetection {
+  const sql = detectionPrefix(input)
   const scores = FAMILIES.filter((family) => family !== 'none')
     .map((family) => {
       const member = memberOf(family, sql)

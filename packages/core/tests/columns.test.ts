@@ -40,9 +40,19 @@ describe('neutralizeFormula', () => {
   it('prefixes a value a spreadsheet would read as a formula', () => {
     expect(neutralizeFormula('=1+1')).toBe("'=1+1")
     expect(neutralizeFormula('+1')).toBe("'+1")
-    expect(neutralizeFormula('-1')).toBe("'-1")
+    expect(neutralizeFormula('-1+cmd|' + "' /C calc'!A0")).toBe(
+      "'-1+cmd|' /C calc'!A0",
+    )
+    expect(neutralizeFormula('-cmd')).toBe("'-cmd")
+    expect(neutralizeFormula('-1e')).toBe("'-1e")
     expect(neutralizeFormula('@SUM(A1)')).toBe("'@SUM(A1)")
     expect(neutralizeFormula('\tx')).toBe("'\tx")
+  })
+
+  it('leaves a plain number alone, negative ones included', () => {
+    for (const number of ['-1', '-2.5', '-1e5', '-1.5E-3', '-0', '12', '3.14']) {
+      expect(neutralizeFormula(number)).toBe(number)
+    }
   })
 
   it('leaves anything else alone', () => {

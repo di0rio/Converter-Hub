@@ -4,6 +4,7 @@ import type {
   ExtractionResult,
 } from '../types/index.js'
 import { describeFormat } from '../formats/index.js'
+import { commentText } from '../utilities/comment.js'
 
 export function extractDatabase(
   dump: SqlDump,
@@ -29,7 +30,7 @@ export function extractDatabase(
   const lines: string[] = []
 
   lines.push(`-- Extracted from ${format.label} dump`)
-  lines.push(`-- ${format.namespaceLabel}: ${database.name}`)
+  lines.push(`-- ${format.namespaceLabel}: ${commentText(database.name)}`)
   lines.push(`-- Tables: ${selectedTables.length}`)
   lines.push('')
 
@@ -47,7 +48,7 @@ export function extractDatabase(
   lines.push('')
 
   for (const table of selectedTables) {
-    lines.push(`-- Table: ${table.name}`)
+    lines.push(`-- Table: ${commentText(table.name)}`)
 
     if (table.createStatement) {
       lines.push(table.createStatement.trimEnd())

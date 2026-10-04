@@ -10,6 +10,12 @@
 
 class OutOfInput extends Error {}
 
+/** The most a backup may inflate to before the stream is refused. */
+export const MAX_INFLATED_BYTES = 512 * 1024 * 1024
+
+/** The stream would inflate past the output limit: a decompression bomb. */
+export class InflateLimitError extends Error {}
+
 interface Tree {
   /** How many codes have each bit length. */
   counts: Uint16Array
@@ -70,8 +76,13 @@ class Inflater {
   private out: Uint8Array
   private length = 0
 
-  constructor(private readonly input: Uint8Array) {
-    this.out = new Uint8Array(Math.max(1024, input.length * 4))
+  constructor(
+    private readonly input: Uint8Array,
+    private readonly maxOut: number,
+  ) {
+    this.out = new Uint8Array(
+      Math.min(Math.max(1024, input.length * 4), Math.max(1024, maxOut)),
+    )
   }
 
   private bit(): number {
@@ -111,7 +122,12 @@ class Inflater {
 
   private emit(byte: number): void {
     if (this.length === this.out.length) {
-      const grown = new Uint8Array(this.out.length * 2)
+      if (this.length >= this.maxOut) {
+        throw new InflateLimitError('inflated stream is too large')
+      }
+      const grown = new Uint8Array(
+        Math.min(this.out.length * 2, this.maxOut),
+      )
       grown.set(this.out)
       this.out = grown
     }
@@ -213,9 +229,12 @@ class Inflater {
  * Inflate a zlib stream, returning what it holds up to where the input ends.
  * Trailing zero padding reads as an empty stored block, which adds nothing.
  */
-export function inflateZlib(input: Uint8Array): Uint8Array {
+export function inflateZlib(
+  input: Uint8Array,
+  maxOut: number = MAX_INFLATED_BYTES,
+): Uint8Array {
   if (input.length < 2 || ((input[0] as number) & 0x0f) !== 8) {
     throw new Error('not a zlib stream')
   }
-  return new Inflater(input.subarray(2)).run()
+  return new Inflater(input.subarray(2), maxOut).run()
 }

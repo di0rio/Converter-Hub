@@ -73,14 +73,87 @@ export function sqliteToTabular(table: SqliteTable): TabularTable {
   }
 }
 
+const CLOSER: Record<string, string> = { "'": "'", '"': '"', '`': '`', '[': ']' }
+
+// Next index after the quoted run or comment starting at `i`, or `i` itself
+// when nothing starts there.
+function skipQuotedOrComment(sql: string, i: number): number {
+  const char = sql.charAt(i)
+  const close = CLOSER[char]
+  if (close !== undefined) {
+    let j = i + 1
+    while (j < sql.length) {
+      if (sql.charAt(j) === close) {
+        // A doubled quote is an escaped quote; [..] has no escape.
+        if (char !== '[' && sql.charAt(j + 1) === close) j += 2
+        else return j + 1
+      } else j++
+    }
+    return sql.length
+  }
+  if (char === '-' && sql.charAt(i + 1) === '-') {
+    const end = sql.indexOf('\n', i)
+    return end === -1 ? sql.length : end + 1
+  }
+  if (char === '/' && sql.charAt(i + 1) === '*') {
+    const end = sql.indexOf('*/', i + 2)
+    return end === -1 ? sql.length : end + 2
+  }
+  return i
+}
+
+function hasCode(sql: string): boolean {
+  let i = 0
+  while (i < sql.length) {
+    const next = skipQuotedOrComment(sql, i)
+    if (next !== i) i = next
+    else if (/\s/.test(sql.charAt(i))) i++
+    else return true
+  }
+  return false
+}
+
+/**
+ * sqlite_master.sql is stored text: SQLite ignores whatever follows the first
+ * statement, so a crafted file can carry `CREATE TABLE t(a); DROP TABLE x;`
+ * and it would land verbatim in the exported script. Keep the first statement.
+ */
+export function singleStatement(sql: string): {
+  sql: string
+  truncated: boolean
+} {
+  let i = 0
+  while (i < sql.length) {
+    const next = skipQuotedOrComment(sql, i)
+    if (next !== i) {
+      i = next
+    } else if (sql.charAt(i) === ';') {
+      return {
+        sql: sql.slice(0, i),
+        truncated: hasCode(sql.slice(i + 1)),
+      }
+    } else i++
+  }
+  return { sql, truncated: false }
+}
+
 const ROWS_PER_INSERT = 500
+
+const TRUNCATED_WARNING =
+  '-- Warning: text after the first statement of a schema entry was dropped.'
 
 export function sqliteToSql(tables: readonly SqliteTable[]): string {
   const lines = ['PRAGMA foreign_keys=OFF;', 'BEGIN TRANSACTION;']
   const trailing: string[] = []
 
+  const emit = (target: string[], raw: string): void => {
+    const { sql, truncated } = singleStatement(raw.trimEnd())
+    if (truncated) target.push(TRUNCATED_WARNING)
+    target.push(sql.trimEnd() + ';')
+  }
+
   for (const table of tables) {
-    lines.push(table.createStatement.trimEnd().replace(/;$/, '') + ';')
+    emit(lines, table.createStatement)
 
     const columns = table.columns.map((c) => identifier(c.name)).join(',')
     for (let i = 0; i < table.rows.length; i += ROWS_PER_INSERT) {
@@ -99,9 +172,7 @@ export function sqliteToSql(tables: readonly SqliteTable[]): string {
       )
     }
 
-    for (const index of table.indexStatements) {
-      trailing.push(index.trimEnd().replace(/;$/, '') + ';')
-    }
+    for (const index of table.indexStatements) emit(trailing, index)
   }
 
   return [...lines, ...trailing, 'COMMIT;', ''].join('\n')
