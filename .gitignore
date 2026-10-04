@@ -23,3 +23,6 @@ apps/web/CLAUDE.md
 *.mdf
 *.ndf
 *.ldf
+
+# graphify
+graphify-out/
