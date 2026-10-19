@@ -4,8 +4,8 @@ import {
   toFileName,
   toXlsx,
   sqliteToSql,
+  sqliteToRecords,
   sqliteToTabular,
-  tableToRecords,
   toJsonl,
   uniqueName,
 } from '@sql-extractor/core'
@@ -15,7 +15,7 @@ import type {
   SqliteTable,
   TabularTable,
 } from '@sql-extractor/core'
-import { toJson, toMarkdown } from '@/lib/sheet-writers'
+import { toMarkdown } from '@/lib/sheet-writers'
 
 export type SqliteExportFormat =
   | 'sql'
@@ -64,15 +64,16 @@ export function buildSqliteExport(
     })
   } else {
     for (const table of tables) {
-      const tabular = sqliteToTabular(table)
+      // JSON keeps the database types (null, numbers); the other text
+      // formats are cells of text.
       const content =
         format === 'csv'
-          ? toCsv(tabular, { delimiter })
+          ? toCsv(sqliteToTabular(table), { delimiter })
           : format === 'json'
-            ? toJson(tabular)
+            ? JSON.stringify(sqliteToRecords(table), null, 2)
             : format === 'jsonl'
-              ? toJsonl(tableToRecords(tabular))
-              : toMarkdown(tabular)
+              ? toJsonl(sqliteToRecords(table))
+              : toMarkdown(sqliteToTabular(table))
       files.push({
         name: `${uniqueName(toFileName(table.name, 'table'), taken)}.${format}`,
         content: encoder.encode(content),

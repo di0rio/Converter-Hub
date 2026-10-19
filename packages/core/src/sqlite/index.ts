@@ -73,6 +73,43 @@ export function sqliteToTabular(table: SqliteTable): TabularTable {
   }
 }
 
+export type JsonCell = null | number | string
+
+/**
+ * A database value as JSON: NULL stays null and a finite number stays a
+ * number. A bigint (an integer beyond ±2^53, the only integers the readers
+ * hand over as bigint) is written as a decimal string, because a JSON number
+ * that large loses digits in most parsers. Bytes become base64, as in the
+ * other text formats. NaN and ±Infinity have no JSON form and become null.
+ * Scaled decimals (DECIMAL, NUMERIC, MONEY) arrive from the readers as text
+ * and stay strings, so their digits and trailing zeros are kept exactly.
+ */
+export function toJsonValue(value: SqliteValue): JsonCell {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  return toCellText(value)
+}
+
+export function sqliteToRecords(
+  table: SqliteTable,
+): Record<string, JsonCell>[] {
+  const width = table.rows.reduce(
+    (widest, row) => Math.max(widest, row.length),
+    table.columns.length,
+  )
+  const columns = normalizeColumns(
+    table.columns.map((c) => c.name),
+    width,
+  )
+  return table.rows.map((row) =>
+    Object.fromEntries(
+      columns.map((column, i) => {
+        const value = row[i]
+        return [column, value === undefined ? null : toJsonValue(value)]
+      }),
+    ),
+  )
+}
+
 const CLOSER: Record<string, string> = { "'": "'", '"': '"', '`': '`', '[': ']' }
 
 // Next index after the quoted run or comment starting at `i`, or `i` itself

@@ -75,8 +75,10 @@ export type {
 
 export {
   toCellText,
+  toJsonValue,
   toSqlLiteral,
   sqliteToTabular,
+  sqliteToRecords,
   sqliteToSql,
   groupSqliteFiles,
   SqliteReadError,
@@ -119,6 +121,7 @@ export type {
   DbfHeader,
 } from './dbf/index.js'
 export type {
+  JsonCell,
   SqliteValue,
   SqliteColumn,
   SqliteTable,

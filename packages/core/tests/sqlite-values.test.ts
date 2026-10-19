@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   toCellText,
+  toJsonValue,
   toSqlLiteral,
+  sqliteToRecords,
   sqliteToTabular,
   sqliteToSql,
 } from '../src/sqlite/index.js'
@@ -102,6 +104,92 @@ describe('sqliteToTabular', () => {
       rows: [[1, 2]],
     }
     expect(sqliteToTabular(clashing).columns).toEqual(['a', 'a_2'])
+  })
+})
+
+describe('toJsonValue', () => {
+  it('keeps NULL as null, not an empty string', () => {
+    expect(toJsonValue(null)).toBeNull()
+  })
+
+  it('keeps integers and floats as numbers', () => {
+    expect(toJsonValue(967)).toBe(967)
+    expect(toJsonValue(-1.5)).toBe(-1.5)
+    expect(toJsonValue(0)).toBe(0)
+  })
+
+  it('writes a bigint as a decimal string so no digit is lost', () => {
+    expect(toJsonValue(9007199254740993n)).toBe('9007199254740993')
+    expect(toJsonValue(-9223372036854775808n)).toBe('-9223372036854775808')
+  })
+
+  it('writes bytes as base64', () => {
+    expect(toJsonValue(new Uint8Array([0x00, 0xff, 0x10]))).toBe('AP8Q')
+  })
+
+  it('writes a non-finite number as null', () => {
+    expect(toJsonValue(Number.NaN)).toBeNull()
+    expect(toJsonValue(Number.NEGATIVE_INFINITY)).toBeNull()
+  })
+
+  it('leaves text alone, including text that looks like a number', () => {
+    expect(toJsonValue('')).toBe('')
+    expect(toJsonValue('007')).toBe('007')
+  })
+})
+
+describe('sqliteToRecords', () => {
+  it('keys each row by column and keeps the value types', () => {
+    expect(sqliteToRecords(table)).toEqual([
+      { id: 1, name: 'Ada' },
+      { id: 2, name: null },
+    ])
+  })
+
+  it('round-trips through JSON with null, number, bigint and bytes', () => {
+    const mixed: SqliteTable = {
+      ...table,
+      columns: ['n', 'i', 'f', 'big', 'blob'].map((name) => ({
+        name,
+        declaredType: '',
+        primaryKey: false,
+        notNull: false,
+      })),
+      rows: [[null, 967, 2.5, 2n ** 63n - 1n, new Uint8Array([1, 2, 3])]],
+    }
+    expect(JSON.parse(JSON.stringify(sqliteToRecords(mixed)))).toEqual([
+      { n: null, i: 967, f: 2.5, big: '9223372036854775807', blob: 'AQID' },
+    ])
+  })
+
+  it('writes a __proto__ column as an ordinary key', () => {
+    const risky: SqliteTable = {
+      ...table,
+      columns: [
+        {
+          name: '__proto__',
+          declaredType: '',
+          primaryKey: false,
+          notNull: false,
+        },
+      ],
+      rows: [[1]],
+    }
+    expect(JSON.stringify(sqliteToRecords(risky))).toBe('[{"__proto__":1}]')
+    expect(Object.getPrototypeOf(sqliteToRecords(risky)[0])).toBe(
+      Object.prototype,
+    )
+  })
+
+  it('names extra cells and fills a short row with null', () => {
+    const ragged: SqliteTable = {
+      ...table,
+      rows: [[1], [2, 'Bo', 'extra']],
+    }
+    expect(sqliteToRecords(ragged)).toEqual([
+      { id: 1, name: null, column_3: null },
+      { id: 2, name: 'Bo', column_3: 'extra' },
+    ])
   })
 })
 
