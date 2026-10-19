@@ -57,6 +57,7 @@ export const TOOLS: ConverterTool[] = [
       'Firebird databases',
       'Firebird backups',
       'SQL Server backups',
+      'dBase and FoxPro tables',
     ],
     output: ['SQL', 'CSV', 'XLSX', 'JSON', 'JSON Lines', 'Markdown'],
     heading: 'Extract from a database',

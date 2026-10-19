@@ -10,7 +10,7 @@ SQL from your files is ever executed.
 |-------|------------|
 | `/` | The hub - pick a tool |
 | `/spreadsheet` | Split a multi-sheet workbook into one file per sheet |
-| `/sql` | Extract tables out of a SQL dump, a SQLite database, a Firebird 2.x to 5 database, a gbak backup or a SQL Server backup |
+| `/sql` | Extract tables out of a SQL dump, a SQLite database, a Firebird 2.x to 5 database, a gbak backup, a SQL Server backup or dBase and FoxPro tables |
 | `/data` | Convert one structured data file (CSV, TSV, JSON, JSON Lines, YAML, XML) to another format |
 | `/markdown` | Turn a Markdown document into an HTML file, or an HTML page into Markdown |
 | `/json-to-typescript` | Generate TypeScript types from a JSON sample |
@@ -58,7 +58,10 @@ Server backup (`.bak`, `.jnmbak`) is recognised by its MTF `TAPE` header and
 never read whole: `readMssqlBackupBlob` slices the `File` a chunk at a time and
 keeps only the data pages, which is why its size limit (8 GB) is far above the
 256 MB every other database is held to. The data pages kept are held to 512 MB,
-past which the backup is refused with a message instead of crashing the tab.
+past which the backup is refused with a message instead of crashing the tab. A
+dBase or FoxPro pick (`.dbf`, with `.dbt` or `.fpt` beside it) is one table per
+file, so `readDbfSelection` pairs each table with its memo file and
+`readDbfDatabase` reads them into one set of tables.
 
 **Data:** choose a CSV, TSV, JSON, JSON Lines, YAML or XML file (XML read with
 `DOMParser` in `lib/xml.ts`) → choose CSV (with

@@ -171,7 +171,7 @@ export function SqliteConverter({
           fileName={fileName || null}
           reading={status === 'reading'}
           multiple
-          description="Select the database and, if it has them, its -wal and -shm files. Processed entirely in your browser."
+          description="Select the database and, if it has them, its -wal and -shm files. For dBase tables, select the .dbf files and their .dbt or .fpt memo files. Processed entirely in your browser."
           onFile={() => {}}
           onFiles={onFiles ?? handleFiles}
           onError={reportError}

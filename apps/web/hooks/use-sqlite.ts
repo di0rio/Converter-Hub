@@ -6,6 +6,7 @@ import {
   isBakFile,
   isFbkFile,
   isFdbFile,
+  readDbfDatabase,
   readFbkDatabase,
   readFdbDatabase,
   readMssqlBackupBlob,
@@ -17,7 +18,13 @@ import type {
   SqliteDatabase,
   SqliteTable,
 } from '@sql-extractor/core'
-import { groupSqliteFiles, readSelection } from '@/lib/sqlite-files'
+import {
+  dbfSelectionBytes,
+  groupSqliteFiles,
+  isDbfSelection,
+  readDbfSelection,
+  readSelection,
+} from '@/lib/sqlite-files'
 import { buildSqliteExport } from '@/lib/sqlite-export'
 import type {
   SqliteExportFormat,
@@ -42,6 +49,12 @@ export const MAX_ROWS_PER_TABLE = 200_000
 
 const GENERIC =
   'This file could not be read as a SQLite database. It may be incomplete, damaged, or encrypted.'
+
+function tooLarge(ceiling: number): SqliteReadError {
+  return new SqliteReadError(
+    `This database is larger than ${Math.round(ceiling / 1024 / 1024)} MB, which is more than a browser tab can hold. Use the command line tool for a database this size.`,
+  )
+}
 
 function safeMessage(cause: unknown): string {
   return cause instanceof SqliteReadError ? cause.message : GENERIC
@@ -75,6 +88,8 @@ async function readDatabase(bytes: {
 export function useSqlite() {
   const [database, setDatabase] = useState<SqliteDatabase | null>(null)
   const [fileName, setFileName] = useState('')
+  /** Set when the export cannot be named after a single selected file. */
+  const [exportBase, setExportBase] = useState('')
   const [walApplied, setWalApplied] = useState(false)
   const [truncated, setTruncated] = useState<string[]>([])
   const [selectedTables, setSelectedTables] = useState<string[]>([])
@@ -93,6 +108,7 @@ export function useSqlite() {
   const reset = useCallback(() => {
     setDatabase(null)
     setFileName('')
+    setExportBase('')
     setWalApplied(false)
     setTruncated([])
     setSelectedTables([])
@@ -113,6 +129,30 @@ export function useSqlite() {
       setResult(null)
       setStatus('reading')
       try {
+        // A dBase selection is one table per file, so it is grouped and read
+        // on its own rather than as a main database with companion files.
+        if (await isDbfSelection(files)) {
+          const size = dbfSelectionBytes(files)
+          if (size > MAX_SQLITE_BYTES) throw tooLarge(MAX_SQLITE_BYTES)
+          const sources = await readDbfSelection(files)
+          const read = readDbfDatabase(sources, {
+            rowLimit: MAX_ROWS_PER_TABLE,
+          })
+          const only = sources.length === 1 ? sources[0] : undefined
+          setDatabase(read)
+          setFileName(only ? only.name : `${sources.length} dBase tables`)
+          setExportBase(only ? '' : 'dbase-tables')
+          setWalApplied(false)
+          setTruncated(
+            read.tables
+              .filter((t) => t.rowCount > t.rows.length)
+              .map((t) => t.name),
+          )
+          setSelectedTables([])
+          setStatus('idle')
+          return
+        }
+
         const selection = groupSqliteFiles(files)
         const head = new Uint8Array(
           await selection.main.slice(0, BAK_HEADER_BYTES).arrayBuffer(),
@@ -120,11 +160,7 @@ export function useSqlite() {
         const backup = isBakFile(head)
         const ceiling = backup ? MAX_BACKUP_BYTES : MAX_SQLITE_BYTES
         const total = selection.main.size + (selection.wal?.size ?? 0)
-        if (total > ceiling) {
-          throw new SqliteReadError(
-            `This database is larger than ${Math.round(ceiling / 1024 / 1024)} MB, which is more than a browser tab can hold. Use the command line tool for a database this size.`,
-          )
-        }
+        if (total > ceiling) throw tooLarge(ceiling)
 
         // A backup is streamed from the file; everything else is read whole.
         const bytes = backup ? null : await readSelection(selection)
@@ -137,6 +173,7 @@ export function useSqlite() {
 
         setDatabase(read)
         setFileName(selection.main.name)
+        setExportBase('')
         setWalApplied(Boolean(bytes?.wal))
         setTruncated(
           read.tables
@@ -148,6 +185,7 @@ export function useSqlite() {
       } catch (cause) {
         setDatabase(null)
         setFileName('')
+        setExportBase('')
         reportError(safeMessage(cause))
       }
     },
@@ -188,13 +226,21 @@ export function useSqlite() {
       const chosen: SqliteTable[] = database.tables.filter((t) =>
         selectedTables.includes(t.name),
       )
-      const base = fileName.replace(/\.[^.]+$/, '') || 'database'
+      const base = exportBase || fileName.replace(/\.[^.]+$/, '') || 'database'
       setResult(buildSqliteExport(base, chosen, exportFormat, { delimiter }))
       setStatus('done')
     } catch (cause) {
       reportError(safeMessage(cause))
     }
-  }, [database, selectedTables, exportFormat, delimiter, fileName, reportError])
+  }, [
+    database,
+    selectedTables,
+    exportFormat,
+    delimiter,
+    exportBase,
+    fileName,
+    reportError,
+  ])
 
   return {
     database,

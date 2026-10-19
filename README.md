@@ -20,7 +20,7 @@ does not exist yet.
 | Tool | Route | Reads | Writes | What it does |
 |------|-------|-------|--------|--------------|
 | Spreadsheets | `/spreadsheet` | XLSX, XLSM, XLS, XLSB, ODS, CSV, TSV | XLSX, CSV, JSON, Markdown, SQL | Splits a multi-sheet workbook into one file per sheet, packaged as a ZIP |
-| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x to 5 database files and gbak backups, SQL Server backups | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
+| SQL | `/sql` | SQL dumps from 24 engines, SQLite database files with their write-ahead log, Firebird 2.x to 5 database files and gbak backups, SQL Server backups, dBase and FoxPro tables with their memo files | SQL, CSV, XLSX, JSON, JSON Lines, Markdown | Extracts the tables you pick out of a dump or a database file |
 | Data | `/data` | CSV, TSV, JSON, JSON Lines, YAML, XML | CSV, TSV, JSON, JSON Lines, YAML, Markdown, SQL, XLSX | Converts one structured data file to another format, as a single file |
 | Markdown | `/markdown` | Markdown, HTML | HTML, Markdown | Turns a Markdown document into an HTML file, or an HTML page into Markdown |
 | JSON to TypeScript | `/json-to-typescript` | JSON | TypeScript | Writes types that describe a JSON sample |
@@ -73,6 +73,21 @@ with an ARRAY column, an external file, temporary rows or a character set the
 browser cannot decode is listed as unreadable rather than guessed at. To check
 a file from the command line without printing any of its rows, build the core
 and run `node scripts/fdb-probe.mjs <file.fdb>`.
+
+A dBase or FoxPro table (`.dbf`) is read by the SQL tool as well. One file is
+one table, so several `.dbf` files can be picked at once and come out as one
+set of tables; a `.dbt` or `.fpt` picked with them supplies the memo fields,
+and the index files that usually sit in the same folder (`.cdx`, `.idx`) are
+ignored. dBase II, dBase III+, dBase IV, dBase 5 and 7, FoxBASE+, FoxPro 2.x
+and Visual FoxPro tables are read, with character, numeric, float, date,
+logical, memo, general, integer, double, currency, datetime, autoincrement,
+varchar and varbinary fields. Records marked deleted are left out. Visual
+FoxPro null flags are honoured, so a null column reads as null rather than as
+a blank. Character fields are decoded in the code page the table's language
+driver byte names - including the OEM pages the browser does not carry, such as
+437, 850, 852, 860 and 865 - and in Windows-1252 when the byte is unset, which
+is what most writers leave it at. A table that cannot be read is listed as
+unreadable with the reason, and the other tables in the selection still open.
 
 A gbak backup (`.fbk` or `.gbk`) opens the same way, without restoring it:
 the core walks the backup's record stream after Firebird's own reader of it,

@@ -71,7 +71,7 @@ const SUPPORTED_SUMMARY = (() => {
     labels.some((label) => label.includes(name)),
   )
 
-  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, SQLite database files with their -wal, Firebird 2.x to 5 databases and their gbak backups, and SQL Server backups.`
+  return `Supports ${labels.length} dump formats, including ${headline.join(', ')}, SQLite database files with their -wal, Firebird 2.x to 5 databases and their gbak backups, SQL Server backups, and dBase and FoxPro tables with their memo files.`
 })()
 
 function describeSource(
