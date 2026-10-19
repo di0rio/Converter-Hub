@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **dBase and FoxPro tables in the SQL tool.** A `.dbf` opens like a database,
+  one file to one table, so a folder of them can be picked at once and comes
+  out as one set of tables. `packages/core/src/dbf` reads the table header, the
+  field descriptors and the records itself, with a `.dbt` or `.fpt` picked
+  alongside supplying the memo fields and the `.cdx` and `.idx` files ignored.
+  dBase II through dBase 7, FoxBASE+, FoxPro 2.x and Visual FoxPro are read,
+  Visual FoxPro null flags and varchar lengths included. Deleted records are
+  left out. Character fields are decoded in the code page the language driver
+  byte names, with tables for the OEM pages the browser has no decoder for
+  (437, 850, 852, 857, 860, 861, 863, 865) and Windows-1252 when the byte is
+  unset.
+
 - **gbak backups in the SQL tool.** A `.fbk` or `.gbk` opens like a database,
   with no restore: `packages/core/src/fbk/reader.ts` walks the backup's record
   stream after Firebird's `restore.epp` and decodes rows from gbak's XDR

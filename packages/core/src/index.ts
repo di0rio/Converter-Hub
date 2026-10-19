@@ -102,6 +102,22 @@ export {
   FDB_HEADER_BYTES,
 } from './fdb/index.js'
 export type { FdbReadOptions } from './fdb/index.js'
+export {
+  readDbfDatabase,
+  readDbfTable,
+  groupDbfFiles,
+  tableName,
+  isDbfFile,
+  DbfReadError,
+  DBF_HEADER_BYTES,
+} from './dbf/index.js'
+export type {
+  DbfReadOptions,
+  DbfSource,
+  DbfFileGroup,
+  DbfField,
+  DbfHeader,
+} from './dbf/index.js'
 export type {
   SqliteValue,
   SqliteColumn,

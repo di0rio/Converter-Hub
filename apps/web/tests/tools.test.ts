@@ -57,6 +57,7 @@ describe('tool registry', () => {
       'Firebird databases',
       'Firebird backups',
       'SQL Server backups',
+      'dBase and FoxPro tables',
     ])
     expect(sql.output).toEqual([
       'SQL',
