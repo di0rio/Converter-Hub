@@ -75,8 +75,10 @@ export type {
 
 export {
   toCellText,
+  toJsonValue,
   toSqlLiteral,
   sqliteToTabular,
+  sqliteToRecords,
   sqliteToSql,
   groupSqliteFiles,
   SqliteReadError,
@@ -103,6 +105,7 @@ export {
 } from './fdb/index.js'
 export type { FdbReadOptions } from './fdb/index.js'
 export type {
+  JsonCell,
   SqliteValue,
   SqliteColumn,
   SqliteTable,

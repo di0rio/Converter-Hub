@@ -118,6 +118,98 @@ describe('buildSqliteExport', () => {
     expect(records[0].name).toBe('Ada')
   })
 
+  it('keeps NULL as null and numbers as numbers in JSON', () => {
+    const typed = table({
+      columns: [
+        {
+          name: 'id',
+          declaredType: 'INTEGER',
+          primaryKey: true,
+          notNull: true,
+        },
+        {
+          name: 'name',
+          declaredType: 'TEXT',
+          primaryKey: false,
+          notNull: false,
+        },
+        {
+          name: 'price',
+          declaredType: 'REAL',
+          primaryKey: false,
+          notNull: false,
+        },
+        {
+          name: 'big',
+          declaredType: 'INTEGER',
+          primaryKey: false,
+          notNull: false,
+        },
+        {
+          name: 'avatar',
+          declaredType: 'BLOB',
+          primaryKey: false,
+          notNull: false,
+        },
+      ],
+      rows: [
+        [
+          967,
+          null,
+          1.25,
+          BigInt('9007199254740993'),
+          new Uint8Array([0x00, 0xff]),
+        ],
+        [2, '', null, null, null],
+      ],
+    })
+    const expected = [
+      {
+        id: 967,
+        name: null,
+        price: 1.25,
+        big: '9007199254740993',
+        avatar: 'AP8=',
+      },
+      { id: 2, name: '', price: null, big: null, avatar: null },
+    ]
+
+    const json = strFromU8(
+      entries(buildSqliteExport('shop', [typed], 'json').bytes)[
+        'crew.json'
+      ] as Uint8Array,
+    )
+    expect(JSON.parse(json)).toEqual(expected)
+
+    const jsonl = strFromU8(
+      entries(buildSqliteExport('shop', [typed], 'jsonl').bytes)[
+        'crew.jsonl'
+      ] as Uint8Array,
+    )
+    expect(
+      jsonl
+        .trimEnd()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    ).toEqual(expected)
+  })
+
+  it('still writes CSV and Markdown as text, NULL as an empty cell', () => {
+    const csv = strFromU8(
+      entries(buildSqliteExport('shop', [table()], 'csv').bytes)[
+        'crew.csv'
+      ] as Uint8Array,
+    )
+    expect(csv.split(/\r?\n/).slice(0, 3)).toEqual(['id,name', '1,Ada', '2,'])
+
+    const md = strFromU8(
+      entries(buildSqliteExport('shop', [table()], 'md').bytes)[
+        'crew.md'
+      ] as Uint8Array,
+    )
+    expect(md).toContain('| 2 |  |')
+  })
+
   it('keeps formula neutralisation for values out of SQLite', () => {
     const dangerous = table({ rows: [[1, '=SUM(A1:A9)']] })
     const result = buildSqliteExport('shop', [dangerous], 'csv')
